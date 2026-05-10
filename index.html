@@ -468,8 +468,10 @@
       <div class="page" id="page-directory">
         <div class="card">
           <div class="card-title">📋 Parish Family Directory</div>
-          <div style="margin-bottom:16px;">
+          <div style="margin-bottom:16px; display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
             <input type="text" class="form-input" id="dir-search" placeholder="Search by name, email, or ministry..." oninput="filterDirectory()" style="max-width:400px;" />
+            <button class="btn btn-outline btn-sm" onclick="copyEmails()">📋 Copy All Emails</button>
+            <button class="btn btn-outline btn-sm" onclick="downloadCSV()">⬇ Download CSV</button>
           </div>
           <div id="directory-list"><div style="color:var(--dusty-rose);font-size:14px;">Loading...</div></div>
         </div>
@@ -982,6 +984,33 @@
     if(!confirm(`Remove ${name} from the Parish Family directory?`))return;
     try{await fs_delete(`parishFamily/${id}`);document.getElementById(`dir-${id}`)?.remove();allMembers=allMembers.filter(d=>docId(d)!==id);showToast(`${name} removed.`,'success');loadDashboard();}
     catch(e){showToast('Error.','error');}
+  }
+
+  function copyEmails() {
+    const emails = allMembers.filter(d=>gf(d,'email')).map(d=>gf(d,'email')).join(', ');
+    if(!emails){showToast('No emails to copy.','error');return;}
+    navigator.clipboard.writeText(emails).then(()=>showToast(`${allMembers.length} emails copied to clipboard!`,'success')).catch(()=>showToast('Copy failed — try the CSV download.','error'));
+  }
+
+  function downloadCSV() {
+    if(allMembers.length===0){showToast('No members to export.','error');return;}
+    const rows = [['Name','Email','Ministries','Founding Member','Joined']];
+    allMembers.forEach(d=>{
+      rows.push([
+        gf(d,'name'),
+        gf(d,'email'),
+        gf(d,'ministries'),
+        gf(d,'foundingMember')?'Yes':'No',
+        gf(d,'createdAt')?new Date(gf(d,'createdAt')).toLocaleDateString():''
+      ]);
+    });
+    const csv = rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
+    const blob = new Blob([csv],{type:'text/csv'});
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href=url; a.download=`saint-rose-parish-family-${new Date().toISOString().split('T')[0]}.csv`;
+    a.click(); URL.revokeObjectURL(url);
+    showToast(`${allMembers.length} members exported.`,'success');
   }
 
   function openLightbox(src) {
