@@ -1,0 +1,984 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Saint Rose — Parish Admin Portal</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Faustina:ital,wght@0,400;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --burgundy: #5C1A2E;
+    --burgundy-dark: #3D0F1E;
+    --burgundy-light: #7A2340;
+    --dusty-rose: #C17A8A;
+    --gold: #C9A84C;
+    --gold-light: #E8C96A;
+    --linen: #E8DDD0;
+    --sand: #F7F3EE;
+    --soil: #3D2B2B;
+    --white: #FFFFFF;
+    --success: #4A7C59;
+    --danger: #8B2635;
+    --sidebar-width: 260px;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Faustina', serif; background: var(--sand); color: var(--soil); min-height: 100vh; }
+
+  #login-screen { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: var(--burgundy); background-image: radial-gradient(ellipse at 30% 20%, #7A2340 0%, transparent 60%), radial-gradient(ellipse at 70% 80%, #3D0F1E 0%, transparent 60%); }
+  .login-card { background: var(--white); border-radius: 16px; padding: 48px; width: 420px; box-shadow: 0 24px 80px rgba(0,0,0,0.3); text-align: center; }
+  .login-logo { width: 64px; height: 64px; background: var(--burgundy); border-radius: 16px; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px; font-family: 'Cinzel', serif; color: var(--gold); font-size: 28px; }
+  .login-title { font-family: 'Cinzel', serif; font-size: 22px; color: var(--burgundy); margin-bottom: 6px; }
+  .login-sub { font-size: 14px; color: var(--dusty-rose); margin-bottom: 32px; }
+  .login-card input { width: 100%; padding: 14px 16px; border: 1.5px solid var(--linen); border-radius: 10px; font-family: 'Faustina', serif; font-size: 16px; color: var(--soil); background: var(--sand); margin-bottom: 14px; outline: none; transition: border-color 0.2s; }
+  .login-card input:focus { border-color: var(--burgundy); background: var(--white); }
+  .login-btn { width: 100%; padding: 14px; background: var(--burgundy); color: var(--linen); border: none; border-radius: 10px; font-family: 'Cinzel', serif; font-size: 15px; letter-spacing: 1px; cursor: pointer; transition: background 0.2s; }
+  .login-btn:hover { background: var(--burgundy-light); }
+  .login-error { color: var(--danger); font-size: 13px; margin-top: 10px; display: none; }
+
+  #app { display: none; min-height: 100vh; }
+
+  .sidebar { position: fixed; left: 0; top: 0; bottom: 0; width: var(--sidebar-width); background: var(--burgundy); display: flex; flex-direction: column; z-index: 100; overflow-y: auto; }
+  .sidebar-header { padding: 28px 24px 20px; border-bottom: 1px solid rgba(255,255,255,0.1); }
+  .sidebar-parish { font-family: 'Cinzel', serif; color: var(--gold); font-size: 13px; letter-spacing: 1.5px; margin-bottom: 4px; }
+  .sidebar-title { font-family: 'Cinzel', serif; color: var(--linen); font-size: 17px; line-height: 1.3; }
+  .sidebar-badge { display: inline-block; background: rgba(201,168,76,0.2); color: var(--gold); font-size: 11px; padding: 3px 8px; border-radius: 20px; margin-top: 8px; }
+  .sidebar-nav { flex: 1; padding: 16px 0; }
+  .nav-section { padding: 12px 24px 4px; font-size: 10px; letter-spacing: 2px; color: rgba(255,255,255,0.3); text-transform: uppercase; }
+  .nav-item { display: flex; align-items: center; gap: 12px; padding: 11px 24px; color: rgba(255,255,255,0.7); font-size: 15px; cursor: pointer; transition: all 0.15s; border-left: 3px solid transparent; position: relative; }
+  .nav-item:hover { background: rgba(255,255,255,0.06); color: var(--linen); }
+  .nav-item.active { background: rgba(255,255,255,0.1); color: var(--gold); border-left-color: var(--gold); }
+  .nav-icon { font-size: 18px; width: 20px; text-align: center; }
+  .nav-badge { position: absolute; right: 20px; background: var(--gold); color: var(--burgundy); font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 20px; }
+  .sidebar-footer { padding: 16px 24px; border-top: 1px solid rgba(255,255,255,0.1); }
+  .signout-btn { width: 100%; padding: 10px; background: transparent; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; color: rgba(255,255,255,0.5); font-family: 'Faustina', serif; font-size: 14px; cursor: pointer; transition: all 0.2s; }
+  .signout-btn:hover { border-color: rgba(255,255,255,0.4); color: var(--linen); }
+
+  .main { margin-left: var(--sidebar-width); min-height: 100vh; display: flex; flex-direction: column; }
+  .topbar { background: var(--white); border-bottom: 1px solid var(--linen); padding: 16px 32px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 50; }
+  .page-title { font-family: 'Cinzel', serif; font-size: 20px; color: var(--burgundy); }
+  .topbar-meta { font-size: 13px; color: var(--dusty-rose); }
+  .content { padding: 32px; flex: 1; }
+
+  .card { background: var(--white); border-radius: 14px; padding: 28px; margin-bottom: 24px; box-shadow: 0 2px 12px rgba(92,26,46,0.06); }
+  .card-title { font-family: 'Cinzel', serif; font-size: 16px; color: var(--burgundy); margin-bottom: 20px; padding-bottom: 14px; border-bottom: 1px solid var(--linen); display: flex; align-items: center; gap: 10px; }
+
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  .form-grid-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; }
+  .form-full { grid-column: 1 / -1; }
+  .form-group { display: flex; flex-direction: column; gap: 6px; margin-bottom: 16px; }
+  .form-label { font-size: 12px; letter-spacing: 1px; text-transform: uppercase; color: var(--dusty-rose); }
+  .form-input, .form-select, .form-textarea { padding: 11px 14px; border: 1.5px solid var(--linen); border-radius: 9px; font-family: 'Faustina', serif; font-size: 15px; color: var(--soil); background: var(--sand); outline: none; transition: border-color 0.2s, background 0.2s; width: 100%; }
+  .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--burgundy); background: var(--white); }
+  .form-textarea { resize: vertical; min-height: 120px; line-height: 1.6; }
+  .form-textarea.large { min-height: 280px; }
+  .form-textarea.bulk { min-height: 200px; font-family: monospace; font-size: 13px; }
+
+  .expiry-options { display: flex; gap: 8px; flex-wrap: wrap; }
+  .expiry-chip { padding: 8px 16px; border: 1.5px solid var(--linen); border-radius: 20px; font-family: 'Faustina', serif; font-size: 14px; color: var(--soil); background: var(--sand); cursor: pointer; transition: all 0.15s; }
+  .expiry-chip:hover { border-color: var(--burgundy); color: var(--burgundy); }
+  .expiry-chip.selected { background: var(--burgundy); color: var(--linen); border-color: var(--burgundy); }
+
+  .btn { padding: 12px 24px; border-radius: 9px; font-family: 'Cinzel', serif; font-size: 13px; letter-spacing: 0.8px; cursor: pointer; border: none; transition: all 0.2s; }
+  .btn-primary { background: var(--burgundy); color: var(--linen); }
+  .btn-primary:hover { background: var(--burgundy-light); }
+  .btn-gold { background: var(--gold); color: var(--burgundy); }
+  .btn-gold:hover { background: var(--gold-light); }
+  .btn-outline { background: transparent; border: 1.5px solid var(--linen); color: var(--soil); }
+  .btn-outline:hover { border-color: var(--burgundy); color: var(--burgundy); }
+  .btn-danger { background: var(--danger); color: var(--white); }
+  .btn-success { background: var(--success); color: var(--white); }
+  .btn-sm { padding: 7px 14px; font-size: 12px; }
+  .btn-row { display: flex; gap: 12px; margin-top: 20px; align-items: center; flex-wrap: wrap; }
+
+  .post-success { display: none; background: #EDF7F0; border: 1px solid #4A7C59; color: #2D5C3A; padding: 12px 16px; border-radius: 9px; font-size: 14px; margin-top: 16px; }
+
+  .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+  .stat-card { background: var(--white); border-radius: 12px; padding: 20px; box-shadow: 0 2px 12px rgba(92,26,46,0.06); border-top: 3px solid var(--burgundy); }
+  .stat-label { font-size: 11px; letter-spacing: 1.5px; text-transform: uppercase; color: var(--dusty-rose); margin-bottom: 8px; }
+  .stat-value { font-family: 'Cinzel', serif; font-size: 28px; color: var(--burgundy); }
+  .stat-sub { font-size: 12px; color: var(--dusty-rose); margin-top: 4px; }
+
+  .approval-card { background: var(--sand); border-radius: 12px; padding: 18px; margin-bottom: 12px; border: 1px solid var(--linen); display: flex; align-items: center; gap: 16px; }
+  .approval-avatar { width: 52px; height: 52px; border-radius: 50%; background: var(--burgundy); display: flex; align-items: center; justify-content: center; font-family: 'Cinzel', serif; color: var(--gold); font-size: 20px; flex-shrink: 0; overflow: hidden; }
+  .approval-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .approval-info { flex: 1; }
+  .approval-name { font-family: 'Cinzel', serif; font-size: 16px; color: var(--burgundy); margin-bottom: 3px; }
+  .approval-meta { font-size: 13px; color: var(--dusty-rose); margin-bottom: 4px; }
+  .approval-bio { font-size: 14px; color: var(--soil); opacity: 0.8; }
+  .approval-actions { display: flex; gap: 8px; flex-shrink: 0; }
+
+  .partner-card { background: var(--sand); border-radius: 12px; padding: 20px; margin-bottom: 12px; border: 1px solid var(--linen); }
+  .partner-card-header { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+  .partner-name { font-family: 'Cinzel', serif; font-size: 16px; color: var(--burgundy); }
+  .tier-badge { padding: 4px 12px; border-radius: 20px; font-size: 12px; }
+  .tier-premium { background: var(--burgundy); color: var(--gold); }
+  .tier-standard { background: var(--dusty-rose); color: var(--white); }
+  .tier-pro { background: var(--soil); color: var(--linen); }
+  .partner-meta { font-size: 13px; color: var(--dusty-rose); margin-bottom: 6px; }
+  .partner-desc { font-size: 14px; color: var(--soil); margin-bottom: 14px; line-height: 1.5; }
+
+  .page { display: none; }
+  .page.active { display: block; }
+
+  .empty-state { text-align: center; padding: 60px 20px; color: var(--dusty-rose); }
+  .empty-icon { font-size: 48px; margin-bottom: 16px; }
+  .empty-title { font-family: 'Cinzel', serif; font-size: 18px; color: var(--burgundy); margin-bottom: 8px; }
+  .empty-sub { font-size: 14px; }
+
+  .toast { position: fixed; bottom: 32px; right: 32px; background: var(--soil); color: var(--linen); padding: 14px 20px; border-radius: 10px; font-size: 14px; box-shadow: 0 8px 24px rgba(0,0,0,0.2); transform: translateY(80px); opacity: 0; transition: all 0.3s; z-index: 999; max-width: 360px; }
+  .toast.show { transform: translateY(0); opacity: 1; }
+  .toast.success { border-left: 4px solid var(--success); }
+  .toast.error { border-left: 4px solid var(--danger); }
+
+  .info-box { background: #FDF8EE; border: 1px solid var(--gold); border-radius: 10px; padding: 14px 16px; font-size: 14px; color: var(--soil); margin-bottom: 20px; line-height: 1.6; }
+
+  /* BULK PARSER */
+  .parse-preview { margin-top: 24px; display: none; }
+  .parse-table { width: 100%; border-collapse: collapse; font-size: 14px; }
+  .parse-table th { background: var(--burgundy); color: var(--linen); padding: 10px 14px; text-align: left; font-family: 'Cinzel', serif; font-size: 12px; letter-spacing: 0.5px; }
+  .parse-table td { padding: 10px 14px; border-bottom: 1px solid var(--linen); vertical-align: top; }
+  .parse-table tr:nth-child(even) td { background: var(--sand); }
+  .parse-table tr:hover td { background: #F0E8E0; }
+  .parse-input-inline { border: 1px solid var(--linen); border-radius: 6px; padding: 6px 10px; font-family: 'Faustina', serif; font-size: 13px; width: 100%; background: var(--white); outline: none; }
+  .parse-input-inline:focus { border-color: var(--burgundy); }
+  .remove-row { background: none; border: none; color: var(--danger); cursor: pointer; font-size: 16px; padding: 4px 8px; }
+
+  /* RECENT EVENTS */
+  .event-row { display: flex; align-items: center; gap: 14px; padding: 14px; background: var(--sand); border-radius: 10px; margin-bottom: 10px; border: 1px solid var(--linen); }
+  .event-row-date { background: var(--burgundy); color: var(--white); border-radius: 8px; padding: 8px 12px; text-align: center; font-family: 'Cinzel', serif; font-size: 12px; flex-shrink: 0; min-width: 56px; }
+  .event-row-info { flex: 1; }
+  .event-row-title { font-size: 15px; color: var(--soil); font-weight: 600; margin-bottom: 2px; }
+  .event-row-meta { font-size: 13px; color: var(--dusty-rose); }
+
+  /* TABS WITHIN CARD */
+  .inner-tabs { display: flex; gap: 0; margin-bottom: 24px; border-bottom: 2px solid var(--linen); }
+  .inner-tab { padding: 10px 20px; font-family: 'Cinzel', serif; font-size: 13px; color: var(--soil); opacity: 0.5; cursor: pointer; border-bottom: 2px solid transparent; margin-bottom: -2px; transition: all 0.15s; }
+  .inner-tab:hover { opacity: 0.8; }
+  .inner-tab.active { color: var(--burgundy); opacity: 1; border-bottom-color: var(--burgundy); }
+  .inner-panel { display: none; }
+  .inner-panel.active { display: block; }
+</style>
+</head>
+<body>
+
+<!-- LOGIN -->
+<div id="login-screen">
+  <div class="login-card">
+    <div class="login-logo">✝</div>
+    <div class="login-title">Parish Admin Portal</div>
+    <div class="login-sub">Saint Rose Philippine Duchesne</div>
+    <input type="text" id="login-user" placeholder="Username" autocomplete="off" />
+    <input type="password" id="login-pass" placeholder="Password" />
+    <button class="login-btn" onclick="doLogin()">Sign In</button>
+    <div class="login-error" id="login-error">Invalid username or password.</div>
+  </div>
+</div>
+
+<!-- APP -->
+<div id="app">
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <div class="sidebar-parish">SACRED APPS</div>
+      <div class="sidebar-title">Saint Rose Philippine Duchesne</div>
+      <div class="sidebar-badge" id="logged-in-user">Parish Staff</div>
+    </div>
+    <nav class="sidebar-nav">
+      <div class="nav-section">Overview</div>
+      <div class="nav-item active" onclick="showPage('dashboard',this)"><span class="nav-icon">⊞</span> Dashboard</div>
+      <div class="nav-section">Content</div>
+      <div class="nav-item" onclick="showPage('events',this)"><span class="nav-icon">📅</span> Events</div>
+      <div class="nav-item" onclick="showPage('announcement',this)"><span class="nav-icon">📢</span> Post Announcement</div>
+      <div class="nav-item" onclick="showPage('reflection',this)"><span class="nav-icon">📖</span> Weekly Reflection</div>
+      <div class="nav-item" onclick="showPage('daily',this)"><span class="nav-icon">✝</span> Daily Reflection</div>
+      <div class="nav-section">Directory</div>
+      <div class="nav-item" onclick="showPage('approvals',this)"><span class="nav-icon">👥</span> Parish Family Approvals <span class="nav-badge" id="approval-count">0</span></div>
+      <div class="nav-item" onclick="showPage('partners',this)"><span class="nav-icon">🏢</span> Partner Requests <span class="nav-badge" id="partner-count">0</span></div>
+      <div class="nav-item" onclick="showPage('directory',this)"><span class="nav-icon">📋</span> Parish Family Directory</div>
+    </nav>
+    <div class="sidebar-footer">
+      <button class="signout-btn" onclick="signOut()">Sign Out</button>
+    </div>
+  </div>
+
+  <div class="main">
+    <div class="topbar">
+      <div class="page-title" id="page-title">Dashboard</div>
+      <div class="topbar-meta" id="topbar-date"></div>
+    </div>
+    <div class="content">
+
+      <!-- DASHBOARD -->
+      <div class="page active" id="page-dashboard">
+        <div class="stats-row">
+          <div class="stat-card">
+            <div class="stat-label">Parish Family</div>
+            <div class="stat-value" id="stat-members">—</div>
+            <div class="stat-sub">approved members</div>
+          </div>
+          <div class="stat-card" style="border-top-color:var(--gold)">
+            <div class="stat-label">Pending Approvals</div>
+            <div class="stat-value" id="stat-pending">—</div>
+            <div class="stat-sub">awaiting review</div>
+          </div>
+          <div class="stat-card" style="border-top-color:var(--dusty-rose)">
+            <div class="stat-label">Partner Requests</div>
+            <div class="stat-value" id="stat-partners">—</div>
+            <div class="stat-sub">pending</div>
+          </div>
+          <div class="stat-card" style="border-top-color:var(--success)">
+            <div class="stat-label">Active Listings</div>
+            <div class="stat-value">13</div>
+            <div class="stat-sub">in directory</div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">📌 Quick Actions</div>
+          <div style="display:flex;gap:12px;flex-wrap:wrap;">
+            <button class="btn btn-gold" onclick="showPage('events',document.querySelectorAll('.nav-item')[2])">Add / Import Events</button>
+            <button class="btn btn-primary" onclick="showPage('announcement',document.querySelectorAll('.nav-item')[3])">Post Announcement</button>
+            <button class="btn btn-outline" onclick="showPage('approvals',document.querySelectorAll('.nav-item')[6])">Review Approvals</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">📖 Current Weekly Reflection</div>
+          <div id="current-reflection"><div style="color:var(--dusty-rose);font-size:14px;">Loading...</div></div>
+        </div>
+      </div>
+
+      <!-- EVENTS PAGE -->
+      <div class="page" id="page-events">
+        <div class="card">
+          <div class="card-title">📅 Events</div>
+          <div class="inner-tabs">
+            <div class="inner-tab active" onclick="switchInnerTab('single',this)">Add Single Event</div>
+            <div class="inner-tab" onclick="switchInnerTab('bulk',this)">Bulk Import — Week at a Glance</div>
+            <div class="inner-tab" onclick="switchInnerTab('recent',this)">Manage Posted Events</div>
+          </div>
+
+          <!-- SINGLE EVENT -->
+          <div class="inner-panel active" id="panel-single">
+            <div class="form-grid">
+              <div class="form-group form-full">
+                <label class="form-label">Event Title *</label>
+                <input type="text" class="form-input" id="evt-title" placeholder="e.g. Youth Ministry End of Year Party" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Start Date & Time *</label>
+                <input type="datetime-local" class="form-input" id="evt-start" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">End Date & Time *</label>
+                <input type="datetime-local" class="form-input" id="evt-end" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Location</label>
+                <input type="text" class="form-input" id="evt-location" placeholder="e.g. Parish Hall" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Category</label>
+                <select class="form-select" id="evt-category">
+                  <option value="Community">Community</option>
+                  <option value="Ministry">Ministry</option>
+                  <option value="Sacrament">Sacrament</option>
+                  <option value="Youth">Youth</option>
+                  <option value="Mass">Mass</option>
+                  <option value="Announcement">Announcement</option>
+                </select>
+              </div>
+              <div class="form-group form-full">
+                <label class="form-label">Description (optional)</label>
+                <textarea class="form-textarea" id="evt-desc" placeholder="Describe the event..."></textarea>
+              </div>
+            </div>
+            <div class="btn-row">
+              <button class="btn btn-primary" onclick="postSingleEvent()">Add Event</button>
+              <button class="btn btn-outline" onclick="clearSingleEvt()">Clear</button>
+            </div>
+            <div class="post-success" id="evt-success">✓ Event added successfully.</div>
+          </div>
+
+          <!-- BULK IMPORT -->
+          <div class="inner-panel" id="panel-bulk">
+            <div class="info-box">
+              Paste the "Week at a Glance" section from your bulletin document below. Use this format — one day header per day, one event per line with time first:<br><br>
+              <code style="font-size:13px;display:block;margin-top:8px;opacity:0.8;">Sunday, May 10<br>8:00 am Mass<br>11:00 am Mass<br><br>Monday, May 11<br>7:30 am Mass<br>7:00 pm Troop 432 Meeting</code>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Paste Week at a Glance</label>
+              <textarea class="form-textarea bulk" id="bulk-input" placeholder="Paste your bulletin week here..."></textarea>
+            </div>
+            <div class="btn-row">
+              <button class="btn btn-gold" onclick="parseBulk()">Parse Events →</button>
+              <button class="btn btn-outline" onclick="document.getElementById('bulk-input').value=''; document.getElementById('parse-preview').style.display='none';">Clear</button>
+            </div>
+
+            <!-- PREVIEW TABLE -->
+            <div class="parse-preview" id="parse-preview">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+                <div style="font-family:'Cinzel',serif;font-size:15px;color:var(--burgundy);">Preview — Review Before Submitting</div>
+                <div style="display:flex;gap:10px;">
+                  <button class="btn btn-primary" onclick="submitBulk()">Submit All Events</button>
+                  <button class="btn btn-outline btn-sm" onclick="addBulkRow()">+ Add Row</button>
+                </div>
+              </div>
+              <div style="overflow-x:auto;">
+                <table class="parse-table" id="parse-table">
+                  <thead>
+                    <tr>
+                      <th>Title</th>
+                      <th>Start</th>
+                      <th>End</th>
+                      <th>Location</th>
+                      <th></th>
+                    </tr>
+                  </thead>
+                  <tbody id="parse-tbody"></tbody>
+                </table>
+              </div>
+              <div class="post-success" id="bulk-success" style="margin-top:16px;">✓ All events submitted successfully.</div>
+            </div>
+          </div>
+
+          <!-- RECENT EVENTS -->
+          <div class="inner-panel" id="panel-recent">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+              <div style="font-size:14px;color:var(--dusty-rose);">Showing upcoming events posted by parish staff</div>
+              <button class="btn btn-outline btn-sm" onclick="loadRecentEvents()">↺ Refresh</button>
+            </div>
+            <div id="recent-events-list"><div style="color:var(--dusty-rose);font-size:14px;">Loading...</div></div>
+          </div>
+        </div>
+      </div>
+
+      <!-- ANNOUNCEMENT -->
+      <div class="page" id="page-announcement">
+        <div class="card">
+          <div class="card-title">📢 Post an Announcement</div>
+          <div class="form-group">
+            <label class="form-label">Title *</label>
+            <input type="text" class="form-input" id="ann-title" placeholder="e.g. Volunteers Needed — Truck Arriving Now" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Message *</label>
+            <textarea class="form-textarea" id="ann-body" placeholder="Write your announcement here..."></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Expires</label>
+            <div class="expiry-options">
+              <div class="expiry-chip" onclick="selectExpiry(this,'tonight')">Tonight</div>
+              <div class="expiry-chip" onclick="selectExpiry(this,'tomorrow')">Tomorrow</div>
+              <div class="expiry-chip" onclick="selectExpiry(this,'weekend')">This Weekend</div>
+              <div class="expiry-chip selected" onclick="selectExpiry(this,'week')">This Week</div>
+              <div class="expiry-chip" onclick="selectExpiry(this,'month')">This Month</div>
+              <div class="expiry-chip" onclick="selectExpiry(this,'custom')">Custom</div>
+            </div>
+            <div id="custom-expiry" style="display:none;margin-top:12px;">
+              <input type="datetime-local" class="form-input" id="ann-custom-expiry" />
+            </div>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-primary" onclick="postAnnouncement()">Post Announcement</button>
+            <button class="btn btn-outline" onclick="document.getElementById('ann-title').value='';document.getElementById('ann-body').value='';">Clear</button>
+          </div>
+          <div class="post-success" id="ann-success">✓ Announcement posted successfully.</div>
+        </div>
+      </div>
+
+      <!-- WEEKLY REFLECTION -->
+      <div class="page" id="page-reflection">
+        <div class="card">
+          <div class="card-title">📖 Weekly Reflection</div>
+          <div class="info-box">This reflection appears on the Home screen. Paste Fr. Bing's full reflection text — parishioners will read it in a full-screen reader inside the app.</div>
+          <div class="form-group">
+            <label class="form-label">Liturgical Heading</label>
+            <input type="text" class="form-input" id="ref-heading" placeholder="e.g. 6th Sunday of Easter" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Reflection Title</label>
+            <input type="text" class="form-input" id="ref-subtitle" placeholder="e.g. Born to Live, Born to Love" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Author</label>
+            <input type="text" class="form-input" id="ref-author" value="Fr. Bing Colasito" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Full Reflection Text *</label>
+            <textarea class="form-textarea large" id="ref-body" placeholder="Paste the full text of Fr. Bing's reflection here..."></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Link to Web Version (optional)</label>
+            <input type="url" class="form-input" id="ref-link" placeholder="https://www.stroseanthem.com/blog..." />
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-primary" onclick="postReflection()">Update Reflection</button>
+            <button class="btn btn-outline" onclick="loadCurrentReflection()">Load Current</button>
+          </div>
+          <div class="post-success" id="ref-success">✓ Reflection updated successfully.</div>
+        </div>
+      </div>
+
+      <!-- DAILY REFLECTION -->
+      <div class="page" id="page-daily">
+        <div class="card">
+          <div class="card-title">✝ Daily Reflection</div>
+          <div class="info-box">Fr. Bing's daily reflection — updated each morning. Paste the full text here and it will appear on the Home screen under Daily Reflection.</div>
+          <div class="form-group">
+            <label class="form-label">Date</label>
+            <input type="date" class="form-input" id="daily-date" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Title (optional)</label>
+            <input type="text" class="form-input" id="daily-title" placeholder="e.g. The Glory of God is Man Fully Alive" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Full Reflection Text *</label>
+            <textarea class="form-textarea large" id="daily-body" placeholder="Paste Fr. Bing's daily reflection here..."></textarea>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-primary" onclick="postDaily()">Post Daily Reflection</button>
+            <button class="btn btn-outline" onclick="loadCurrentDaily()">Load Today's</button>
+          </div>
+          <div class="post-success" id="daily-success">✓ Daily reflection posted.</div>
+        </div>
+      </div>
+
+      <!-- APPROVALS -->
+      <div class="page" id="page-approvals">
+        <div class="card">
+          <div class="card-title">👥 Pending Parish Family Approvals</div>
+          <div id="approvals-list"><div style="color:var(--dusty-rose);font-size:14px;">Loading...</div></div>
+        </div>
+      </div>
+
+      <!-- PARTNERS -->
+      <div class="page" id="page-partners">
+        <div class="card">
+          <div class="card-title">🏢 Partner Requests — Parish Review</div>
+          <div class="info-box">Review each business and approve or decline on behalf of Saint Rose Parish. Your approval means this business is a good fit for the community. Sacred Apps will handle payment and final activation after your approval.</div>
+          <div id="partners-list"><div style="color:var(--dusty-rose);font-size:14px;">Loading...</div></div>
+        </div>
+      </div>
+
+      <!-- DIRECTORY -->
+      <div class="page" id="page-directory">
+        <div class="card">
+          <div class="card-title">📋 Parish Family Directory</div>
+          <div style="margin-bottom:16px;">
+            <input type="text" class="form-input" id="dir-search" placeholder="Search by name, email, or ministry..." oninput="filterDirectory()" style="max-width:400px;" />
+          </div>
+          <div id="directory-list"><div style="color:var(--dusty-rose);font-size:14px;">Loading...</div></div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+  const API_KEY = 'AIzaSyBKjyHaRNkIjTV87zrhhvg6pBxarm3lcQ8';
+  const PROJECT_ID = 'saint-rose-anthem';
+  const BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents`;
+  const CREDS = { matt:'admin', admin:'admin', sacredapps:'admin1' };
+
+  let currentExpiry = 'week';
+  let allMembers = [];
+  let bulkRows = [];
+
+  document.getElementById('topbar-date').textContent = new Date().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
+  document.getElementById('daily-date').value = new Date().toISOString().split('T')[0];
+
+  // Set default start/end to today
+  const nowLocal = new Date(); nowLocal.setMinutes(nowLocal.getMinutes() - nowLocal.getTimezoneOffset());
+  const nowStr = nowLocal.toISOString().slice(0,16);
+  const endLocal = new Date(nowLocal); endLocal.setHours(endLocal.getHours()+1);
+  const endStr = endLocal.toISOString().slice(0,16);
+  document.getElementById('evt-start').value = nowStr;
+  document.getElementById('evt-end').value = endStr;
+
+  document.getElementById('login-pass').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+
+  function doLogin() {
+    const u = document.getElementById('login-user').value.trim();
+    const p = document.getElementById('login-pass').value;
+    if (CREDS[u] === p) {
+      document.getElementById('login-screen').style.display = 'none';
+      document.getElementById('app').style.display = 'flex';
+      document.getElementById('logged-in-user').textContent = u==='sacredapps'?'Sacred Apps Admin':'Parish Staff';
+      loadDashboard();
+    } else { document.getElementById('login-error').style.display = 'block'; }
+  }
+
+  function signOut() {
+    document.getElementById('login-screen').style.display = 'flex';
+    document.getElementById('app').style.display = 'none';
+    document.getElementById('login-user').value = '';
+    document.getElementById('login-pass').value = '';
+  }
+
+  function showPage(id, el) {
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+    document.getElementById('page-'+id).classList.add('active');
+    if(el) el.classList.add('active');
+    const titles = {dashboard:'Dashboard',events:'Events',announcement:'Post Announcement',reflection:'Weekly Reflection',daily:'Daily Reflection',approvals:'Parish Family Approvals',partners:'Partner Requests',directory:'Parish Family Directory'};
+    document.getElementById('page-title').textContent = titles[id]||id;
+    if(id==='approvals') loadApprovals();
+    if(id==='partners') loadPartners();
+    if(id==='directory') loadDirectory();
+    if(id==='reflection') loadCurrentReflection();
+    if(id==='daily') loadCurrentDaily();
+    if(id==='events') loadRecentEvents();
+  }
+
+  function switchInnerTab(id, el) {
+    document.querySelectorAll('.inner-tab').forEach(t=>t.classList.remove('active'));
+    document.querySelectorAll('.inner-panel').forEach(p=>p.classList.remove('active'));
+    el.classList.add('active');
+    document.getElementById('panel-'+id).classList.add('active');
+    if(id==='recent') loadRecentEvents();
+  }
+
+  function selectExpiry(el, val) {
+    document.querySelectorAll('#page-announcement .expiry-chip').forEach(c=>c.classList.remove('selected'));
+    el.classList.add('selected'); currentExpiry = val;
+    document.getElementById('custom-expiry').style.display = val==='custom'?'block':'none';
+  }
+
+  function getExpiresAt(type) {
+    const now = new Date();
+    if(type==='tonight'){const d=new Date(now);d.setHours(23,59,59,999);return d.toISOString();}
+    if(type==='tomorrow'){const d=new Date(now);d.setDate(d.getDate()+1);d.setHours(23,59,59,999);return d.toISOString();}
+    if(type==='weekend'){const d=new Date(now);const diff=(7-d.getDay())%7||7;d.setDate(d.getDate()+diff);d.setHours(23,59,59,999);return d.toISOString();}
+    if(type==='week'){const d=new Date(now);d.setDate(d.getDate()+7);return d.toISOString();}
+    if(type==='month'){const d=new Date(now);d.setDate(d.getDate()+30);return d.toISOString();}
+    if(type==='custom'){const v=document.getElementById('ann-custom-expiry').value;return v?new Date(v).toISOString():null;}
+    return null;
+  }
+
+  async function fs_get(col) { const r=await fetch(`${BASE}/${col}?key=${API_KEY}&pageSize=100`); return await r.json(); }
+  async function fs_post(col,fields) { const r=await fetch(`${BASE}/${col}?key=${API_KEY}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fields})}); return await r.json(); }
+  async function fs_patch(path,fields) { const mask=Object.keys(fields).map(f=>`updateMask.fieldPaths=${f}`).join('&'); const r=await fetch(`${BASE}/${path}?key=${API_KEY}&${mask}`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({fields})}); return await r.json(); }
+  async function fs_delete(path) { await fetch(`${BASE}/${path}?key=${API_KEY}`,{method:'DELETE'}); }
+  function gf(doc,key) { const f=doc.fields?.[key]; if(!f) return ''; if(f.booleanValue!==undefined) return f.booleanValue; return f.stringValue??f.integerValue??''; }
+  function docId(doc) { return doc.name.split('/').pop(); }
+
+  async function loadDashboard() {
+    try {
+      const [fam,parts,ref] = await Promise.all([fs_get('parishFamily'),fs_get('partnerRequests'),fs_get('weeklyReflection')]);
+      const approved = (fam.documents||[]).filter(d=>gf(d,'approved')===true);
+      const pending = (fam.documents||[]).filter(d=>gf(d,'approved')===false);
+      const preqs = (parts.documents||[]).filter(d=>!gf(d,'parishApproved'));
+      document.getElementById('stat-members').textContent = approved.length;
+      document.getElementById('stat-pending').textContent = pending.length;
+      document.getElementById('stat-partners').textContent = preqs.length;
+      document.getElementById('approval-count').textContent = pending.length;
+      document.getElementById('partner-count').textContent = preqs.length;
+      const refs = ref.documents||[];
+      if(refs.length>0) {
+        const r=refs[refs.length-1];
+        document.getElementById('current-reflection').innerHTML=`
+          <div style="font-family:'Cinzel',serif;font-size:18px;color:var(--burgundy);margin-bottom:6px;">${gf(r,'subtitle')||gf(r,'heading')}</div>
+          <div style="color:var(--dusty-rose);font-size:14px;margin-bottom:10px;">${gf(r,'author')} · ${gf(r,'heading')}</div>
+          <div style="font-size:14px;color:var(--soil);line-height:1.7;max-height:100px;overflow:hidden;opacity:0.8;">${(gf(r,'body')||'No text saved yet.').substring(0,400)}...</div>`;
+      }
+    } catch(e){console.log(e);}
+  }
+
+  // ── SINGLE EVENT ──
+  async function postSingleEvent() {
+    const title = document.getElementById('evt-title').value.trim();
+    const start = document.getElementById('evt-start').value;
+    const end = document.getElementById('evt-end').value;
+    const location = document.getElementById('evt-location').value.trim();
+    const category = document.getElementById('evt-category').value;
+    const desc = document.getElementById('evt-desc').value.trim();
+    if(!title||!start||!end){showToast('Please fill in title, start, and end time.','error');return;}
+    if(new Date(end)<=new Date(start)){showToast('End time must be after start time.','error');return;}
+    const startDate = new Date(start);
+    const formatted = startDate.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+    const timeStr = startDate.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+    try {
+      await fs_post('events',{
+        title:{stringValue:title}, date:{stringValue:formatted}, time:{stringValue:timeStr},
+        location:{stringValue:location}, category:{stringValue:category}, description:{stringValue:desc},
+        postedBy:{stringValue:'Parish Staff'}, source:{stringValue:'admin'}, type:{stringValue:'event'},
+        startAt:{stringValue:new Date(start).toISOString()},
+        expiresAt:{stringValue:new Date(end).toISOString()},
+        createdAt:{stringValue:new Date().toISOString()}
+      });
+      document.getElementById('evt-success').style.display='block';
+      showToast('Event added!','success');
+      setTimeout(()=>{document.getElementById('evt-success').style.display='none';},4000);
+      loadRecentEvents();
+    } catch(e){showToast('Error adding event.','error');}
+  }
+
+  function clearSingleEvt() {
+    document.getElementById('evt-title').value='';
+    document.getElementById('evt-location').value='';
+    document.getElementById('evt-desc').value='';
+  }
+
+  // ── BULK PARSER ──
+  function parseBulk() {
+    const text = document.getElementById('bulk-input').value.trim();
+    if(!text){showToast('Please paste some content first.','error');return;}
+    const lines = text.split('\n').map(l=>l.trim()).filter(l=>l.length>0);
+    bulkRows = [];
+    let currentDate = null;
+    let currentYear = new Date().getFullYear();
+
+    const dayNames = ['sunday','monday','tuesday','wednesday','thursday','friday','saturday'];
+    const monthNames = ['january','february','march','april','may','june','july','august','september','october','november','december'];
+
+    lines.forEach(line => {
+      // Check if it's a date header line
+      const lower = line.toLowerCase();
+      const isDateHeader = dayNames.some(d=>lower.startsWith(d)) || monthNames.some(m=>lower.includes(m));
+      if(isDateHeader) {
+        // Try to parse the date
+        const cleaned = line.replace(/[,]/g,' ').replace(/\s+/g,' ');
+        const parsed = new Date(cleaned+' '+currentYear);
+        if(!isNaN(parsed.getTime())) { currentDate = parsed; }
+        return;
+      }
+      if(!currentDate) return;
+      // Try to parse time + event
+      const timeMatch = line.match(/^(\d{1,2}):?(\d{2})?\s*(am|pm)/i);
+      if(timeMatch) {
+        let hours = parseInt(timeMatch[1]);
+        const mins = parseInt(timeMatch[2]||'0');
+        const ampm = timeMatch[3].toLowerCase();
+        if(ampm==='pm'&&hours!==12) hours+=12;
+        if(ampm==='am'&&hours===12) hours=0;
+        const startDt = new Date(currentDate);
+        startDt.setHours(hours,mins,0,0);
+        const endDt = new Date(startDt);
+        endDt.setHours(endDt.getHours()+1);
+        const eventTitle = line.replace(/^\d{1,2}:?\d{0,2}\s*(am|pm)\s*/i,'').trim();
+        if(eventTitle) {
+          bulkRows.push({
+            title: eventTitle,
+            start: startDt,
+            end: endDt,
+            location: '',
+            skip: false
+          });
+        }
+      } else {
+        // No time — add as all-day event
+        if(line.length > 2) {
+          const startDt = new Date(currentDate);
+          startDt.setHours(8,0,0,0);
+          const endDt = new Date(currentDate);
+          endDt.setHours(23,59,59,0);
+          bulkRows.push({ title:line, start:startDt, end:endDt, location:'', skip:false });
+        }
+      }
+    });
+
+    if(bulkRows.length===0){showToast('No events found. Check the format and try again.','error');return;}
+    renderBulkTable();
+    document.getElementById('parse-preview').style.display='block';
+    document.getElementById('bulk-success').style.display='none';
+    showToast(`Found ${bulkRows.length} events — review before submitting.`,'success');
+  }
+
+  function toLocalInput(date) {
+    const d = new Date(date);
+    d.setMinutes(d.getMinutes()-d.getTimezoneOffset());
+    return d.toISOString().slice(0,16);
+  }
+
+  function renderBulkTable() {
+    const tbody = document.getElementById('parse-tbody');
+    tbody.innerHTML = bulkRows.map((row,i) => `
+      <tr id="bulk-row-${i}" style="${row.skip?'opacity:0.4;text-decoration:line-through':''}">
+        <td><input class="parse-input-inline" value="${row.title}" onchange="bulkRows[${i}].title=this.value" style="min-width:200px;" /></td>
+        <td><input type="datetime-local" class="parse-input-inline" value="${toLocalInput(row.start)}" onchange="bulkRows[${i}].start=new Date(this.value)" /></td>
+        <td><input type="datetime-local" class="parse-input-inline" value="${toLocalInput(row.end)}" onchange="bulkRows[${i}].end=new Date(this.value)" /></td>
+        <td><input class="parse-input-inline" value="${row.location}" placeholder="Optional" onchange="bulkRows[${i}].location=this.value" style="min-width:120px;" /></td>
+        <td><button class="remove-row" onclick="toggleBulkRow(${i})" title="${row.skip?'Restore':'Remove'}">${row.skip?'↩':'✕'}</button></td>
+      </tr>`).join('');
+  }
+
+  function toggleBulkRow(i) {
+    bulkRows[i].skip = !bulkRows[i].skip;
+    renderBulkTable();
+  }
+
+  function addBulkRow() {
+    const now = new Date();
+    bulkRows.push({title:'New Event',start:now,end:new Date(now.getTime()+3600000),location:'',skip:false});
+    renderBulkTable();
+  }
+
+  async function submitBulk() {
+    const toSubmit = bulkRows.filter(r=>!r.skip&&r.title.trim());
+    if(toSubmit.length===0){showToast('No events to submit.','error');return;}
+    const btn = document.querySelector('#parse-preview .btn-primary');
+    btn.disabled=true; btn.textContent='Submitting...';
+    try {
+      for(const row of toSubmit) {
+        const startDt = new Date(row.start);
+        const formatted = startDt.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
+        const timeStr = startDt.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
+        await fs_post('events',{
+          title:{stringValue:row.title.trim()},
+          date:{stringValue:formatted},
+          time:{stringValue:timeStr},
+          location:{stringValue:row.location||''},
+          category:{stringValue:'Community'},
+          description:{stringValue:''},
+          postedBy:{stringValue:'Parish Staff'},
+          source:{stringValue:'admin'},
+          type:{stringValue:'event'},
+          startAt:{stringValue:new Date(row.start).toISOString()},
+          expiresAt:{stringValue:new Date(row.end).toISOString()},
+          createdAt:{stringValue:new Date().toISOString()}
+        });
+      }
+      document.getElementById('bulk-success').style.display='block';
+      showToast(`${toSubmit.length} events submitted!`,'success');
+      btn.disabled=false; btn.textContent='Submit All Events';
+      loadRecentEvents();
+    } catch(e){showToast('Error submitting.','error');btn.disabled=false;btn.textContent='Submit All Events';}
+  }
+
+  // ── RECENT EVENTS ──
+  async function loadRecentEvents() {
+    const list = document.getElementById('recent-events-list');
+    if(!list) return;
+    list.innerHTML='<div style="color:var(--dusty-rose);font-size:14px;">Loading...</div>';
+    try {
+      const res = await fs_get('events');
+      const now = new Date();
+      const events = (res.documents||[])
+        .filter(d=>gf(d,'source')==='admin')
+        .filter(d=>{ const exp=gf(d,'expiresAt'); return !exp||new Date(exp)>now; })
+        .sort((a,b)=>{ const da=gf(a,'startAt')||gf(a,'date'); const db=gf(b,'startAt')||gf(b,'date'); return new Date(da)-new Date(db); });
+      if(events.length===0){
+        list.innerHTML=`<div class="empty-state"><div class="empty-icon">📅</div><div class="empty-title">No upcoming events</div><div class="empty-sub">Events you post will appear here.</div></div>`;
+        return;
+      }
+      list.innerHTML=events.map(doc=>{
+        const id=docId(doc);
+        const title=gf(doc,'title'),date=gf(doc,'date'),time=gf(doc,'time'),location=gf(doc,'location');
+        const dateShort=date?date.split(',')[0].substring(0,3).toUpperCase():'—';
+        const dayNum=date?date.match(/\d+/)?.[0]:'';
+        return `<div class="event-row" id="evtrow-${id}">
+          <div class="event-row-date"><div>${dateShort}</div><div style="font-size:18px;">${dayNum}</div></div>
+          <div class="event-row-info">
+            <div class="event-row-title">${title}</div>
+            <div class="event-row-meta">${[time,location].filter(x=>x).join(' · ')}</div>
+          </div>
+          <button class="btn btn-danger btn-sm" onclick="deleteEvent('${id}','${title.replace(/'/g,"\\'")}')">Delete</button>
+        </div>`;
+      }).join('');
+    } catch(e){list.innerHTML='<div style="color:var(--danger);">Error loading.</div>';}
+  }
+
+  async function deleteEvent(id, title) {
+    if(!confirm(`Delete "${title}"?`)) return;
+    try {
+      await fs_delete(`events/${id}`);
+      document.getElementById(`evtrow-${id}`)?.remove();
+      showToast('Event deleted.','success');
+    } catch(e){showToast('Error deleting.','error');}
+  }
+
+  // ── ANNOUNCEMENT ──
+  async function postAnnouncement() {
+    const title=document.getElementById('ann-title').value.trim();
+    const body=document.getElementById('ann-body').value.trim();
+    if(!title||!body){showToast('Please fill in title and message.','error');return;}
+    const expiresAt=getExpiresAt(currentExpiry);
+    try {
+      await fs_post('announcements',{title:{stringValue:title},body:{stringValue:body},postedBy:{stringValue:'Parish Staff'},expiresAt:{stringValue:expiresAt||''},createdAt:{stringValue:new Date().toISOString()}});
+      document.getElementById('ann-success').style.display='block';
+      showToast('Announcement posted!','success');
+      setTimeout(()=>{document.getElementById('ann-success').style.display='none';},4000);
+    } catch(e){showToast('Error posting.','error');}
+  }
+
+  // ── REFLECTION ──
+  async function loadCurrentReflection() {
+    try {
+      const res=await fs_get('weeklyReflection');
+      const docs=res.documents||[];
+      if(docs.length>0){
+        const r=docs[docs.length-1];
+        document.getElementById('ref-heading').value=gf(r,'heading');
+        document.getElementById('ref-subtitle').value=gf(r,'subtitle');
+        document.getElementById('ref-author').value=gf(r,'author')||'Fr. Bing Colasito';
+        document.getElementById('ref-body').value=gf(r,'body')||'';
+        document.getElementById('ref-link').value=gf(r,'link')||'';
+        showToast('Current reflection loaded.','success');
+      } else {showToast('No reflection found.','error');}
+    } catch(e){showToast('Error loading.','error');}
+  }
+
+  async function postReflection() {
+    const heading=document.getElementById('ref-heading').value.trim();
+    const subtitle=document.getElementById('ref-subtitle').value.trim();
+    const author=document.getElementById('ref-author').value.trim();
+    const body=document.getElementById('ref-body').value.trim();
+    const link=document.getElementById('ref-link').value.trim();
+    if(!heading||!subtitle||!body){showToast('Please fill in heading, title, and text.','error');return;}
+    try {
+      const existing=await fs_get('weeklyReflection');
+      for(const doc of (existing.documents||[])){await fs_delete(doc.name.split('/documents/')[1]);}
+      await fs_post('weeklyReflection',{heading:{stringValue:heading},subtitle:{stringValue:subtitle},fullTitle:{stringValue:`${heading}: ${subtitle}`},author:{stringValue:author},body:{stringValue:body},link:{stringValue:link},updatedAt:{stringValue:new Date().toISOString()}});
+      document.getElementById('ref-success').style.display='block';
+      showToast('Reflection updated!','success');
+      setTimeout(()=>{document.getElementById('ref-success').style.display='none';},4000);
+    } catch(e){showToast('Error updating.','error');}
+  }
+
+  // ── DAILY ──
+  async function loadCurrentDaily() {
+    try {
+      const today=document.getElementById('daily-date').value;
+      const res=await fs_get('dailyReflection');
+      const docs=(res.documents||[]).filter(d=>gf(d,'date')===today);
+      if(docs.length>0){
+        const r=docs[0];
+        document.getElementById('daily-title').value=gf(r,'title')||'';
+        document.getElementById('daily-body').value=gf(r,'body')||'';
+        showToast("Today's reflection loaded.",'success');
+      } else {showToast('No reflection found for today.','error');}
+    } catch(e){showToast('Error loading.','error');}
+  }
+
+  async function postDaily() {
+    const date=document.getElementById('daily-date').value;
+    const title=document.getElementById('daily-title').value.trim();
+    const body=document.getElementById('daily-body').value.trim();
+    if(!body){showToast('Please paste the reflection text.','error');return;}
+    try {
+      const existing=await fs_get('dailyReflection');
+      for(const doc of (existing.documents||[]).filter(d=>gf(d,'date')===date)){await fs_delete(doc.name.split('/documents/')[1]);}
+      await fs_post('dailyReflection',{date:{stringValue:date},title:{stringValue:title},body:{stringValue:body},postedBy:{stringValue:'Parish Staff'},createdAt:{stringValue:new Date().toISOString()}});
+      document.getElementById('daily-success').style.display='block';
+      showToast('Daily reflection posted!','success');
+      setTimeout(()=>{document.getElementById('daily-success').style.display='none';},4000);
+    } catch(e){showToast('Error posting.','error');}
+  }
+
+  // ── APPROVALS ──
+  async function loadApprovals() {
+    const list=document.getElementById('approvals-list');
+    list.innerHTML='<div style="color:var(--dusty-rose);font-size:14px;">Loading...</div>';
+    try {
+      const res=await fs_get('parishFamily');
+      const pending=(res.documents||[]).filter(d=>gf(d,'approved')===false);
+      if(pending.length===0){list.innerHTML=`<div class="empty-state"><div class="empty-icon">✓</div><div class="empty-title">All caught up</div><div class="empty-sub">No pending approvals.</div></div>`;return;}
+      list.innerHTML=pending.map(doc=>{
+        const id=docId(doc),name=gf(doc,'name'),email=gf(doc,'email'),bio=gf(doc,'bio'),ministries=gf(doc,'ministries'),photo=gf(doc,'photoUrl');
+        return `<div class="approval-card" id="approval-${id}">
+          <div class="approval-avatar">${photo?`<img src="${photo}"/>`:(name.charAt(0)||'?')}</div>
+          <div class="approval-info">
+            <div class="approval-name">${name}</div>
+            <div class="approval-meta">${email}${ministries?' · '+ministries:''}</div>
+            ${bio?`<div class="approval-bio">${bio}</div>`:''}
+          </div>
+          <div class="approval-actions">
+            <button class="btn btn-success btn-sm" onclick="approveFamily('${id}','${name.replace(/'/g,"\\'")}')">Approve</button>
+            <button class="btn btn-danger btn-sm" onclick="rejectFamily('${id}','${name.replace(/'/g,"\\'")}')">Reject</button>
+          </div>
+        </div>`;
+      }).join('');
+    } catch(e){list.innerHTML='<div style="color:var(--danger);">Error loading.</div>';}
+  }
+
+  async function approveFamily(id,name){
+    try{await fs_patch(`parishFamily/${id}`,{approved:{booleanValue:true}});document.getElementById(`approval-${id}`)?.remove();showToast(`${name} approved!`,'success');loadDashboard();}
+    catch(e){showToast('Error.','error');}
+  }
+  async function rejectFamily(id,name){
+    if(!confirm(`Remove ${name}'s application?`))return;
+    try{await fs_delete(`parishFamily/${id}`);document.getElementById(`approval-${id}`)?.remove();showToast(`${name} removed.`,'success');loadDashboard();}
+    catch(e){showToast('Error.','error');}
+  }
+
+  // ── PARTNERS ──
+  async function loadPartners() {
+    const list=document.getElementById('partners-list');
+    list.innerHTML='<div style="color:var(--dusty-rose);font-size:14px;">Loading...</div>';
+    try {
+      const res=await fs_get('partnerRequests');
+      const docs=(res.documents||[]).filter(d=>!gf(d,'parishApproved'));
+      if(docs.length===0){list.innerHTML=`<div class="empty-state"><div class="empty-icon">🏢</div><div class="empty-title">No pending requests</div><div class="empty-sub">New partner requests will appear here.</div></div>`;return;}
+      list.innerHTML=docs.map(doc=>{
+        const id=docId(doc),biz=gf(doc,'businessName'),contact=gf(doc,'contactName'),email=gf(doc,'email'),phone=gf(doc,'phone'),tier=gf(doc,'tier')||'standard',desc=gf(doc,'description'),website=gf(doc,'website');
+        const tierClass=tier.toLowerCase().includes('premium')?'tier-premium':tier.toLowerCase().includes('pro')?'tier-pro':'tier-standard';
+        const tierLabel=tier.toLowerCase().includes('premium')?'Premium':tier.toLowerCase().includes('pro')?'Parish Pro':'Standard';
+        return `<div class="partner-card" id="partner-${id}">
+          <div class="partner-card-header"><div class="partner-name">${biz}</div><span class="tier-badge ${tierClass}">${tierLabel}</span></div>
+          <div class="partner-meta">${contact} · ${email} · ${phone}${website?' · <a href="'+website+'" target="_blank" style="color:var(--burgundy);">'+website+'</a>':''}</div>
+          ${desc?`<div class="partner-desc">${desc}</div>`:''}
+          <div style="display:flex;gap:8px;">
+            <button class="btn btn-success btn-sm" onclick="approvePartner('${id}','${biz.replace(/'/g,"\\'")}')">✓ Approve for Saint Rose</button>
+            <button class="btn btn-outline btn-sm" onclick="declinePartner('${id}','${biz.replace(/'/g,"\\'")}')">Decline</button>
+          </div>
+        </div>`;
+      }).join('');
+    } catch(e){list.innerHTML='<div style="color:var(--danger);">Error loading.</div>';}
+  }
+
+  async function approvePartner(id,name){
+    try{await fs_patch(`partnerRequests/${id}`,{parishApproved:{booleanValue:true},parishApprovedAt:{stringValue:new Date().toISOString()},status:{stringValue:'parish_approved'}});document.getElementById(`partner-${id}`)?.remove();showToast(`${name} approved — Sacred Apps will handle activation.`,'success');loadDashboard();}
+    catch(e){showToast('Error.','error');}
+  }
+  async function declinePartner(id,name){
+    if(!confirm(`Decline ${name}'s request?`))return;
+    try{await fs_patch(`partnerRequests/${id}`,{parishApproved:{booleanValue:false},status:{stringValue:'parish_declined'}});document.getElementById(`partner-${id}`)?.remove();showToast(`${name} declined.`,'success');}
+    catch(e){showToast('Error.','error');}
+  }
+
+  // ── DIRECTORY ──
+  async function loadDirectory() {
+    const list=document.getElementById('directory-list');
+    list.innerHTML='<div style="color:var(--dusty-rose);font-size:14px;">Loading...</div>';
+    try {
+      const res=await fs_get('parishFamily');
+      allMembers=(res.documents||[]).filter(d=>gf(d,'approved')===true).sort((a,b)=>gf(a,'name').split(' ').pop().localeCompare(gf(b,'name').split(' ').pop()));
+      renderDirectory(allMembers);
+    } catch(e){list.innerHTML='<div style="color:var(--danger);">Error loading.</div>';}
+  }
+
+  function renderDirectory(members) {
+    const list=document.getElementById('directory-list');
+    if(members.length===0){list.innerHTML=`<div class="empty-state"><div class="empty-icon">👥</div><div class="empty-title">No members yet</div></div>`;return;}
+    list.innerHTML=`<div style="font-size:13px;color:var(--dusty-rose);margin-bottom:16px;">${members.length} approved members</div>`+
+      members.map(doc=>{
+        const id=docId(doc),name=gf(doc,'name'),email=gf(doc,'email'),ministries=gf(doc,'ministries'),photo=gf(doc,'photoUrl');
+        return `<div class="approval-card" id="dir-${id}">
+          <div class="approval-avatar">${photo?`<img src="${photo}"/>`:(name.charAt(0)||'?')}</div>
+          <div class="approval-info"><div class="approval-name">${name}</div><div class="approval-meta">${email}${ministries?' · '+ministries:''}</div></div>
+          <div class="approval-actions"><button class="btn btn-danger btn-sm" onclick="removeMember('${id}','${name.replace(/'/g,"\\'")}')">Remove</button></div>
+        </div>`;
+      }).join('');
+  }
+
+  function filterDirectory(){
+    const q=document.getElementById('dir-search').value.toLowerCase();
+    renderDirectory(allMembers.filter(d=>gf(d,'name').toLowerCase().includes(q)||gf(d,'email').toLowerCase().includes(q)||gf(d,'ministries').toLowerCase().includes(q)));
+  }
+
+  async function removeMember(id,name){
+    if(!confirm(`Remove ${name} from the Parish Family directory?`))return;
+    try{await fs_delete(`parishFamily/${id}`);document.getElementById(`dir-${id}`)?.remove();allMembers=allMembers.filter(d=>docId(d)!==id);showToast(`${name} removed.`,'success');loadDashboard();}
+    catch(e){showToast('Error.','error');}
+  }
+
+  function showToast(msg,type='success'){
+    const t=document.getElementById('toast');
+    t.textContent=msg;t.className=`toast ${type} show`;
+    setTimeout(()=>t.className='toast',3500);
+  }
+</script>
+</body>
+</html>
