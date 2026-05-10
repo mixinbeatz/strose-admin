@@ -100,7 +100,12 @@
 
   .approval-card { background: var(--sand); border-radius: 12px; padding: 18px; margin-bottom: 12px; border: 1px solid var(--linen); display: flex; align-items: center; gap: 16px; }
   .approval-avatar { width: 52px; height: 52px; border-radius: 50%; background: var(--burgundy); display: flex; align-items: center; justify-content: center; font-family: 'Cinzel', serif; color: var(--gold); font-size: 20px; flex-shrink: 0; overflow: hidden; }
-  .approval-avatar img { width: 100%; height: 100%; object-fit: cover; }
+  .approval-avatar img { width: 100%; height: 100%; object-fit: cover; cursor: pointer; }
+  .lightbox { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.85); z-index: 9999; align-items: center; justify-content: center; }
+  .lightbox.show { display: flex; }
+  .lightbox img { max-width: 80vw; max-height: 80vh; border-radius: 16px; box-shadow: 0 24px 80px rgba(0,0,0,0.5); }
+  .lightbox-close { position: absolute; top: 24px; right: 32px; color: white; font-size: 36px; cursor: pointer; opacity: 0.7; }
+  .lightbox-close:hover { opacity: 1; }
   .approval-info { flex: 1; }
   .approval-name { font-family: 'Cinzel', serif; font-size: 16px; color: var(--burgundy); margin-bottom: 3px; }
   .approval-meta { font-size: 13px; color: var(--dusty-rose); margin-bottom: 4px; }
@@ -472,6 +477,11 @@
 
     </div>
   </div>
+</div>
+
+<div class="lightbox" id="lightbox" onclick="closeLightbox()">
+  <div class="lightbox-close">✕</div>
+  <img id="lightbox-img" src="" />
 </div>
 
 <div class="toast" id="toast"></div>
@@ -878,7 +888,7 @@
       list.innerHTML=pending.map(doc=>{
         const id=docId(doc),name=gf(doc,'name'),email=gf(doc,'email'),bio=gf(doc,'bio'),ministries=gf(doc,'ministries'),photo=gf(doc,'photoUrl');
         return `<div class="approval-card" id="approval-${id}">
-          <div class="approval-avatar">${photo?`<img src="${photo}"/>`:(name.charAt(0)||'?')}</div>
+          <div class="approval-avatar">${photo?`<img src="${photo}" onclick="openLightbox('${photo}')"/>`:(name.charAt(0)||'?')}</div>
           <div class="approval-info">
             <div class="approval-name">${name}</div>
             <div class="approval-meta">${email}${ministries?' · '+ministries:''}</div>
@@ -956,7 +966,7 @@
       members.map(doc=>{
         const id=docId(doc),name=gf(doc,'name'),email=gf(doc,'email'),ministries=gf(doc,'ministries'),photo=gf(doc,'photoUrl');
         return `<div class="approval-card" id="dir-${id}">
-          <div class="approval-avatar">${photo?`<img src="${photo}"/>`:(name.charAt(0)||'?')}</div>
+          <div class="approval-avatar">${photo?`<img src="${photo}" onclick="openLightbox('${photo}')"/>`:(name.charAt(0)||'?')}</div>
           <div class="approval-info"><div class="approval-name">${name}</div><div class="approval-meta">${email}${ministries?' · '+ministries:''}</div></div>
           <div class="approval-actions"><button class="btn btn-danger btn-sm" onclick="removeMember('${id}','${name.replace(/'/g,"\\'")}')">Remove</button></div>
         </div>`;
@@ -973,6 +983,12 @@
     try{await fs_delete(`parishFamily/${id}`);document.getElementById(`dir-${id}`)?.remove();allMembers=allMembers.filter(d=>docId(d)!==id);showToast(`${name} removed.`,'success');loadDashboard();}
     catch(e){showToast('Error.','error');}
   }
+
+  function openLightbox(src) {
+    document.getElementById('lightbox-img').src = src;
+    document.getElementById('lightbox').classList.add('show');
+  }
+  function closeLightbox() { document.getElementById('lightbox').classList.remove('show'); }
 
   function showToast(msg,type='success'){
     const t=document.getElementById('toast');
