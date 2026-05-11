@@ -1,0 +1,632 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Become a Parish Partner — Saint Rose Philippine Duchesne</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600;700&family=Faustina:ital,wght@0,400;0,500;0,600;1,400&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --burgundy: #5C1A2E;
+    --burgundy-dark: #3D0F1E;
+    --burgundy-light: #7A2340;
+    --dusty-rose: #C17A8A;
+    --gold: #C9A84C;
+    --gold-light: #E8C96A;
+    --linen: #E8DDD0;
+    --sand: #F7F3EE;
+    --soil: #3D2B2B;
+    --white: #FFFFFF;
+    --success: #4A7C59;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Faustina', serif; background: var(--sand); color: var(--soil); }
+
+  /* HERO */
+  .hero { background: var(--burgundy); background-image: radial-gradient(ellipse at 20% 50%, #7A2340 0%, transparent 50%), radial-gradient(ellipse at 80% 20%, #3D0F1E 0%, transparent 50%); padding: 80px 40px; text-align: center; position: relative; overflow: hidden; }
+  .hero::before { content: '✝'; position: absolute; font-size: 400px; color: rgba(255,255,255,0.03); top: -80px; left: 50%; transform: translateX(-50%); font-family: 'Cinzel', serif; }
+  .hero-eyebrow { font-size: 12px; letter-spacing: 3px; text-transform: uppercase; color: var(--gold); margin-bottom: 16px; }
+  .hero-title { font-family: 'Cinzel', serif; font-size: clamp(32px, 5vw, 54px); color: var(--linen); line-height: 1.2; margin-bottom: 20px; }
+  .hero-title span { color: var(--gold); }
+  .hero-sub { font-size: 18px; color: rgba(232,221,208,0.85); max-width: 640px; margin: 0 auto 40px; line-height: 1.7; }
+  .hero-parish-note { display: inline-block; background: rgba(201,168,76,0.15); border: 1px solid rgba(201,168,76,0.4); border-radius: 30px; padding: 12px 28px; color: var(--gold); font-size: 15px; line-height: 1.5; max-width: 580px; }
+
+  .gold-divider { height: 3px; background: linear-gradient(90deg, transparent, var(--gold), transparent); }
+
+  /* SECTIONS */
+  .section { padding: 64px 40px; max-width: 1100px; margin: 0 auto; }
+  .section-center { text-align: center; }
+  .section-eyebrow { font-size: 11px; letter-spacing: 3px; text-transform: uppercase; color: var(--gold); margin-bottom: 12px; }
+  .section-title { font-family: 'Cinzel', serif; font-size: clamp(24px, 3vw, 36px); color: var(--burgundy); margin-bottom: 16px; line-height: 1.3; }
+  .section-sub { font-size: 17px; color: var(--soil); opacity: 0.75; max-width: 640px; margin: 0 auto 48px; line-height: 1.7; }
+
+  /* TIERS */
+  .tiers { display: grid; grid-template-columns: repeat(3, 1fr); gap: 24px; margin-bottom: 16px; }
+  @media(max-width:768px){.tiers{grid-template-columns:1fr;}}
+  .tier-card { background: var(--white); border-radius: 16px; padding: 32px; border: 2px solid var(--linen); position: relative; transition: transform 0.2s, box-shadow 0.2s; cursor: pointer; }
+  .tier-card:hover { transform: translateY(-4px); box-shadow: 0 12px 40px rgba(92,26,46,0.12); }
+  .tier-card.featured { border-color: var(--burgundy); background: var(--burgundy); }
+  .tier-card.selected { border-color: var(--gold); box-shadow: 0 0 0 3px rgba(201,168,76,0.3); }
+  .tier-card.featured.selected { border-color: var(--gold-light); }
+  .tier-name { font-family: 'Cinzel', serif; font-size: 20px; margin-bottom: 8px; color: var(--burgundy); }
+  .tier-card.featured .tier-name { color: var(--gold); }
+  .tier-price { font-family: 'Cinzel', serif; font-size: 40px; color: var(--burgundy); margin-bottom: 4px; }
+  .tier-card.featured .tier-price { color: var(--white); }
+  .tier-per { font-size: 16px; opacity: 0.6; font-family: 'Faustina', serif; }
+  .tier-annual { font-size: 13px; color: var(--success); margin-bottom: 20px; font-style: italic; }
+  .tier-card.featured .tier-annual { color: var(--gold-light); }
+  .tier-divider { height: 1px; background: var(--linen); margin: 20px 0; }
+  .tier-card.featured .tier-divider { background: rgba(255,255,255,0.15); }
+  .tier-feature { display: flex; align-items: flex-start; gap: 10px; font-size: 14px; margin-bottom: 10px; line-height: 1.4; opacity: 0.85; }
+  .tier-check { color: var(--success); flex-shrink: 0; font-size: 16px; }
+  .tier-card.featured .tier-check { color: var(--gold); }
+  .tier-card.featured .tier-feature { opacity: 0.9; color: var(--linen); }
+  .preview-btn { width: 100%; margin-top: 20px; padding: 11px; background: transparent; border: 1.5px solid var(--linen); border-radius: 9px; font-family: 'Cinzel', serif; font-size: 12px; letter-spacing: 0.8px; color: var(--soil); cursor: pointer; transition: all 0.2s; }
+  .preview-btn:hover { border-color: var(--burgundy); color: var(--burgundy); }
+  .tier-card.featured .preview-btn { border-color: rgba(255,255,255,0.3); color: var(--linen); }
+  .tier-card.featured .preview-btn:hover { border-color: var(--gold); color: var(--gold); }
+
+  /* PARISH NOTE SECTION */
+  .parish-note-section { background: var(--burgundy); padding: 48px 40px; text-align: center; }
+  .parish-note-inner { max-width: 700px; margin: 0 auto; }
+  .parish-note-title { font-family: 'Cinzel', serif; font-size: 24px; color: var(--gold); margin-bottom: 16px; }
+  .parish-note-text { font-size: 17px; color: var(--linen); line-height: 1.8; opacity: 0.9; }
+
+  /* FORM */
+  .form-wrapper { background: var(--white); padding: 56px 40px; }
+  .form-section { max-width: 860px; margin: 0 auto; }
+  .form-title { font-family: 'Cinzel', serif; font-size: 28px; color: var(--burgundy); margin-bottom: 8px; }
+  .form-sub { font-size: 15px; color: var(--dusty-rose); margin-bottom: 40px; line-height: 1.6; }
+  .form-block { margin-bottom: 36px; }
+  .form-block-title { font-family: 'Cinzel', serif; font-size: 15px; color: var(--burgundy); margin-bottom: 16px; padding-bottom: 10px; border-bottom: 1px solid var(--linen); letter-spacing: 0.5px; }
+  .form-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media(max-width:600px){.form-grid{grid-template-columns:1fr;}}
+  .form-full { grid-column: 1 / -1; }
+  .form-group { display: flex; flex-direction: column; gap: 7px; }
+  .form-label { font-size: 12px; letter-spacing: 1px; text-transform: uppercase; color: var(--dusty-rose); }
+  .form-label span { color: var(--danger, #8B2635); } 
+  .form-input, .form-select, .form-textarea { padding: 13px 16px; border: 1.5px solid var(--linen); border-radius: 10px; font-family: 'Faustina', serif; font-size: 16px; color: var(--soil); background: var(--sand); outline: none; transition: border-color 0.2s, background 0.2s; width: 100%; }
+  .form-input:focus, .form-select:focus, .form-textarea:focus { border-color: var(--burgundy); background: var(--white); }
+  .form-textarea { resize: vertical; min-height: 110px; line-height: 1.6; }
+  .form-hint { font-size: 12px; color: var(--dusty-rose); opacity: 0.8; margin-top: 4px; }
+
+  /* TOGGLE */
+  .toggle-row { display: flex; align-items: center; justify-content: space-between; padding: 14px 16px; background: var(--sand); border-radius: 10px; border: 1.5px solid var(--linen); }
+  .toggle-label { font-size: 15px; color: var(--soil); }
+  .toggle-sub { font-size: 13px; color: var(--dusty-rose); margin-top: 2px; }
+  .toggle { position: relative; width: 44px; height: 24px; flex-shrink: 0; }
+  .toggle input { opacity: 0; width: 0; height: 0; }
+  .toggle-slider { position: absolute; inset: 0; background: var(--linen); border-radius: 24px; cursor: pointer; transition: 0.3s; }
+  .toggle-slider:before { content: ''; position: absolute; width: 18px; height: 18px; left: 3px; bottom: 3px; background: white; border-radius: 50%; transition: 0.3s; }
+  input:checked + .toggle-slider { background: var(--burgundy); }
+  input:checked + .toggle-slider:before { transform: translateX(20px); }
+
+  /* TIER SELECTOR IN FORM */
+  .tier-selector { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+  @media(max-width:600px){.tier-selector{grid-template-columns:1fr;}}
+  .tier-option { border: 2px solid var(--linen); border-radius: 12px; padding: 18px 16px; cursor: pointer; transition: all 0.15s; text-align: center; background: var(--sand); }
+  .tier-option:hover { border-color: var(--burgundy); }
+  .tier-option.selected { border-color: var(--burgundy); background: var(--burgundy); color: var(--linen); }
+  .tier-option-name { font-family: 'Cinzel', serif; font-size: 16px; margin-bottom: 4px; }
+  .tier-option-price { font-size: 13px; opacity: 0.7; }
+  .tier-option.selected .tier-option-price { color: var(--gold); opacity: 1; }
+  .tier-option-desc { font-size: 12px; margin-top: 6px; opacity: 0.6; line-height: 1.4; }
+  .tier-option.selected .tier-option-desc { opacity: 0.8; }
+
+  /* UPLOAD */
+  .upload-zone { border: 2px dashed var(--linen); border-radius: 12px; padding: 28px; text-align: center; cursor: pointer; transition: all 0.2s; background: var(--sand); position: relative; }
+  .upload-zone:hover { border-color: var(--burgundy); background: var(--white); }
+  .upload-zone input[type=file] { position: absolute; inset: 0; opacity: 0; cursor: pointer; }
+  .upload-icon { font-size: 32px; margin-bottom: 8px; }
+  .upload-label { font-size: 14px; color: var(--burgundy); font-family: 'Cinzel', serif; margin-bottom: 4px; }
+  .upload-hint { font-size: 12px; color: var(--dusty-rose); }
+  .upload-preview { width: 80px; height: 80px; border-radius: 10px; object-fit: cover; margin: 12px auto 0; display: none; border: 2px solid var(--linen); }
+
+  /* TERMS */
+  .terms-box { background: var(--sand); border: 1px solid var(--linen); border-radius: 12px; padding: 20px; font-size: 13px; color: var(--soil); line-height: 1.7; max-height: 200px; overflow-y: auto; margin-bottom: 16px; }
+  .checkbox-row { display: flex; align-items: flex-start; gap: 12px; cursor: pointer; margin-bottom: 12px; }
+  .checkbox-row input[type=checkbox] { width: 18px; height: 18px; flex-shrink: 0; margin-top: 3px; accent-color: var(--burgundy); }
+  .checkbox-text { font-size: 14px; line-height: 1.5; }
+
+  /* SUBMIT */
+  .submit-btn { width: 100%; padding: 20px; background: var(--burgundy); color: var(--linen); border: none; border-radius: 12px; font-family: 'Cinzel', serif; font-size: 17px; letter-spacing: 1px; cursor: pointer; transition: background 0.2s; margin-top: 8px; }
+  .submit-btn:hover { background: var(--burgundy-light); }
+  .submit-btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+  /* SUCCESS */
+  .success-screen { display: none; text-align: center; padding: 60px 32px; }
+  .success-icon { width: 80px; height: 80px; background: #EDF7F0; border-radius: 50%; display: flex; align-items: center; justify-content: center; margin: 0 auto 24px; font-size: 40px; }
+  .success-title { font-family: 'Cinzel', serif; font-size: 28px; color: var(--burgundy); margin-bottom: 12px; }
+  .success-sub { font-size: 16px; color: var(--soil); opacity: 0.75; line-height: 1.7; max-width: 500px; margin: 0 auto; }
+
+  /* MODAL */
+  .modal-overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 9999; align-items: flex-end; justify-content: center; }
+  .modal-overlay.show { display: flex; }
+  .modal-sheet { background: var(--white); border-radius: 24px 24px 0 0; padding: 32px; max-width: 600px; width: 100%; max-height: 85vh; overflow-y: auto; }
+  .modal-handle { width: 40px; height: 4px; background: var(--linen); border-radius: 2px; margin: 0 auto 24px; }
+  .modal-close-btn { float: right; background: none; border: none; font-size: 22px; cursor: pointer; color: var(--dusty-rose); margin-top: -8px; }
+  .modal-eyebrow { font-size: 11px; letter-spacing: 2px; color: var(--gold); text-transform: uppercase; margin-bottom: 6px; }
+  .modal-title { font-family: 'Cinzel', serif; font-size: 22px; color: var(--burgundy); margin-bottom: 4px; }
+  .modal-cat { font-size: 14px; color: var(--dusty-rose); margin-bottom: 16px; }
+  .modal-hero { background: var(--burgundy); border-radius: 14px; padding: 20px; margin-bottom: 16px; display: flex; align-items: center; gap: 16px; }
+  .modal-hero-logo { width: 56px; height: 56px; background: rgba(255,255,255,0.1); border-radius: 10px; display: flex; align-items: center; justify-content: center; font-family: 'Cinzel', serif; color: var(--gold); font-size: 22px; flex-shrink: 0; }
+  .modal-hero-name { font-family: 'Cinzel', serif; color: var(--gold); font-size: 18px; }
+  .modal-hero-tag { color: rgba(232,221,208,0.7); font-size: 13px; margin-top: 2px; }
+  .modal-section { margin-bottom: 16px; }
+  .modal-section-title { font-family: 'Cinzel', serif; font-size: 13px; color: var(--dusty-rose); letter-spacing: 1px; margin-bottom: 8px; }
+  .modal-body-text { font-size: 15px; color: var(--soil); line-height: 1.7; }
+  .modal-chips { display: flex; flex-wrap: wrap; gap: 8px; }
+  .modal-chip { background: var(--sand); border: 1px solid var(--linen); border-radius: 20px; padding: 6px 14px; font-size: 13px; color: var(--soil); }
+  .modal-offer { background: #FDF8EE; border: 1px solid var(--gold); border-radius: 10px; padding: 14px; font-size: 14px; color: var(--soil); margin-bottom: 16px; }
+  .modal-offer-label { font-family: 'Cinzel', serif; font-size: 12px; color: var(--gold); letter-spacing: 1px; margin-bottom: 4px; }
+  .modal-btns { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 10px; margin-bottom: 12px; }
+  .modal-btn { padding: 12px; border-radius: 10px; border: none; font-family: 'Cinzel', serif; font-size: 12px; letter-spacing: 0.5px; cursor: pointer; }
+  .modal-btn-primary { background: var(--burgundy); color: var(--linen); }
+  .modal-btn-outline { background: transparent; border: 1.5px solid var(--linen); color: var(--soil); }
+  .modal-footer { text-align: center; font-size: 12px; color: var(--dusty-rose); padding-top: 16px; border-top: 1px solid var(--linen); }
+
+  /* FOOTER */
+  .footer { background: var(--burgundy-dark, #3D0F1E); padding: 40px; text-align: center; }
+  .footer-logo { font-family: 'Cinzel', serif; color: var(--gold); font-size: 18px; margin-bottom: 8px; }
+  .footer-sub { font-size: 13px; color: rgba(232,221,208,0.4); }
+
+  .required { color: #8B2635; }
+  .error-msg { color: #8B2635; font-size: 13px; margin-top: 4px; display: none; }
+</style>
+</head>
+<body>
+
+<!-- HERO -->
+<div class="hero">
+  <div class="hero-eyebrow">Saint Rose Philippine Duchesne · Anthem, Arizona</div>
+  <h1 class="hero-title">Put Your Business in Front of<br><span>Your Parish Community</span></h1>
+  <p class="hero-sub">The Saint Rose Parish Partner directory is an interactive mobile listing inside the official Saint Rose app — seen by your neighbors every week, on every phone.</p>
+  <div class="hero-parish-note">
+    Every listing fee goes directly to support Saint Rose Philippine Duchesne Parish — not to a third-party publisher. When you advertise here, your neighbors benefit twice.
+  </div>
+</div>
+
+<div class="gold-divider"></div>
+
+<!-- TIERS -->
+<div class="section section-center">
+  <div class="section-eyebrow">Listing Options</div>
+  <h2 class="section-title">Choose Your Listing</h2>
+  <p class="section-sub">All listings are reviewed and approved by Saint Rose Parish staff before going live. Founding rates are locked through June 30, 2026.</p>
+  <div class="tiers">
+
+    <div class="tier-card featured" onclick="selectTierCard(this,'Premium - $100/mo')">
+      <div class="tier-name">Premium</div>
+      <div class="tier-price">$100<span class="tier-per">/mo</span></div>
+      <div class="tier-annual">or $1,000/year — two months free</div>
+      <div class="tier-divider"></div>
+      <div class="tier-feature"><span class="tier-check">✓</span> Hero placement — top of directory</div>
+      <div class="tier-feature"><span class="tier-check">✓</span> Logo, tagline & full business profile</div>
+      <div class="tier-feature"><span class="tier-check">✓</span> Photo gallery</div>
+      <div class="tier-feature"><span class="tier-check">✓</span> One-tap Call, Text & Website buttons</div>
+      <div class="tier-feature"><span class="tier-check">✓</span> Apple Maps directions</div>
+      <div class="tier-feature"><span class="tier-check">✓</span> Special offer for parishioners</div>
+      <div class="tier-feature"><span class="tier-check">✓</span> After-hours availability badge</div>
+      <div class="tier-feature"><span class="tier-check">✓</span> Parishioner testimonial</div>
+      <div class="tier-feature"><span class="tier-check">✓</span> Tap analytics — calls, clicks, views</div>
+      <button class="preview-btn" onclick="event.stopPropagation();openPreview()">See what this looks like →</button>
+    </div>
+
+    <div class="tier-card" onclick="selectTierCard(this,'Standard - $50/mo')">
+      <div class="tier-name">Standard</div>
+      <div class="tier-price">$50<span class="tier-per">/mo</span></div>
+      <div class="tier-annual">or $500/year — two months free</div>
+      <div class="tier-divider"></div>
+      <div class="tier-feature"><span class="tier-check">✓</span> Photo & full description</div>
+      <div class="tier-feature"><span class="tier-check">✓</span> One-tap Call & Website buttons</div>
+      <div class="tier-feature"><span class="tier-check">✓</span> Category listing & search</div>
+      <div class="tier-feature"><span class="tier-check">✓</span> Parish endorsement</div>
+      <button class="preview-btn" onclick="event.stopPropagation();openPreview()">See what this looks like →</button>
+    </div>
+
+    <div class="tier-card" onclick="selectTierCard(this,'Parish Pro - $10/mo')">
+      <div class="tier-name">Parish Pro</div>
+      <div class="tier-price">$10<span class="tier-per">/mo</span></div>
+      <div class="tier-annual">Use code SAINTROSE — first month free</div>
+      <div class="tier-divider"></div>
+      <div class="tier-feature"><span class="tier-check">✓</span> For parishioners offering skills & services</div>
+      <div class="tier-feature"><span class="tier-check">✓</span> Name, category & personal description</div>
+      <div class="tier-feature"><span class="tier-check">✓</span> Contact buttons</div>
+      <div class="tier-feature"><span class="tier-check">✓</span> Community marketplace tone</div>
+      <button class="preview-btn" onclick="event.stopPropagation();openPreview()">See what this looks like →</button>
+    </div>
+
+  </div>
+</div>
+
+<!-- PARISH NOTE -->
+<div class="parish-note-section">
+  <div class="parish-note-inner">
+    <div class="parish-note-title">Your Advertising Dollars Stay in the Parish</div>
+    <p class="parish-note-text">Unlike traditional bulletin advertising managed by outside publishers, the majority of every Parish Partner listing fee goes directly into the Saint Rose general fund — supporting the parish, its ministries, and the community you already serve. This is not a third-party advertising product. It is a parish-owned revenue stream.</p>
+  </div>
+</div>
+
+<!-- FORM -->
+<div class="form-wrapper">
+  <div class="form-section">
+    <div id="form-content">
+      <div class="form-title">Apply to Become a Parish Partner</div>
+      <p class="form-sub">Complete the form below. Saint Rose Parish staff will review your application and reach out within 2 business days. Fields marked <span class="required">*</span> are required.</p>
+
+      <!-- BUSINESS INFO -->
+      <div class="form-block">
+        <div class="form-block-title">Business Information</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Business Name <span class="required">*</span></label>
+            <input type="text" class="form-input" id="f-biz" placeholder="e.g. Anthem Law" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Category <span class="required">*</span></label>
+            <select class="form-select" id="f-cat">
+              <option value="">Select a category...</option>
+              <option>Auto</option>
+              <option>Education</option>
+              <option>Faith</option>
+              <option>Financial</option>
+              <option>Food</option>
+              <option>Health</option>
+              <option>Home</option>
+              <option>Legal</option>
+              <option>Real Estate</option>
+              <option>Services</option>
+              <option>Tech</option>
+              <option>Other</option>
+            </select>
+          </div>
+          <div class="form-group form-full">
+            <label class="form-label">Tagline</label>
+            <input type="text" class="form-input" id="f-tagline" placeholder="e.g. Your neighborhood law office." maxlength="80" />
+            <div class="form-hint">Short phrase that appears under your business name. Max 80 characters.</div>
+          </div>
+          <div class="form-group form-full">
+            <label class="form-label">About Your Business <span class="required">*</span></label>
+            <textarea class="form-textarea" id="f-desc" placeholder="Tell parishioners what you do, how long you've been serving the community, and what makes you the right choice..."></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Website</label>
+            <input type="url" class="form-input" id="f-website" placeholder="https://yourbusiness.com" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Business Address</label>
+            <input type="text" class="form-input" id="f-address" placeholder="e.g. 123 Anthem Way, Anthem AZ 85086" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Special Offer for Parishioners</label>
+            <input type="text" class="form-input" id="f-offer" placeholder="e.g. 10% off for Saint Rose parishioners" />
+            <div class="form-hint">Optional — shown prominently on your listing.</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">SMS / Text Number</label>
+            <input type="tel" class="form-input" id="f-sms" placeholder="If different from main phone" />
+          </div>
+          <div class="form-group form-full" style="display:flex;flex-direction:column;gap:12px;">
+            <div class="toggle-row">
+              <div>
+                <div class="toggle-label">Parishioner Owned</div>
+                <div class="toggle-sub">Check if the owner or a principal is a Saint Rose parishioner</div>
+              </div>
+              <label class="toggle"><input type="checkbox" id="f-parishioner" /><span class="toggle-slider"></span></label>
+            </div>
+            <div class="toggle-row">
+              <div>
+                <div class="toggle-label">After Hours Available</div>
+                <div class="toggle-sub">Show an "After Hours" badge — you're reachable outside normal business hours</div>
+              </div>
+              <label class="toggle"><input type="checkbox" id="f-afterhours" /><span class="toggle-slider"></span></label>
+            </div>
+            <div class="toggle-row">
+              <div>
+                <div class="toggle-label">Accept Text Messages</div>
+                <div class="toggle-sub">Enable a Text button on your listing in addition to Call</div>
+              </div>
+              <label class="toggle"><input type="checkbox" id="f-accepttexts" /><span class="toggle-slider"></span></label>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- CONTACT -->
+      <div class="form-block">
+        <div class="form-block-title">Contact Information</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Contact Name <span class="required">*</span></label>
+            <input type="text" class="form-input" id="f-contact" placeholder="Your name" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Phone Number <span class="required">*</span></label>
+            <input type="tel" class="form-input" id="f-phone" placeholder="623-555-0100" />
+          </div>
+          <div class="form-group form-full">
+            <label class="form-label">Email Address <span class="required">*</span></label>
+            <input type="email" class="form-input" id="f-email" placeholder="you@yourbusiness.com" />
+            <div class="form-hint">Used for approval notification and Sacred Apps billing correspondence only. Not published.</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- PHOTOS -->
+      <div class="form-block">
+        <div class="form-block-title">Photos & Logo</div>
+        <div class="form-grid">
+          <div class="form-group">
+            <label class="form-label">Business Logo</label>
+            <div class="upload-zone" id="logo-zone">
+              <input type="file" accept="image/*" onchange="handleUpload(this,'logo')" />
+              <div class="upload-icon">🖼</div>
+              <div class="upload-label">Upload Logo</div>
+              <div class="upload-hint">PNG or JPG, square preferred</div>
+              <img class="upload-preview" id="logo-preview" />
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Business Photo</label>
+            <div class="upload-zone" id="photo-zone">
+              <input type="file" accept="image/*" onchange="handleUpload(this,'photo')" />
+              <div class="upload-icon">📷</div>
+              <div class="upload-label">Upload Photo</div>
+              <div class="upload-hint">Storefront, team, or service photo</div>
+              <img class="upload-preview" id="photo-preview" />
+            </div>
+          </div>
+        </div>
+        <div class="form-hint" style="margin-top:8px;">Photos will be reviewed by parish staff. Professional, community-appropriate images only.</div>
+      </div>
+
+      <!-- TIER -->
+      <div class="form-block">
+        <div class="form-block-title">Listing Tier <span class="required">*</span></div>
+        <div class="tier-selector">
+          <div class="tier-option selected" onclick="selectTierOption(this,'Premium - $100/mo')">
+            <div class="tier-option-name">Premium</div>
+            <div class="tier-option-price">$100/month</div>
+            <div class="tier-option-desc">Full profile, hero placement, analytics</div>
+          </div>
+          <div class="tier-option" onclick="selectTierOption(this,'Standard - $50/mo')">
+            <div class="tier-option-name">Standard</div>
+            <div class="tier-option-price">$50/month</div>
+            <div class="tier-option-desc">Photo, description, contact</div>
+          </div>
+          <div class="tier-option" onclick="selectTierOption(this,'Parish Pro - $10/mo')">
+            <div class="tier-option-name">Parish Pro</div>
+            <div class="tier-option-price">$10/month</div>
+            <div class="tier-option-desc">Parishioner services marketplace</div>
+          </div>
+        </div>
+        <input type="hidden" id="f-tier" value="Premium - $100/mo" />
+        <div style="margin-top:16px;padding:14px 16px;background:var(--sand);border-radius:10px;font-size:14px;color:var(--soil);">
+          <strong style="font-family:'Cinzel',serif;color:var(--burgundy);">Annual option:</strong> Pay for 10 months, get 12. Ask about annual billing after approval.
+        </div>
+      </div>
+
+      <!-- TERMS -->
+      <div class="form-block">
+        <div class="form-block-title">Terms & Agreement</div>
+        <div class="terms-box">
+          <strong>Parish Partner Listing Agreement</strong><br><br>
+          By submitting this application, you agree to the following terms:<br><br>
+          <strong>Approval.</strong> Your listing request will be reviewed by Saint Rose Philippine Duchesne Parish staff. The parish reserves the right to approve or decline any application at its sole discretion. Submission does not guarantee activation.<br><br>
+          <strong>Payment.</strong> Listing fees are due monthly or annually as selected. Sacred Apps LLC will contact you with payment instructions following parish approval. Listings will not go live until payment is confirmed.<br><br>
+          <strong>Content.</strong> All listing content — including photos, descriptions, and offers — must be accurate, professional, and appropriate for a Catholic parish community. Sacred Apps and the parish reserve the right to request revisions or remove listings that no longer meet these standards.<br><br>
+          <strong>Liability Disclaimer.</strong> Saint Rose Philippine Duchesne Parish and Sacred Apps LLC do not endorse, guarantee, or warrant the products, services, or representations of any listed business. Parish Partners are independent advertisers. The parish and Sacred Apps bear no responsibility for any transaction, dispute, or outcome between a parishioner and a listed business. Users engage with Parish Partners at their own discretion.<br><br>
+          <strong>Cancellation.</strong> Either party may cancel a listing with 30 days written notice. No refunds are issued for partial months.<br><br>
+          <strong>Rate Lock.</strong> Founding rates submitted before June 30, 2026 are locked for 12 months from activation date.
+        </div>
+        <label class="checkbox-row">
+          <input type="checkbox" id="f-agree-terms" />
+          <span class="checkbox-text">I have read and agree to the Parish Partner Listing Agreement above.</span>
+        </label>
+        <label class="checkbox-row">
+          <input type="checkbox" id="f-agree-liability" />
+          <span class="checkbox-text">I understand that Saint Rose Parish and Sacred Apps LLC are not liable for any disputes or outcomes between my business and parishioners.</span>
+        </label>
+        <label class="checkbox-row">
+          <input type="checkbox" id="f-agree-content" />
+          <span class="checkbox-text">I confirm that all information submitted is accurate and appropriate for a Catholic parish community.</span>
+        </label>
+      </div>
+
+      <button class="submit-btn" onclick="submitForm()">Submit Application →</button>
+      <div style="text-align:center;font-size:13px;color:var(--dusty-rose);margin-top:16px;">Saint Rose Parish staff will review your application and reach out within 2 business days.</div>
+    </div>
+
+    <!-- SUCCESS -->
+    <div class="success-screen" id="success-screen">
+      <div class="success-icon">✓</div>
+      <div class="success-title">Application Received</div>
+      <p class="success-sub">Thank you for applying to become a Parish Partner at Saint Rose. Our staff will review your application and reach out within 2 business days. We look forward to welcoming you to the community.</p>
+    </div>
+  </div>
+</div>
+
+<!-- FOOTER -->
+<div class="footer">
+  <div class="footer-logo">Sacred Apps</div>
+  <div class="footer-sub">Powering the Saint Rose Philippine Duchesne Parish app · Anthem, Arizona</div>
+</div>
+
+<!-- PREVIEW MODAL -->
+<div class="modal-overlay" id="preview-modal" onclick="closePreview()">
+  <div class="modal-sheet" onclick="event.stopPropagation()">
+    <div class="modal-handle"></div>
+    <button class="modal-close-btn" onclick="closePreview()">✕</button>
+    <div class="modal-eyebrow">Premium Listing Preview</div>
+    <div class="modal-title">What parishioners see</div>
+    <div class="modal-cat">This is how your Premium listing appears inside the Saint Rose app</div>
+
+    <div class="modal-hero">
+      <div class="modal-hero-logo">A</div>
+      <div>
+        <div class="modal-hero-name">Your Business Name</div>
+        <div class="modal-hero-tag">Your Category · Anthem, AZ</div>
+      </div>
+    </div>
+
+    <div class="modal-offer">
+      <div class="modal-offer-label">⭐ PARISHIONER OFFER</div>
+      Your special offer for Saint Rose parishioners appears here prominently
+    </div>
+
+    <div class="modal-section">
+      <div class="modal-section-title">ABOUT</div>
+      <div class="modal-body-text">Your full business description appears here. Parishioners can read your complete story, specialties, and why you're a trusted member of the community.</div>
+    </div>
+
+    <div class="modal-section">
+      <div class="modal-section-title">SERVICES</div>
+      <div class="modal-chips">
+        <div class="modal-chip">Service One</div>
+        <div class="modal-chip">Service Two</div>
+        <div class="modal-chip">Service Three</div>
+        <div class="modal-chip">Service Four</div>
+      </div>
+    </div>
+
+    <div class="modal-btns">
+      <button class="modal-btn modal-btn-primary">📞 Call</button>
+      <button class="modal-btn modal-btn-primary">💬 Text</button>
+      <button class="modal-btn modal-btn-outline">🌐 Website</button>
+    </div>
+    <div class="modal-btns">
+      <button class="modal-btn modal-btn-outline">📍 Directions</button>
+      <button class="modal-btn modal-btn-outline" style="grid-column:span 2;">↗ Share this listing</button>
+    </div>
+
+    <div class="modal-footer">Proud Parish Partner · Saint Rose Philippine Duchesne</div>
+  </div>
+</div>
+
+<script>
+  const API_KEY = 'AIzaSyBKjyHaRNkIjTV87zrhhvg6pBxarm3lcQ8';
+  const PROJECT_ID = 'saint-rose-anthem';
+  const BUCKET = 'saint-rose-anthem.firebasestorage.app';
+  const BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents`;
+
+  let logoBase64 = '';
+  let photoBase64 = '';
+
+  function selectTierCard(el, val) {
+    document.querySelectorAll('.tier-card').forEach(c=>c.classList.remove('selected'));
+    el.classList.add('selected');
+    document.getElementById('f-tier').value = val;
+    document.querySelectorAll('.tier-option').forEach(o=>o.classList.remove('selected'));
+    document.querySelectorAll('.tier-option').forEach(o=>{
+      if(o.querySelector('.tier-option-name').textContent === val.split(' - ')[0]) o.classList.add('selected');
+    });
+    document.getElementById('f-tier').scrollIntoView({behavior:'smooth',block:'center'});
+  }
+
+  function selectTierOption(el, val) {
+    document.querySelectorAll('.tier-option').forEach(o=>o.classList.remove('selected'));
+    el.classList.add('selected');
+    document.getElementById('f-tier').value = val;
+    document.querySelectorAll('.tier-card').forEach(c=>c.classList.remove('selected'));
+    document.querySelectorAll('.tier-card').forEach(c=>{
+      if(c.querySelector('.tier-name')?.textContent === val.split(' - ')[0]) c.classList.add('selected');
+    });
+  }
+
+  function handleUpload(input, type) {
+    const file = input.files[0];
+    if(!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      const base64 = e.target.result.split(',')[1];
+      const preview = document.getElementById(type+'-preview');
+      preview.src = e.target.result;
+      preview.style.display = 'block';
+      if(type==='logo') logoBase64 = base64;
+      else photoBase64 = base64;
+    };
+    reader.readAsDataURL(file);
+  }
+
+  async function uploadImage(base64, filename) {
+    if(!base64) return '';
+    try {
+      const binary = atob(base64);
+      const bytes = new Uint8Array(binary.length);
+      for(let i=0;i<binary.length;i++) bytes[i]=binary.charCodeAt(i);
+      const url = `https://firebasestorage.googleapis.com/v0/b/${BUCKET}/o/${encodeURIComponent(filename)}?uploadType=media&key=${API_KEY}`;
+      const res = await fetch(url,{method:'POST',headers:{'Content-Type':'image/jpeg'},body:bytes.buffer});
+      const data = await res.json();
+      return data.name ? `https://firebasestorage.googleapis.com/v0/b/${BUCKET}/o/${encodeURIComponent(data.name)}?alt=media` : '';
+    } catch(e) { return ''; }
+  }
+
+  function openPreview() { document.getElementById('preview-modal').classList.add('show'); }
+  function closePreview() { document.getElementById('preview-modal').classList.remove('show'); }
+
+  async function submitForm() {
+    const biz = document.getElementById('f-biz').value.trim();
+    const cat = document.getElementById('f-cat').value;
+    const contact = document.getElementById('f-contact').value.trim();
+    const email = document.getElementById('f-email').value.trim();
+    const phone = document.getElementById('f-phone').value.trim();
+    const desc = document.getElementById('f-desc').value.trim();
+    const tier = document.getElementById('f-tier').value;
+    const agreeTerms = document.getElementById('f-agree-terms').checked;
+    const agreeLiability = document.getElementById('f-agree-liability').checked;
+    const agreeContent = document.getElementById('f-agree-content').checked;
+
+    if(!biz||!cat||!contact||!email||!phone||!desc) { alert('Please fill in all required fields.'); return; }
+    if(!agreeTerms||!agreeLiability||!agreeContent) { alert('Please check all agreement boxes before submitting.'); return; }
+
+    const btn = document.querySelector('.submit-btn');
+    btn.disabled = true;
+    btn.textContent = 'Uploading photos...';
+
+    try {
+      const ts = Date.now();
+      const bizSlug = biz.replace(/\s+/g,'_');
+      const logoUrl = await uploadImage(logoBase64, `partnerLogos/${ts}_${bizSlug}_logo.jpg`);
+      const photoUrl = await uploadImage(photoBase64, `partnerPhotos/${ts}_${bizSlug}_photo.jpg`);
+
+      btn.textContent = 'Submitting application...';
+
+      await fetch(`${BASE}/partnerRequests?key=${API_KEY}`, {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ fields: {
+          businessName: {stringValue: biz},
+          category: {stringValue: cat},
+          tagline: {stringValue: document.getElementById('f-tagline').value.trim()},
+          description: {stringValue: desc},
+          website: {stringValue: document.getElementById('f-website').value.trim()},
+          address: {stringValue: document.getElementById('f-address').value.trim()},
+          discount: {stringValue: document.getElementById('f-offer').value.trim()},
+          smsNumber: {stringValue: document.getElementById('f-sms').value.trim()},
+          contactName: {stringValue: contact},
+          phone: {stringValue: phone},
+          email: {stringValue: email},
+          tier: {stringValue: tier},
+          parishionerOwned: {booleanValue: document.getElementById('f-parishioner').checked},
+          afterHours: {booleanValue: document.getElementById('f-afterhours').checked},
+          acceptTexts: {booleanValue: document.getElementById('f-accepttexts').checked},
+          logoUrl: {stringValue: logoUrl},
+          photoUrl: {stringValue: photoUrl},
+          parishApproved: {booleanValue: false},
+          status: {stringValue: 'pending'},
+          source: {stringValue: 'web'},
+          submittedAt: {stringValue: new Date().toISOString()}
+        }})
+      });
+
+      document.getElementById('form-content').style.display = 'none';
+      document.getElementById('success-screen').style.display = 'block';
+    } catch(e) {
+      btn.disabled = false;
+      btn.textContent = 'Submit Application →';
+      alert('There was an error submitting. Please try again or call the parish office at 623-465-9740.');
+    }
+  }
+</script>
+</body>
+</html>
