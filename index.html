@@ -195,6 +195,7 @@
       <div class="nav-item" onclick="showPage('announcement',this)"><span class="nav-icon">📢</span> Post Announcement</div>
       <div class="nav-item" onclick="showPage('reflection',this)"><span class="nav-icon">📖</span> Weekly Reflection</div>
       <div class="nav-item" onclick="showPage('daily',this)"><span class="nav-icon">✝</span> Daily Reflection</div>
+      <div class="nav-item" onclick="showPage('songsheet',this)"><span class="nav-icon">🎵</span> Mass Songsheet</div>
       <div class="nav-section">Directory</div>
       <div class="nav-item" onclick="showPage('approvals',this)"><span class="nav-icon">👥</span> Parish Family Approvals <span class="nav-badge" id="approval-count">0</span></div>
       <div class="nav-item" onclick="showPage('partners',this)"><span class="nav-icon">🏢</span> Partner Requests <span class="nav-badge" id="partner-count">0</span></div>
@@ -444,6 +445,37 @@
             <button class="btn btn-outline" onclick="loadCurrentDaily()">Load Today's</button>
           </div>
           <div class="post-success" id="daily-success">✓ Daily reflection posted.</div>
+        </div>
+      </div>
+
+      <!-- SONGSHEET -->
+      <div class="page" id="page-songsheet">
+        <div class="card">
+          <div class="card-title">🎵 Mass Songsheet</div>
+          <div class="info-box">Upload the songsheet PDF for this week's Mass. It will appear on the Home screen of the app for parishioners to follow along during Mass.</div>
+          <div class="form-group">
+            <label class="form-label">Mass / Title <span style="color:#8B2635">*</span></label>
+            <input type="text" class="form-input" id="ss-title" placeholder="e.g. Sunday May 11 — 8:00 AM Mass" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Upload PDF <span style="color:#8B2635">*</span></label>
+            <div class="upload-zone" id="ss-zone" style="border:2px dashed var(--linen);border-radius:12px;padding:32px;text-align:center;cursor:pointer;background:var(--sand);position:relative;">
+              <input type="file" accept="application/pdf" onchange="handleSongsheetUpload(this)" style="position:absolute;inset:0;opacity:0;cursor:pointer;" />
+              <div style="font-size:36px;margin-bottom:8px;">📄</div>
+              <div style="font-family:'Cinzel',serif;font-size:14px;color:var(--burgundy);margin-bottom:4px;">Upload PDF Songsheet</div>
+              <div style="font-size:12px;color:var(--dusty-rose);">PDF files only</div>
+              <div id="ss-filename" style="margin-top:12px;font-size:13px;color:var(--success);display:none;"></div>
+            </div>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-primary" onclick="postSongsheet()">Upload Songsheet</button>
+            <button class="btn btn-outline btn-sm" onclick="loadCurrentSongsheet()">Load Current</button>
+          </div>
+          <div class="post-success" id="ss-success">✓ Songsheet uploaded successfully.</div>
+          <div id="ss-current" style="margin-top:20px;display:none;">
+            <div style="font-family:'Cinzel',serif;font-size:13px;color:var(--dusty-rose);letter-spacing:1px;margin-bottom:8px;">CURRENT SONGSHEET</div>
+            <div id="ss-current-info" style="font-size:15px;color:var(--soil);"></div>
+          </div>
         </div>
       </div>
 
@@ -1018,6 +1050,74 @@
     document.getElementById('lightbox').classList.add('show');
   }
   function closeLightbox() { document.getElementById('lightbox').classList.remove('show'); }
+
+  let songsheetBase64 = '';
+  let songsheetFileName = '';
+
+  function handleSongsheetUpload(input) {
+    const file = input.files[0];
+    if (!file) return;
+    songsheetFileName = file.name;
+    const reader = new FileReader();
+    reader.onload = e => {
+      songsheetBase64 = e.target.result.split(',')[1];
+      const fn = document.getElementById('ss-filename');
+      fn.textContent = '✓ ' + file.name;
+      fn.style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+  }
+
+  async function postSongsheet() {
+    const title = document.getElementById('ss-title').value.trim();
+    if (!title) { showToast('Please enter a title.', 'error'); return; }
+    if (!songsheetBase64) { showToast('Please select a PDF file.', 'error'); return; }
+    const btn = document.querySelector('#page-songsheet .btn-primary');
+    btn.disabled = true; btn.textContent = 'Uploading...';
+    try {
+      const BUCKET = 'saint-rose-anthem.firebasestorage.app';
+      const ts = Date.now();
+      const fileName = 'songsheets/' + ts + '_' + songsheetFileName.replace(/\s+/g,'_');
+      const binary = atob(songsheetBase64);
+      const bytes = new Uint8Array(binary.length);
+      for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+      const uploadUrl = 'https://firebasestorage.googleapis.com/v0/b/' + BUCKET + '/o/' + encodeURIComponent(fileName) + '?uploadType=media&key=' + API_KEY;
+      const uploadRes = await fetch(uploadUrl, { method: 'POST', headers: { 'Content-Type': 'application/pdf' }, body: bytes.buffer });
+      const uploadData = await uploadRes.json();
+      if (!uploadData.name) throw new Error('Upload failed');
+      const url = 'https://firebasestorage.googleapis.com/v0/b/' + BUCKET + '/o/' + encodeURIComponent(uploadData.name) + '?alt=media';
+      // Clear old songsheets
+      const existing = await fs_get('songsheets');
+      for (const doc of (existing.documents || [])) { await fs_delete(doc.name.split('/documents/')[1]); }
+      // Save new one
+      await fs_post('songsheets', {
+        title: { stringValue: title },
+        url: { stringValue: url },
+        fileName: { stringValue: songsheetFileName },
+        uploadedAt: { stringValue: new Date().toISOString() },
+        uploadedBy: { stringValue: 'Parish Staff' }
+      });
+      document.getElementById('ss-success').style.display = 'block';
+      showToast('Songsheet uploaded!', 'success');
+      btn.disabled = false; btn.textContent = 'Upload Songsheet';
+      setTimeout(() => { document.getElementById('ss-success').style.display = 'none'; }, 4000);
+    } catch(e) { showToast('Upload failed. Try again.', 'error'); btn.disabled = false; btn.textContent = 'Upload Songsheet'; }
+  }
+
+  async function loadCurrentSongsheet() {
+    try {
+      const res = await fs_get('songsheets');
+      const docs = res.documents || [];
+      if (docs.length > 0) {
+        const r = docs[0];
+        document.getElementById('ss-title').value = gf(r, 'title');
+        const info = document.getElementById('ss-current-info');
+        info.innerHTML = '<strong>' + gf(r,'title') + '</strong><br><a href="' + gf(r,'url') + '" target="_blank" style="color:var(--burgundy);">View current PDF →</a><br><span style="font-size:12px;color:var(--dusty-rose);">Uploaded ' + new Date(gf(r,'uploadedAt')).toLocaleDateString() + '</span>';
+        document.getElementById('ss-current').style.display = 'block';
+        showToast('Current songsheet loaded.', 'success');
+      } else { showToast('No songsheet uploaded yet.', 'error'); }
+    } catch(e) { showToast('Error loading.', 'error'); }
+  }
 
   function showToast(msg,type='success'){
     const t=document.getElementById('toast');
