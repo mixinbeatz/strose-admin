@@ -904,7 +904,104 @@
     } catch(e){showToast('Error posting.','error');}
   }
 
-  // ── APPROVALS ──
+  // ── DAILY SCHEDULER ──
+  function buildDailyRows() {
+    const container = document.getElementById('daily-rows');
+    if (!container) return;
+    const today = new Date();
+    container.innerHTML = '';
+    for (let i = 0; i < 7; i++) {
+      const d = new Date(today);
+      d.setDate(today.getDate() + i);
+      const dateStr = d.toISOString().split('T')[0];
+      const label = d.toLocaleDateString('en-US', {weekday:'long', month:'short', day:'numeric'});
+      container.innerHTML += '<div style="border:1px solid var(--linen);border-radius:10px;padding:16px;margin-bottom:12px;">' +
+        '<div style="font-family:Cinzel,serif;font-size:13px;color:var(--burgundy);margin-bottom:10px;">' + label + '</div>' +
+        '<input type="hidden" id="daily-date-' + i + '" value="' + dateStr + '" />' +
+        '<input type="text" class="form-input" id="daily-title-' + i + '" placeholder="Title (optional)" style="margin-bottom:8px;" />' +
+        '<textarea class="form-textarea" id="daily-body-' + i + '" placeholder="Paste reflection text here..." style="min-height:100px;"></textarea>' +
+        '</div>';
+    }
+  }
+  async function loadScheduledReflections() {
+    try {
+      const res = await fs_get('scheduledReflections');
+      const docs = res.documents || [];
+      for (let i = 0; i < 7; i++) {
+        const dateEl = document.getElementById('daily-date-' + i);
+        if (!dateEl) continue;
+        const date = dateEl.value;
+        const match = docs.find(function(d){ return gf(d,'date') === date; });
+        if (match) {
+          document.getElementById('daily-title-' + i).value = gf(match,'title') || '';
+          document.getElementById('daily-body-' + i).value = gf(match,'body') || '';
+        }
+      }
+      showToast('Scheduled reflections loaded.','success');
+      renderScheduledQueue(docs);
+    } catch(e) { showToast('Error loading.','error'); }
+  }
+  async function saveScheduledReflections() {
+    var saved = 0;
+    for (let i = 0; i < 7; i++) {
+      const dateEl = document.getElementById('daily-date-' + i);
+      const titleEl = document.getElementById('daily-title-' + i);
+      const bodyEl = document.getElementById('daily-body-' + i);
+      if (!dateEl || !bodyEl) continue;
+      const date = dateEl.value;
+      const title = titleEl ? titleEl.value.trim() : '';
+      const body = bodyEl.value.trim();
+      if (!body) continue;
+      try {
+        const existing = await fs_get('scheduledReflections');
+        for (const doc of (existing.documents||[]).filter(function(d){ return gf(d,'date')===date; })) {
+          await fs_delete(doc.name.split('/documents/')[1]);
+        }
+        await fs_post('scheduledReflections',{
+          date:{stringValue:date},
+          title:{stringValue:title},
+          body:{stringValue:body},
+          postedBy:{stringValue:'Parish Staff'},
+          createdAt:{stringValue:new Date().toISOString()}
+        });
+        saved++;
+      } catch(e) { console.log('Error saving reflection for', date, e); }
+    }
+    if (saved > 0) {
+      document.getElementById('daily-success').style.display='block';
+      showToast(saved + ' reflection(s) scheduled!','success');
+      setTimeout(function(){ document.getElementById('daily-success').style.display='none'; },4000);
+      loadScheduledReflections();
+    } else {
+      showToast('No reflections to save — add text to at least one day.','error');
+    }
+  }
+  async function renderScheduledQueue(docs) {
+    const el = document.getElementById('scheduled-queue');
+    if (!el) return;
+    if (!docs || docs.length === 0) { el.innerHTML = '<div style="color:var(--dusty-rose);font-size:14px;">No reflections scheduled.</div>'; return; }
+    const sorted = docs.sort(function(a,b){ return gf(a,'date') > gf(b,'date') ? 1 : -1; });
+    el.innerHTML = sorted.map(function(doc) {
+      const date = gf(doc,'date');
+      const title = gf(doc,'title') || '(no title)';
+      const body = gf(doc,'body') || '';
+      const id = doc.name.split('/').pop();
+      return '<div style="padding:12px 0;border-bottom:0.5px solid var(--linen);display:flex;justify-content:space-between;align-items:flex-start;">' +
+        '<div><div style="font-family:Cinzel,serif;font-size:13px;color:var(--burgundy);">' + date + '</div>' +
+        '<div style="font-size:15px;color:var(--soil);margin-top:2px;">' + title + '</div>' +
+        '<div style="font-size:12px;color:var(--dusty-rose);margin-top:2px;">' + body.substring(0,80) + (body.length>80?'...':'') + '</div></div>' +
+        '<button onclick="deleteScheduled(' + JSON.stringify(id) + ')" style="background:none;border:none;color:#CC3333;cursor:pointer;font-size:13px;padding:4px 8px;">Delete</button>' +
+        '</div>';
+    }).join('');
+  }
+  async function deleteScheduled(id) {
+    if (!confirm('Delete this scheduled reflection?')) return;
+    await fs_delete('scheduledReflections/' + id);
+    showToast('Deleted.','success');
+    loadScheduledReflections();
+  }
+
+    // ── APPROVALS ──
   async function loadApprovals() {
     const list=document.getElementById('approvals-list');
     list.innerHTML='<div style="color:var(--dusty-rose);font-size:14px;">Loading...</div>';
