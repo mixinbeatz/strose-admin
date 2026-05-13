@@ -426,25 +426,18 @@
       <!-- DAILY REFLECTION -->
       <div class="page" id="page-daily">
         <div class="card">
-          <div class="card-title">✝ Daily Reflection</div>
-          <div class="info-box">Fr. Bing's daily reflection — updated each morning. Paste the full text here and it will appear on the Home screen under Daily Reflection.</div>
-          <div class="form-group">
-            <label class="form-label">Date</label>
-            <input type="date" class="form-input" id="daily-date" />
+          <div class="card-title">✝ Weekly Reflection Scheduler</div>
+          <div class="info-box">Schedule up to 7 daily reflections at once. Each will automatically appear in the app at 4:00 AM on its scheduled date.</div>
+          <div id="daily-rows"></div>
+          <div class="btn-row" style="margin-top:16px;">
+            <button class="btn btn-primary" onclick="saveScheduledReflections()">Save All Reflections</button>
+            <button class="btn btn-outline" onclick="loadScheduledReflections()">Load Scheduled</button>
           </div>
-          <div class="form-group">
-            <label class="form-label">Title (optional)</label>
-            <input type="text" class="form-input" id="daily-title" placeholder="e.g. The Glory of God is Man Fully Alive" />
-          </div>
-          <div class="form-group">
-            <label class="form-label">Full Reflection Text *</label>
-            <textarea class="form-textarea large" id="daily-body" placeholder="Paste Fr. Bing's daily reflection here..."></textarea>
-          </div>
-          <div class="btn-row">
-            <button class="btn btn-primary" onclick="postDaily()">Post Daily Reflection</button>
-            <button class="btn btn-outline" onclick="loadCurrentDaily()">Load Today's</button>
-          </div>
-          <div class="post-success" id="daily-success">✓ Daily reflection posted.</div>
+          <div class="post-success" id="daily-success">✓ Reflections scheduled successfully.</div>
+        </div>
+        <div class="card" style="margin-top:16px;">
+          <div class="card-title">📋 Scheduled Queue</div>
+          <div id="scheduled-queue"><div style="color:var(--dusty-rose);font-size:14px;">Loading...</div></div>
         </div>
       </div>
 
@@ -572,7 +565,7 @@
     if(id==='partners') loadPartners();
     if(id==='directory') loadDirectory();
     if(id==='reflection') loadCurrentReflection();
-    if(id==='daily') loadCurrentDaily();
+    if(id==='daily') { buildDailyRows(); loadScheduledReflections(); }
     if(id==='events') loadRecentEvents();
   }
 
