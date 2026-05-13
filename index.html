@@ -431,6 +431,7 @@
           <div id="daily-rows"></div>
           <div class="btn-row" style="margin-top:16px;">
             <button class="btn btn-primary" onclick="saveScheduledReflections()">Save All Reflections</button>
+            <button class="btn btn-gold" onclick="publishTodayNow()">Publish Today Now</button>
             <button class="btn btn-outline" onclick="loadScheduledReflections()">Load Scheduled</button>
           </div>
           <div class="post-success" id="daily-success">✓ Reflections scheduled successfully.</div>
@@ -999,6 +1000,28 @@
     await fs_delete('scheduledReflections/' + id);
     showToast('Deleted.','success');
     loadScheduledReflections();
+  }
+
+    async function publishTodayNow() {
+    const dateEl = document.getElementById('daily-date-0');
+    const titleEl = document.getElementById('daily-title-0');
+    const bodyEl = document.getElementById('daily-body-0');
+    if (!bodyEl || !bodyEl.value.trim()) { showToast('Add text to today\'s row first.', 'error'); return; }
+    const date = dateEl ? dateEl.value : new Date().toISOString().split('T')[0];
+    const title = titleEl ? titleEl.value.trim() : '';
+    const body = bodyEl.value.trim();
+    try {
+      const existing = await fs_get('dailyReflection');
+      for (const doc of (existing.documents || [])) { await fs_delete(doc.name.split('/documents/')[1]); }
+      await fs_post('dailyReflection', {
+        date: {stringValue: date},
+        title: {stringValue: title},
+        body: {stringValue: body},
+        postedBy: {stringValue: 'Parish Staff'},
+        createdAt: {stringValue: new Date().toISOString()}
+      });
+      showToast('Today\'s reflection is now live in the app!', 'success');
+    } catch(e) { showToast('Error publishing.', 'error'); }
   }
 
     // ── APPROVALS ──
