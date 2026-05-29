@@ -2244,7 +2244,7 @@
       await fs_patch('eventRequests/' + id, {status: {stringValue: 'approved'}});
       showToast('Event approved and added to calendar!', 'success');
       loadEventRequests();
-    } catch(e) { showToast('Error approving event.', 'error'); }
+    } catch(e) { showToast('Error: ' + e.message, 'error'); console.error('Approve error:', e); }
   }
 
   async function denyEventRequest(id) {
