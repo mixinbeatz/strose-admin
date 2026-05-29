@@ -2120,7 +2120,7 @@
     var title = document.getElementById('se-title').value.trim();
     var date = document.getElementById('se-date').value.trim();
     var time = document.getElementById('se-time').value.trim();
-    var location = document.getElementById('se-location').value.trim();
+    var eventLocation = document.getElementById('se-location').value.trim();
     var description = document.getElementById('se-description').value.trim();
     var link = document.getElementById('se-link').value.trim();
     if (!title || !date) { showToast('Title and date are required.', 'error'); return; }
@@ -2131,7 +2131,7 @@
         title: {stringValue: title},
         date: {stringValue: date},
         time: {stringValue: time},
-        location: {stringValue: location},
+        location: {stringValue: eventLocation},
         description: {stringValue: description},
         linkUrl: {stringValue: link},
         ministry: {stringValue: ministry},
