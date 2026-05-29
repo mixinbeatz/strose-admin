@@ -2226,6 +2226,7 @@
   async function approveEventRequest(id, btn) {
     try {
       var data = await fs_get_doc('eventRequests/' + id);
+      console.log('eventRequest data:', JSON.stringify(data));
       var f = data.fields;
       await fs_post('events', {
         title: f.title || {stringValue:''},
