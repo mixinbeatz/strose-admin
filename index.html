@@ -124,8 +124,6 @@
   .page-title { font-family: 'Cinzel', serif; font-size: 20px; color: var(--burgundy); }
   .topbar-meta { font-size: 13px; color: var(--dusty-rose); }
   .page.active { display: block; }
-  #page-finance-dashboard.active ~ * { padding-top: 0; }
-  .finance-flush { margin: -32px -32px 24px -32px; border-radius: 0; }
 
   .empty-state { text-align: center; padding: 60px 20px; color: var(--dusty-rose); }
   .empty-icon { font-size: 48px; margin-bottom: 16px; }
@@ -800,8 +798,6 @@
       <!-- Finance Dashboard -->
       <!-- Finance Dashboard -->
       <div class="page" id="page-finance-dashboard">
-        <div class="finance-flush card" style="background:linear-gradient(135deg,#5C1A2E,#3D0F1E);color:white;margin-bottom:24px;padding:32px">
-          <div style="font-size:11px;letter-spacing:1.5px;opacity:0.6;margin-bottom:12px">SAINT ROSE PHILIPPINE DUCHESNE · COMMUNITY DIRECTORY</div>
           <div style="font-size:42px;font-family:'Cinzel',serif;line-height:1">$630<span style="font-size:18px;opacity:0.7"> /mo</span></div>
           <div style="font-size:13px;opacity:0.7;margin-top:6px">Monthly Parish Earnings</div>
         </div>
@@ -1076,8 +1072,6 @@
     document.querySelectorAll('.finance-only').forEach(el => el.style.display = isFinance ? '' : 'none');
     document.querySelectorAll('.ministry-only').forEach(el => el.style.display = isMinistry ? '' : 'none');
     if (isFinance) {
-      document.querySelector('.topbar').style.display = 'none';
-      document.querySelector('.content').style.padding = '0';
       showPage('finance-dashboard', document.querySelector('.finance-only.nav-item'));
     } else if (isMinistry) {
       showPage('ministry-post', document.querySelector('.ministry-only.nav-item'));
@@ -1098,9 +1092,6 @@
     if(el) el.classList.add('active');
     const titles = {dashboard:'Dashboard',events:'Events',announcement:'Post Announcement',fastblast:'Fast Blast',reflection:'Weekly Reflection',daily:'Daily Reflection',songsheet:'Mass Songsheet',welcome:'Welcome Message','music-ministry':'Music Ministry','music-members':'Music Ministry Members',approvals:'Parish Family Approvals',partners:'Partner Requests',directory:'Parish Family Directory','ministry-post':'Post to Members','cda-members':'My Members','prayer-chain':'Prayer Chain','prayer-submissions':'Prayer Submissions','submit-event':'Submit Event','event-requests':'Event Requests','finance-dashboard':'Revenue Dashboard','finance-partners':'Community Partners'};
     document.getElementById('page-title').textContent = titles[id]||id;
-    var contentEl = document.querySelector('.content');
-    var isFinancePage = (id==='finance-dashboard'||id==='finance-partners');
-    if (contentEl) contentEl.style.padding = isFinancePage ? '0' : '32px';
     if(id==='approvals') loadApprovals();
     if(id==='partners') loadPartners();
     if(id==='directory') loadDirectory();
