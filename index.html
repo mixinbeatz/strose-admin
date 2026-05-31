@@ -54,7 +54,7 @@
   .signout-btn:hover { border-color: rgba(255,255,255,0.4); color: var(--linen); }
 
   .main { margin-left: var(--sidebar-width); min-height: 100vh; display: flex; flex-direction: column; }
-  .content { padding: 32px; flex: 1; }
+  .content { padding: 32px; flex: 1; padding-top: 0; }
 
   .card { background: var(--white); border-radius: 14px; padding: 28px; margin-bottom: 24px; box-shadow: 0 2px 12px rgba(92,26,46,0.06); }
   .card-title { font-family: 'Cinzel', serif; font-size: 16px; color: var(--burgundy); margin-bottom: 20px; padding-bottom: 14px; border-bottom: 1px solid var(--linen); display: flex; align-items: center; gap: 10px; }
@@ -120,7 +120,7 @@
   .partner-desc { font-size: 14px; color: var(--soil); margin-bottom: 14px; line-height: 1.5; }
 
   .page { display: none; }
-  .topbar { background: var(--white); border-bottom: 1px solid var(--linen); padding: 16px 32px; display: flex; align-items: center; justify-content: space-between; }
+  .topbar { background: var(--white); border-bottom: 1px solid var(--linen); padding: 16px 0; display: flex; align-items: center; justify-content: space-between; margin-bottom: 24px; }
   .page-title { font-family: 'Cinzel', serif; font-size: 20px; color: var(--burgundy); }
   .topbar-meta { font-size: 13px; color: var(--dusty-rose); }
   .page.active { display: block; }
@@ -228,11 +228,11 @@
   </div>
 
   <div class="main">
-    <div class="topbar">
-      <div class="page-title" id="page-title">Dashboard</div>
-      <div class="topbar-meta" id="topbar-date"></div>
-    </div>
     <div class="content">
+      <div class="topbar" id="topbar-bar">
+        <div class="page-title" id="page-title">Dashboard</div>
+        <div class="topbar-meta" id="topbar-date"></div>
+      </div>
 
       <!-- DASHBOARD -->
       <div class="page active" id="page-dashboard">
