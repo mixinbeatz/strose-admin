@@ -54,9 +54,6 @@
   .signout-btn:hover { border-color: rgba(255,255,255,0.4); color: var(--linen); }
 
   .main { margin-left: var(--sidebar-width); min-height: 100vh; display: flex; flex-direction: column; }
-  .topbar { background: var(--white); border-bottom: 1px solid var(--linen); padding: 16px 32px; display: flex; align-items: center; justify-content: space-between; position: sticky; top: 0; z-index: 50; }
-  .page-title { font-family: 'Cinzel', serif; font-size: 20px; color: var(--burgundy); }
-  .topbar-meta { font-size: 13px; color: var(--dusty-rose); }
   .content { padding: 32px; flex: 1; }
 
   .card { background: var(--white); border-radius: 14px; padding: 28px; margin-bottom: 24px; box-shadow: 0 2px 12px rgba(92,26,46,0.06); }
@@ -229,10 +226,6 @@
   </div>
 
   <div class="main">
-    <div class="topbar">
-      <div class="page-title" id="page-title">Dashboard</div>
-      <div class="topbar-meta" id="topbar-date"></div>
-    </div>
     <div class="content">
 
       <!-- DASHBOARD -->
@@ -1048,7 +1041,6 @@
   let allMembers = [];
   let bulkRows = [];
 
-  document.getElementById('topbar-date').textContent = new Date().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
   document.getElementById('daily-date').value = new Date().toISOString().split('T')[0];
 
   // Set default start/end to today
@@ -1100,12 +1092,9 @@
     document.getElementById('page-'+id).classList.add('active');
     if(el) el.classList.add('active');
     const titles = {dashboard:'Dashboard',events:'Events',announcement:'Post Announcement',fastblast:'Fast Blast',reflection:'Weekly Reflection',daily:'Daily Reflection',songsheet:'Mass Songsheet',welcome:'Welcome Message','music-ministry':'Music Ministry','music-members':'Music Ministry Members',approvals:'Parish Family Approvals',partners:'Partner Requests',directory:'Parish Family Directory','ministry-post':'Post to Members','cda-members':'My Members','prayer-chain':'Prayer Chain','prayer-submissions':'Prayer Submissions','submit-event':'Submit Event','event-requests':'Event Requests','finance-dashboard':'Revenue Dashboard','finance-partners':'Community Partners'};
-    document.getElementById('page-title').textContent = titles[id]||id;
     var contentEl = document.querySelector('.content');
-    var topbarEl = document.querySelector('.topbar');
     var isFinancePage = (id==='finance-dashboard'||id==='finance-partners');
     if (contentEl) contentEl.style.padding = isFinancePage ? '0' : '32px';
-    if (topbarEl) topbarEl.style.display = isFinancePage ? 'none' : '';
     if(id==='approvals') loadApprovals();
     if(id==='partners') loadPartners();
     if(id==='directory') loadDirectory();
