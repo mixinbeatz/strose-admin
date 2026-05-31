@@ -2288,6 +2288,7 @@
     {name:'Sacred Apps', tier:'standard', category:'Tech', parishionerOwned:true},
   ];
 
+  function toggleFinanceDetail(idx) { var el = document.getElementById("fd-" + idx); if (el) el.style.display = el.style.display === "none" ? "block" : "none"; }
   function loadFinancePartners() {
     var el = document.getElementById('finance-partners-list');
     if (!el) return;
@@ -2295,7 +2296,8 @@
       var rate = p.tier === 'premium' ? 100 : 50;
       var parish = Math.round(rate * 0.7);
       var platform = rate - parish;
-      return '<div style="border:1px solid var(--linen);border-radius:10px;padding:16px;margin-bottom:12px;cursor:pointer" onclick="this.querySelector('.finance-detail').style.display=this.querySelector('.finance-detail').style.display==='none'?'block':'none'">' +
+      var idx = FINANCE_PARTNERS.indexOf(p);
+      return '<div style="border:1px solid var(--linen);border-radius:10px;padding:16px;margin-bottom:12px;cursor:pointer" onclick="toggleFinanceDetail(' + idx + ')">' +
         '<div style="display:flex;justify-content:space-between;align-items:center">' +
         '<div>' +
         '<div style="font-size:11px;color:var(--dusty-rose);letter-spacing:0.8px;margin-bottom:3px">' + p.category.toUpperCase() + (p.parishionerOwned ? ' · PARISHIONER' : '') + '</div>' +
@@ -2306,7 +2308,7 @@
         '<div style="font-size:17px;font-family:'Cinzel',serif;color:var(--burgundy)">$' + parish + '<span style="font-size:12px;opacity:0.6">/mo</span></div>' +
         '</div>' +
         '</div>' +
-        '<div class="finance-detail" style="display:none;margin-top:14px;padding-top:14px;border-top:1px solid var(--linen)">' +
+        '<div id=\"fd-' + idx + '\" style="display:none;margin-top:14px;padding-top:14px;border-top:1px solid var(--linen)">' +
         '<div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px">' +
         '<div style="text-align:center;padding:12px;background:var(--sand);border-radius:8px">' +
         '<div style="font-size:11px;color:var(--dusty-rose);letter-spacing:0.8px;margin-bottom:4px">LISTING FEE</div>' +
