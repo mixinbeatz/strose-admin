@@ -910,7 +910,7 @@
       <div class="page" id="page-finance-partners">
         <!-- Premium -->
         <div class="card" style="margin-bottom:16px">
-          <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;padding-bottom:4px" onclick="toggleTier('premium')">
+          <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;padding-bottom:4px" onclick="toggleTier('ptier-premium')">
             <div>
               <div style="font-size:11px;color:var(--dusty-rose);letter-spacing:1px;margin-bottom:4px">TIER</div>
               <div style="font-size:20px;font-family:'Cinzel',serif;color:var(--burgundy)">Premium Partners <span style="font-size:14px;opacity:0.5">▾</span></div>
@@ -920,7 +920,7 @@
               <div style="font-size:20px;font-family:'Cinzel',serif;color:var(--burgundy)">$350<span style="font-size:13px;opacity:0.6">/mo</span></div>
             </div>
           </div>
-          <div id="tier-premium" style="display:none;margin-top:16px;overflow-x:auto">
+          <div id="ptier-premium" style="display:none;margin-top:16px;overflow-x:auto">
             <table style="width:100%;border-collapse:collapse;font-family:'Faustina',serif">
               <thead><tr style="border-bottom:2px solid var(--linen)">
                 <th style="text-align:left;padding:8px;font-size:11px;letter-spacing:0.8px;color:var(--dusty-rose);font-weight:normal">PARTNER</th>
@@ -944,7 +944,7 @@
         </div>
         <!-- Standard -->
         <div class="card" style="margin-bottom:16px">
-          <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;padding-bottom:4px" onclick="toggleTier('standard')">
+          <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;padding-bottom:4px" onclick="toggleTier('ptier-standard')">
             <div>
               <div style="font-size:11px;color:var(--dusty-rose);letter-spacing:1px;margin-bottom:4px">TIER</div>
               <div style="font-size:20px;font-family:'Cinzel',serif;color:var(--soil)">Standard Partners <span style="font-size:14px;opacity:0.5">▾</span></div>
@@ -954,7 +954,7 @@
               <div style="font-size:20px;font-family:'Cinzel',serif;color:var(--burgundy)">$280<span style="font-size:13px;opacity:0.6">/mo</span></div>
             </div>
           </div>
-          <div id="tier-standard" style="display:none;margin-top:16px;overflow-x:auto">
+          <div id="ptier-standard" style="display:none;margin-top:16px;overflow-x:auto">
             <table style="width:100%;border-collapse:collapse;font-family:'Faustina',serif">
               <thead><tr style="border-bottom:2px solid var(--linen)">
                 <th style="text-align:left;padding:8px;font-size:11px;letter-spacing:0.8px;color:var(--dusty-rose);font-weight:normal">PARTNER</th>
@@ -981,7 +981,7 @@
         </div>
         <!-- Parish Pros -->
         <div class="card">
-          <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;padding-bottom:4px" onclick="toggleTier('pros')">
+          <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;padding-bottom:4px" onclick="toggleTier('ptier-pros')">
             <div>
               <div style="font-size:11px;color:var(--dusty-rose);letter-spacing:1px;margin-bottom:4px">TIER</div>
               <div style="font-size:20px;font-family:'Cinzel',serif;color:var(--soil)">Parish Pros <span style="font-size:14px;opacity:0.5">▾</span></div>
@@ -991,7 +991,7 @@
               <div style="font-size:20px;font-family:'Cinzel',serif;color:var(--soil);opacity:0.4">$0<span style="font-size:13px">/mo</span></div>
             </div>
           </div>
-          <div id="tier-pros" style="display:none;margin-top:16px">
+          <div id="ptier-pros" style="display:none;margin-top:16px">
             <div style="text-align:center;padding:24px;color:var(--soil);opacity:0.4;font-family:'Faustina',serif;font-size:15px">No active Parish Pros yet.<br>Parishioner marketplace listings — coming soon at $10/mo.</div>
           </div>
         </div>
@@ -2360,7 +2360,7 @@
 
 
 
-  function toggleTier(id) { var el = document.getElementById("tier-" + id); if (el) el.style.display = el.style.display === "none" ? "table-row" : "none"; }
+  function toggleTier(id) { var el = document.getElementById(id.startsWith("ptier-") ? id : "tier-" + id); if (el) el.style.display = el.style.display === "none" ? (el.tagName === "TR" ? "table-row" : "block") : "none"; }
   async function submitEventRequest() {
     var title = document.getElementById('se-title').value.trim();
     var startDateRaw = document.getElementById('se-date-start').value;
