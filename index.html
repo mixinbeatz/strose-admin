@@ -1070,7 +1070,8 @@
     document.querySelectorAll('.finance-only').forEach(el => el.style.display = isFinance ? '' : 'none');
     document.querySelectorAll('.ministry-only').forEach(el => el.style.display = isMinistry ? '' : 'none');
     if (isFinance) {
-      document.querySelector('.content').style.paddingTop = '0';
+      document.querySelector('.topbar').style.display = 'none';
+      document.querySelector('.content').style.padding = '0';
       showPage('finance-dashboard', document.querySelector('.finance-only.nav-item'));
     } else if (isMinistry) {
       showPage('ministry-post', document.querySelector('.ministry-only.nav-item'));
@@ -1078,6 +1079,8 @@
   }
 
   function signOut() {
+    var tb = document.querySelector('.topbar'); if (tb) tb.style.display = 'flex';
+    var ct = document.querySelector('.content'); if (ct) ct.style.padding = '32px';
     document.getElementById('login-screen').style.display = 'flex';
     document.getElementById('app').style.display = 'none';
     document.getElementById('login-user').value = '';
