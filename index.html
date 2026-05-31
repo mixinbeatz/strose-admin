@@ -796,7 +796,6 @@
 
 
       <!-- Finance Dashboard -->
-      <!-- Finance Dashboard -->
       <div class="page" id="page-finance-dashboard">
         <div class="card" style="background:linear-gradient(135deg,#5C1A2E,#3D0F1E);color:white;margin-bottom:16px;padding:24px">
           <div style="font-size:11px;letter-spacing:1.5px;opacity:0.6;margin-bottom:12px">SAINT ROSE PHILIPPINE DUCHESNE · COMMUNITY DIRECTORY</div>
@@ -2361,6 +2360,7 @@
 
 
 
+  function toggleTier(id) { var el = document.getElementById("tier-" + id); if (el) el.style.display = el.style.display === "none" ? "table-row" : "none"; }
   async function submitEventRequest() {
     var title = document.getElementById('se-title').value.trim();
     var startDateRaw = document.getElementById('se-date-start').value;
