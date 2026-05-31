@@ -893,11 +893,94 @@
       </div>
 
       <!-- Finance Partners Page -->
+      <!-- Finance Partners Page -->
       <div class="page" id="page-finance-partners">
+        <!-- Premium -->
         <div class="card" style="margin-bottom:16px">
-          <div class="card-title">Community Partners</div>
-          <p style="color:var(--soil);opacity:0.6;font-size:14px;margin-bottom:16px">All active advertisers in the Saint Rose app. Parish earns 70% of each listing fee.</p>
-          <div id="finance-partners-list"></div>
+          <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;padding-bottom:4px" onclick="toggleTier('premium')">
+            <div>
+              <div style="font-size:11px;color:var(--dusty-rose);letter-spacing:1px;margin-bottom:4px">TIER</div>
+              <div style="font-size:20px;font-family:'Cinzel',serif;color:var(--burgundy)">Premium Partners <span style="font-size:14px;opacity:0.5">▾</span></div>
+            </div>
+            <div style="text-align:right">
+              <div style="font-size:11px;color:var(--dusty-rose);letter-spacing:1px;margin-bottom:4px">PARISH EARNS</div>
+              <div style="font-size:20px;font-family:'Cinzel',serif;color:var(--burgundy)">$350<span style="font-size:13px;opacity:0.6">/mo</span></div>
+            </div>
+          </div>
+          <div id="tier-premium" style="display:none;margin-top:16px;overflow-x:auto">
+            <table style="width:100%;border-collapse:collapse;font-family:'Faustina',serif">
+              <thead><tr style="border-bottom:2px solid var(--linen)">
+                <th style="text-align:left;padding:8px;font-size:11px;letter-spacing:0.8px;color:var(--dusty-rose);font-weight:normal">PARTNER</th>
+                <th style="text-align:center;padding:8px;font-size:11px;letter-spacing:0.8px;color:var(--dusty-rose);font-weight:normal">CATEGORY</th>
+                <th style="text-align:center;padding:8px;font-size:11px;letter-spacing:0.8px;color:var(--dusty-rose);font-weight:normal">PARISHIONER</th>
+                <th style="text-align:right;padding:8px;font-size:11px;letter-spacing:0.8px;color:var(--dusty-rose);font-weight:normal">RATE</th>
+                <th style="text-align:right;padding:8px;font-size:11px;letter-spacing:0.8px;color:var(--dusty-rose);font-weight:normal">PARISH/MO</th>
+                <th style="text-align:right;padding:8px;font-size:11px;letter-spacing:0.8px;color:var(--dusty-rose);font-weight:normal">ANNUAL</th>
+                <th style="text-align:center;padding:8px;font-size:11px;letter-spacing:0.8px;color:var(--dusty-rose);font-weight:normal">JOINED</th>
+                <th style="text-align:center;padding:8px;font-size:11px;letter-spacing:0.8px;color:var(--dusty-rose);font-weight:normal">RENEWAL</th>
+              </tr></thead>
+              <tbody>
+                <tr style="border-bottom:1px solid var(--linen)"><td style="padding:10px 8px;font-size:14px;font-weight:600;color:var(--soil)">North Valley Eye Care</td><td style="padding:10px 8px;font-size:13px;text-align:center;color:var(--soil);opacity:0.7">Health</td><td style="padding:10px 8px;text-align:center">✅</td><td style="padding:10px 8px;font-size:14px;text-align:right;color:var(--soil)">$100</td><td style="padding:10px 8px;font-size:14px;font-weight:bold;text-align:right;color:var(--burgundy)">$70</td><td style="padding:10px 8px;font-size:14px;text-align:right;color:var(--burgundy)">$840</td><td style="padding:10px 8px;font-size:13px;text-align:center;color:var(--soil);opacity:0.7">May 2026</td><td style="padding:10px 8px;font-size:13px;text-align:center;color:var(--soil);opacity:0.7">May 2027</td></tr>
+                <tr style="border-bottom:1px solid var(--linen)"><td style="padding:10px 8px;font-size:14px;font-weight:600;color:var(--soil)">RE/MAX Summit Properties</td><td style="padding:10px 8px;font-size:13px;text-align:center;color:var(--soil);opacity:0.7">Real Estate</td><td style="padding:10px 8px;text-align:center">—</td><td style="padding:10px 8px;font-size:14px;text-align:right;color:var(--soil)">$100</td><td style="padding:10px 8px;font-size:14px;font-weight:bold;text-align:right;color:var(--burgundy)">$70</td><td style="padding:10px 8px;font-size:14px;text-align:right;color:var(--burgundy)">$840</td><td style="padding:10px 8px;font-size:13px;text-align:center;color:var(--soil);opacity:0.7">May 2026</td><td style="padding:10px 8px;font-size:13px;text-align:center;color:var(--soil);opacity:0.7">May 2027</td></tr>
+                <tr style="border-bottom:1px solid var(--linen)"><td style="padding:10px 8px;font-size:14px;font-weight:600;color:var(--soil)">Anthem Law</td><td style="padding:10px 8px;font-size:13px;text-align:center;color:var(--soil);opacity:0.7">Legal</td><td style="padding:10px 8px;text-align:center">—</td><td style="padding:10px 8px;font-size:14px;text-align:right;color:var(--soil)">$100</td><td style="padding:10px 8px;font-size:14px;font-weight:bold;text-align:right;color:var(--burgundy)">$70</td><td style="padding:10px 8px;font-size:14px;text-align:right;color:var(--burgundy)">$840</td><td style="padding:10px 8px;font-size:13px;text-align:center;color:var(--soil);opacity:0.7">May 2026</td><td style="padding:10px 8px;font-size:13px;text-align:center;color:var(--soil);opacity:0.7">May 2027</td></tr>
+                <tr style="border-bottom:1px solid var(--linen)"><td style="padding:10px 8px;font-size:14px;font-weight:600;color:var(--soil)">Hansen Desert Hills Mortuary</td><td style="padding:10px 8px;font-size:13px;text-align:center;color:var(--soil);opacity:0.7">Faith</td><td style="padding:10px 8px;text-align:center">—</td><td style="padding:10px 8px;font-size:14px;text-align:right;color:var(--soil)">$100</td><td style="padding:10px 8px;font-size:14px;font-weight:bold;text-align:right;color:var(--burgundy)">$70</td><td style="padding:10px 8px;font-size:14px;text-align:right;color:var(--burgundy)">$840</td><td style="padding:10px 8px;font-size:13px;text-align:center;color:var(--soil);opacity:0.7">May 2026</td><td style="padding:10px 8px;font-size:13px;text-align:center;color:var(--soil);opacity:0.7">May 2027</td></tr>
+                <tr><td style="padding:10px 8px;font-size:14px;font-weight:600;color:var(--soil)">Safeguard Estate & Financial</td><td style="padding:10px 8px;font-size:13px;text-align:center;color:var(--soil);opacity:0.7">Financial</td><td style="padding:10px 8px;text-align:center">—</td><td style="padding:10px 8px;font-size:14px;text-align:right;color:var(--soil)">$100</td><td style="padding:10px 8px;font-size:14px;font-weight:bold;text-align:right;color:var(--burgundy)">$70</td><td style="padding:10px 8px;font-size:14px;text-align:right;color:var(--burgundy)">$840</td><td style="padding:10px 8px;font-size:13px;text-align:center;color:var(--soil);opacity:0.7">May 2026</td><td style="padding:10px 8px;font-size:13px;text-align:center;color:var(--soil);opacity:0.7">May 2027</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <!-- Standard -->
+        <div class="card" style="margin-bottom:16px">
+          <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;padding-bottom:4px" onclick="toggleTier('standard')">
+            <div>
+              <div style="font-size:11px;color:var(--dusty-rose);letter-spacing:1px;margin-bottom:4px">TIER</div>
+              <div style="font-size:20px;font-family:'Cinzel',serif;color:var(--soil)">Standard Partners <span style="font-size:14px;opacity:0.5">▾</span></div>
+            </div>
+            <div style="text-align:right">
+              <div style="font-size:11px;color:var(--dusty-rose);letter-spacing:1px;margin-bottom:4px">PARISH EARNS</div>
+              <div style="font-size:20px;font-family:'Cinzel',serif;color:var(--burgundy)">$280<span style="font-size:13px;opacity:0.6">/mo</span></div>
+            </div>
+          </div>
+          <div id="tier-standard" style="display:none;margin-top:16px;overflow-x:auto">
+            <table style="width:100%;border-collapse:collapse;font-family:'Faustina',serif">
+              <thead><tr style="border-bottom:2px solid var(--linen)">
+                <th style="text-align:left;padding:8px;font-size:11px;letter-spacing:0.8px;color:var(--dusty-rose);font-weight:normal">PARTNER</th>
+                <th style="text-align:center;padding:8px;font-size:11px;letter-spacing:0.8px;color:var(--dusty-rose);font-weight:normal">CATEGORY</th>
+                <th style="text-align:center;padding:8px;font-size:11px;letter-spacing:0.8px;color:var(--dusty-rose);font-weight:normal">PARISHIONER</th>
+                <th style="text-align:right;padding:8px;font-size:11px;letter-spacing:0.8px;color:var(--dusty-rose);font-weight:normal">RATE</th>
+                <th style="text-align:right;padding:8px;font-size:11px;letter-spacing:0.8px;color:var(--dusty-rose);font-weight:normal">PARISH/MO</th>
+                <th style="text-align:right;padding:8px;font-size:11px;letter-spacing:0.8px;color:var(--dusty-rose);font-weight:normal">ANNUAL</th>
+                <th style="text-align:center;padding:8px;font-size:11px;letter-spacing:0.8px;color:var(--dusty-rose);font-weight:normal">JOINED</th>
+                <th style="text-align:center;padding:8px;font-size:11px;letter-spacing:0.8px;color:var(--dusty-rose);font-weight:normal">RENEWAL</th>
+              </tr></thead>
+              <tbody>
+                <tr style="border-bottom:1px solid var(--linen)"><td style="padding:10px 8px;font-size:14px;font-weight:600;color:var(--soil)">Honest Hands Home Repair</td><td style="padding:10px 8px;font-size:13px;text-align:center;color:var(--soil);opacity:0.7">Home</td><td style="padding:10px 8px;text-align:center">—</td><td style="padding:10px 8px;font-size:14px;text-align:right;color:var(--soil)">$50</td><td style="padding:10px 8px;font-size:14px;font-weight:bold;text-align:right;color:var(--burgundy)">$35</td><td style="padding:10px 8px;font-size:14px;text-align:right;color:var(--burgundy)">$420</td><td style="padding:10px 8px;font-size:13px;text-align:center;color:var(--soil);opacity:0.7">May 2026</td><td style="padding:10px 8px;font-size:13px;text-align:center;color:var(--soil);opacity:0.7">May 2027</td></tr>
+                <tr style="border-bottom:1px solid var(--linen)"><td style="padding:10px 8px;font-size:14px;font-weight:600;color:var(--soil)">Gavilan Peak Dental Care</td><td style="padding:10px 8px;font-size:13px;text-align:center;color:var(--soil);opacity:0.7">Health</td><td style="padding:10px 8px;text-align:center">—</td><td style="padding:10px 8px;font-size:14px;text-align:right;color:var(--soil)">$50</td><td style="padding:10px 8px;font-size:14px;font-weight:bold;text-align:right;color:var(--burgundy)">$35</td><td style="padding:10px 8px;font-size:14px;text-align:right;color:var(--burgundy)">$420</td><td style="padding:10px 8px;font-size:13px;text-align:center;color:var(--soil);opacity:0.7">May 2026</td><td style="padding:10px 8px;font-size:13px;text-align:center;color:var(--soil);opacity:0.7">May 2027</td></tr>
+                <tr style="border-bottom:1px solid var(--linen)"><td style="padding:10px 8px;font-size:14px;font-weight:600;color:var(--soil)">Mike's Absolute Glass & Detail</td><td style="padding:10px 8px;font-size:13px;text-align:center;color:var(--soil);opacity:0.7">Auto</td><td style="padding:10px 8px;text-align:center">—</td><td style="padding:10px 8px;font-size:14px;text-align:right;color:var(--soil)">$50</td><td style="padding:10px 8px;font-size:14px;font-weight:bold;text-align:right;color:var(--burgundy)">$35</td><td style="padding:10px 8px;font-size:14px;text-align:right;color:var(--burgundy)">$420</td><td style="padding:10px 8px;font-size:13px;text-align:center;color:var(--soil);opacity:0.7">May 2026</td><td style="padding:10px 8px;font-size:13px;text-align:center;color:var(--soil);opacity:0.7">May 2027</td></tr>
+                <tr style="border-bottom:1px solid var(--linen)"><td style="padding:10px 8px;font-size:14px;font-weight:600;color:var(--soil)">DCM Pools</td><td style="padding:10px 8px;font-size:13px;text-align:center;color:var(--soil);opacity:0.7">Home</td><td style="padding:10px 8px;text-align:center">—</td><td style="padding:10px 8px;font-size:14px;text-align:right;color:var(--soil)">$50</td><td style="padding:10px 8px;font-size:14px;font-weight:bold;text-align:right;color:var(--burgundy)">$35</td><td style="padding:10px 8px;font-size:14px;text-align:right;color:var(--burgundy)">$420</td><td style="padding:10px 8px;font-size:13px;text-align:center;color:var(--soil);opacity:0.7">May 2026</td><td style="padding:10px 8px;font-size:13px;text-align:center;color:var(--soil);opacity:0.7">May 2027</td></tr>
+                <tr style="border-bottom:1px solid var(--linen)"><td style="padding:10px 8px;font-size:14px;font-weight:600;color:var(--soil)">Rain Man Roofing</td><td style="padding:10px 8px;font-size:13px;text-align:center;color:var(--soil);opacity:0.7">Home</td><td style="padding:10px 8px;text-align:center">—</td><td style="padding:10px 8px;font-size:14px;text-align:right;color:var(--soil)">$50</td><td style="padding:10px 8px;font-size:14px;font-weight:bold;text-align:right;color:var(--burgundy)">$35</td><td style="padding:10px 8px;font-size:14px;text-align:right;color:var(--burgundy)">$420</td><td style="padding:10px 8px;font-size:13px;text-align:center;color:var(--soil);opacity:0.7">May 2026</td><td style="padding:10px 8px;font-size:13px;text-align:center;color:var(--soil);opacity:0.7">May 2027</td></tr>
+                <tr style="border-bottom:1px solid var(--linen)"><td style="padding:10px 8px;font-size:14px;font-weight:600;color:var(--soil)">Dryer Vent Wizard</td><td style="padding:10px 8px;font-size:13px;text-align:center;color:var(--soil);opacity:0.7">Home</td><td style="padding:10px 8px;text-align:center">—</td><td style="padding:10px 8px;font-size:14px;text-align:right;color:var(--soil)">$50</td><td style="padding:10px 8px;font-size:14px;font-weight:bold;text-align:right;color:var(--burgundy)">$35</td><td style="padding:10px 8px;font-size:14px;text-align:right;color:var(--burgundy)">$420</td><td style="padding:10px 8px;font-size:13px;text-align:center;color:var(--soil);opacity:0.7">May 2026</td><td style="padding:10px 8px;font-size:13px;text-align:center;color:var(--soil);opacity:0.7">May 2027</td></tr>
+                <tr style="border-bottom:1px solid var(--linen)"><td style="padding:10px 8px;font-size:14px;font-weight:600;color:var(--soil)">Merrill Gardens</td><td style="padding:10px 8px;font-size:13px;text-align:center;color:var(--soil);opacity:0.7">Services</td><td style="padding:10px 8px;text-align:center">—</td><td style="padding:10px 8px;font-size:14px;text-align:right;color:var(--soil)">$50</td><td style="padding:10px 8px;font-size:14px;font-weight:bold;text-align:right;color:var(--burgundy)">$35</td><td style="padding:10px 8px;font-size:14px;text-align:right;color:var(--burgundy)">$420</td><td style="padding:10px 8px;font-size:13px;text-align:center;color:var(--soil);opacity:0.7">May 2026</td><td style="padding:10px 8px;font-size:13px;text-align:center;color:var(--soil);opacity:0.7">May 2027</td></tr>
+                <tr><td style="padding:10px 8px;font-size:14px;font-weight:600;color:var(--soil)">Sacred Apps</td><td style="padding:10px 8px;font-size:13px;text-align:center;color:var(--soil);opacity:0.7">Tech</td><td style="padding:10px 8px;text-align:center">✅</td><td style="padding:10px 8px;font-size:14px;text-align:right;color:var(--soil)">$50</td><td style="padding:10px 8px;font-size:14px;font-weight:bold;text-align:right;color:var(--burgundy)">$35</td><td style="padding:10px 8px;font-size:14px;text-align:right;color:var(--burgundy)">$420</td><td style="padding:10px 8px;font-size:13px;text-align:center;color:var(--soil);opacity:0.7">May 2026</td><td style="padding:10px 8px;font-size:13px;text-align:center;color:var(--soil);opacity:0.7">May 2027</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+        <!-- Parish Pros -->
+        <div class="card">
+          <div style="display:flex;justify-content:space-between;align-items:center;cursor:pointer;padding-bottom:4px" onclick="toggleTier('pros')">
+            <div>
+              <div style="font-size:11px;color:var(--dusty-rose);letter-spacing:1px;margin-bottom:4px">TIER</div>
+              <div style="font-size:20px;font-family:'Cinzel',serif;color:var(--soil)">Parish Pros <span style="font-size:14px;opacity:0.5">▾</span></div>
+            </div>
+            <div style="text-align:right">
+              <div style="font-size:11px;color:var(--dusty-rose);letter-spacing:1px;margin-bottom:4px">PARISH EARNS</div>
+              <div style="font-size:20px;font-family:'Cinzel',serif;color:var(--soil);opacity:0.4">$0<span style="font-size:13px">/mo</span></div>
+            </div>
+          </div>
+          <div id="tier-pros" style="display:none;margin-top:16px">
+            <div style="text-align:center;padding:24px;color:var(--soil);opacity:0.4;font-family:'Faustina',serif;font-size:15px">No active Parish Pros yet.<br>Parishioner marketplace listings — coming soon at $10/mo.</div>
+          </div>
         </div>
       </div>
       <!-- Submit Event Page (Ministry Leaders) -->
@@ -2281,6 +2364,7 @@
     {name:'Sacred Apps', tier:'standard', category:'Tech', parishionerOwned:true},
   ];
 
+  function toggleTier(id) { var el = document.getElementById("tier-" + id); if (el) el.style.display = el.style.display === "none" ? "block" : "none"; }
   function toggleFinanceDetail(idx) { var el = document.getElementById("fd-" + idx); if (el) el.style.display = el.style.display === "none" ? "block" : "none"; }
   function loadFinancePartners() {
     var el = document.getElementById('finance-partners-list');
