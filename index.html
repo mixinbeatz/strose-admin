@@ -1069,6 +1069,7 @@
     document.querySelectorAll('.finance-only').forEach(el => el.style.display = isFinance ? '' : 'none');
     document.querySelectorAll('.ministry-only').forEach(el => el.style.display = isMinistry ? '' : 'none');
     if (isFinance) {
+      document.querySelector('.content').style.paddingTop = '0';
       showPage('finance-dashboard', document.querySelector('.finance-only.nav-item'));
     } else if (isMinistry) {
       showPage('ministry-post', document.querySelector('.ministry-only.nav-item'));
@@ -1089,6 +1090,7 @@
     if(el) el.classList.add('active');
     const titles = {dashboard:'Dashboard',events:'Events',announcement:'Post Announcement',fastblast:'Fast Blast',reflection:'Weekly Reflection',daily:'Daily Reflection',songsheet:'Mass Songsheet',welcome:'Welcome Message','music-ministry':'Music Ministry','music-members':'Music Ministry Members',approvals:'Parish Family Approvals',partners:'Partner Requests',directory:'Parish Family Directory','ministry-post':'Post to Members','cda-members':'My Members','prayer-chain':'Prayer Chain','prayer-submissions':'Prayer Submissions','submit-event':'Submit Event','event-requests':'Event Requests','finance-dashboard':'Revenue Dashboard','finance-partners':'Community Partners'};
     document.getElementById('page-title').textContent = titles[id]||id;
+    document.querySelector('.content').style.paddingTop = (id==='finance-dashboard'||id==='finance-partners') ? '0' : '32px';
     if(id==='approvals') loadApprovals();
     if(id==='partners') loadPartners();
     if(id==='directory') loadDirectory();
