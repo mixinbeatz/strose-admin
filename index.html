@@ -1102,7 +1102,10 @@
     const titles = {dashboard:'Dashboard',events:'Events',announcement:'Post Announcement',fastblast:'Fast Blast',reflection:'Weekly Reflection',daily:'Daily Reflection',songsheet:'Mass Songsheet',welcome:'Welcome Message','music-ministry':'Music Ministry','music-members':'Music Ministry Members',approvals:'Parish Family Approvals',partners:'Partner Requests',directory:'Parish Family Directory','ministry-post':'Post to Members','cda-members':'My Members','prayer-chain':'Prayer Chain','prayer-submissions':'Prayer Submissions','submit-event':'Submit Event','event-requests':'Event Requests','finance-dashboard':'Revenue Dashboard','finance-partners':'Community Partners'};
     document.getElementById('page-title').textContent = titles[id]||id;
     var contentEl = document.querySelector('.content');
-    if (contentEl) contentEl.style.paddingTop = (id==='finance-dashboard'||id==='finance-partners') ? '0' : '32px';
+    var topbarEl = document.querySelector('.topbar');
+    var isFinancePage = (id==='finance-dashboard'||id==='finance-partners');
+    if (contentEl) contentEl.style.padding = isFinancePage ? '0' : '32px';
+    if (topbarEl) topbarEl.style.display = isFinancePage ? 'none' : '';
     if(id==='approvals') loadApprovals();
     if(id==='partners') loadPartners();
     if(id==='directory') loadDirectory();
