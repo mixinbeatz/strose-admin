@@ -796,103 +796,117 @@
 
 
       <!-- Finance Dashboard -->
+      <!-- Finance Dashboard -->
       <div class="page" id="page-finance-dashboard">
-        <div class="card" style="background:linear-gradient(135deg,#5C1A2E,#3D0F1E);color:white;margin-bottom:16px">
-          <div style="font-size:12px;letter-spacing:1.5px;opacity:0.7;margin-bottom:8px">SAINT ROSE PHILIPPINE DUCHESNE · MAY 2026</div>
-          <div style="font-size:32px;font-family:'Cinzel',serif;margin-bottom:4px">$630<span style="font-size:16px;opacity:0.7">/mo</span></div>
-          <div style="font-size:14px;opacity:0.8">Parish Earnings from Community Directory</div>
-          <div style="height:1px;background:rgba(255,255,255,0.15);margin:16px 0"></div>
-          <div style="display:flex;gap:32px">
+        <div class="card" style="background:linear-gradient(135deg,#5C1A2E,#3D0F1E);color:white;margin-bottom:16px;padding:24px">
+          <div style="font-size:11px;letter-spacing:1.5px;opacity:0.6;margin-bottom:12px">SAINT ROSE PHILIPPINE DUCHESNE · COMMUNITY DIRECTORY</div>
+          <div style="display:flex;justify-content:space-between;align-items:flex-end">
             <div>
-              <div style="font-size:22px;font-family:'Cinzel',serif">$900</div>
-              <div style="font-size:12px;opacity:0.6;margin-top:2px">Gross Revenue</div>
+              <div style="font-size:13px;opacity:0.7;margin-bottom:4px">Monthly Parish Earnings</div>
+              <div style="font-size:42px;font-family:'Cinzel',serif;line-height:1">$630</div>
             </div>
-            <div>
-              <div style="font-size:22px;font-family:'Cinzel',serif">70%</div>
-              <div style="font-size:12px;opacity:0.6;margin-top:2px">Parish Share</div>
-            </div>
-            <div>
-              <div style="font-size:22px;font-family:'Cinzel',serif">$7,560</div>
-              <div style="font-size:12px;opacity:0.6;margin-top:2px">Annual Projection</div>
+            <div style="text-align:right">
+              <div style="font-size:13px;opacity:0.7;margin-bottom:4px">Annual Projection</div>
+              <div style="font-size:28px;font-family:'Cinzel',serif;color:#C9A84C">$7,560</div>
             </div>
           </div>
         </div>
-        <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px;margin-bottom:16px">
-          <div class="card" style="text-align:center">
-            <div style="font-size:11px;color:var(--dusty-rose);letter-spacing:1px;margin-bottom:8px">PREMIUM PARTNERS</div>
-            <div style="font-size:36px;font-family:'Cinzel',serif;color:var(--burgundy)">5</div>
-            <div style="font-size:13px;color:var(--soil);opacity:0.6;margin-top:4px">$100/mo each</div>
-            <div style="font-size:15px;color:var(--burgundy);font-family:'Cinzel',serif;margin-top:8px">$350 parish/mo</div>
-          </div>
-          <div class="card" style="text-align:center">
-            <div style="font-size:11px;color:var(--dusty-rose);letter-spacing:1px;margin-bottom:8px">STANDARD PARTNERS</div>
-            <div style="font-size:36px;font-family:'Cinzel',serif;color:var(--burgundy)">8</div>
-            <div style="font-size:13px;color:var(--soil);opacity:0.6;margin-top:4px">$50/mo each</div>
-            <div style="font-size:15px;color:var(--burgundy);font-family:'Cinzel',serif;margin-top:8px">$280 parish/mo</div>
-          </div>
-        </div>
-        <div class="card">
-          <div class="card-title">Revenue Breakdown</div>
+        <div class="card" style="margin-bottom:16px">
+          <div class="card-title">Revenue Breakdown — May 2026</div>
           <table style="width:100%;border-collapse:collapse;font-family:'Faustina',serif">
             <thead>
               <tr style="border-bottom:2px solid var(--linen)">
-                <th style="text-align:left;padding:10px 8px;font-size:12px;letter-spacing:0.8px;color:var(--dusty-rose);font-weight:normal">TIER</th>
-                <th style="text-align:center;padding:10px 8px;font-size:12px;letter-spacing:0.8px;color:var(--dusty-rose);font-weight:normal">COUNT</th>
-                <th style="text-align:right;padding:10px 8px;font-size:12px;letter-spacing:0.8px;color:var(--dusty-rose);font-weight:normal">RATE</th>
-                <th style="text-align:right;padding:10px 8px;font-size:12px;letter-spacing:0.8px;color:var(--dusty-rose);font-weight:normal">GROSS</th>
-                <th style="text-align:right;padding:10px 8px;font-size:12px;letter-spacing:0.8px;color:var(--dusty-rose);font-weight:normal">PARISH (70%)</th>
-                
+                <th style="text-align:left;padding:10px 8px;font-size:11px;letter-spacing:0.8px;color:var(--dusty-rose);font-weight:normal">TIER</th>
+                <th style="text-align:center;padding:10px 8px;font-size:11px;letter-spacing:0.8px;color:var(--dusty-rose);font-weight:normal">PARTNERS</th>
+                <th style="text-align:right;padding:10px 8px;font-size:11px;letter-spacing:0.8px;color:var(--dusty-rose);font-weight:normal">RATE</th>
+                <th style="text-align:right;padding:10px 8px;font-size:11px;letter-spacing:0.8px;color:var(--dusty-rose);font-weight:normal">GROSS</th>
+                <th style="text-align:right;padding:10px 8px;font-size:11px;letter-spacing:0.8px;color:var(--dusty-rose);font-weight:normal">PARISH (70%)</th>
               </tr>
             </thead>
             <tbody>
-              <tr style="border-bottom:1px solid var(--linen)">
-                <td style="padding:12px 8px;color:var(--soil);font-size:15px">Premium</td>
+              <tr style="border-bottom:1px solid var(--linen);cursor:pointer" onclick="toggleTier('premium')" title="Click to view partners">
+                <td style="padding:12px 8px;color:var(--burgundy);font-size:15px;font-family:'Cinzel',serif">Premium <span style="font-size:12px;opacity:0.5">▾</span></td>
                 <td style="padding:12px 8px;color:var(--soil);font-size:15px;text-align:center">5</td>
                 <td style="padding:12px 8px;color:var(--soil);font-size:15px;text-align:right">$100</td>
                 <td style="padding:12px 8px;color:var(--soil);font-size:15px;text-align:right">$500</td>
                 <td style="padding:12px 8px;color:var(--burgundy);font-size:15px;font-weight:bold;text-align:right">$350</td>
-                </tr>
-              <tr style="border-bottom:1px solid var(--linen)">
-                <td style="padding:12px 8px;color:var(--soil);font-size:15px">Standard</td>
+              </tr>
+              <tr id="tier-premium" style="display:none">
+                <td colspan="5" style="padding:0 8px 12px 8px">
+                  <table style="width:100%;border-collapse:collapse;font-family:'Faustina',serif;background:var(--sand);border-radius:8px;overflow:hidden">
+                    <thead><tr style="border-bottom:1px solid var(--linen)">
+                      <th style="text-align:left;padding:8px 12px;font-size:11px;letter-spacing:0.8px;color:var(--dusty-rose);font-weight:normal">PARTNER</th>
+                      <th style="text-align:center;padding:8px;font-size:11px;letter-spacing:0.8px;color:var(--dusty-rose);font-weight:normal">CATEGORY</th>
+                      <th style="text-align:center;padding:8px;font-size:11px;letter-spacing:0.8px;color:var(--dusty-rose);font-weight:normal">PARISHIONER</th>
+                      <th style="text-align:right;padding:8px 12px;font-size:11px;letter-spacing:0.8px;color:var(--dusty-rose);font-weight:normal">PARISH/MO</th>
+                      <th style="text-align:right;padding:8px 12px;font-size:11px;letter-spacing:0.8px;color:var(--dusty-rose);font-weight:normal">ANNUAL</th>
+                    </tr></thead>
+                    <tbody>
+                      <tr style="border-bottom:1px solid var(--linen)"><td style="padding:9px 12px;font-size:13px;color:var(--soil)">North Valley Eye Care</td><td style="padding:9px 8px;font-size:12px;text-align:center;color:var(--soil);opacity:0.7">Health</td><td style="padding:9px 8px;text-align:center;font-size:13px">✅</td><td style="padding:9px 12px;font-size:13px;text-align:right;color:var(--burgundy);font-weight:bold">$70</td><td style="padding:9px 12px;font-size:13px;text-align:right;color:var(--burgundy)">$840</td></tr>
+                      <tr style="border-bottom:1px solid var(--linen)"><td style="padding:9px 12px;font-size:13px;color:var(--soil)">RE/MAX Summit Properties</td><td style="padding:9px 8px;font-size:12px;text-align:center;color:var(--soil);opacity:0.7">Real Estate</td><td style="padding:9px 8px;text-align:center;font-size:13px">—</td><td style="padding:9px 12px;font-size:13px;text-align:right;color:var(--burgundy);font-weight:bold">$70</td><td style="padding:9px 12px;font-size:13px;text-align:right;color:var(--burgundy)">$840</td></tr>
+                      <tr style="border-bottom:1px solid var(--linen)"><td style="padding:9px 12px;font-size:13px;color:var(--soil)">Anthem Law</td><td style="padding:9px 8px;font-size:12px;text-align:center;color:var(--soil);opacity:0.7">Legal</td><td style="padding:9px 8px;text-align:center;font-size:13px">—</td><td style="padding:9px 12px;font-size:13px;text-align:right;color:var(--burgundy);font-weight:bold">$70</td><td style="padding:9px 12px;font-size:13px;text-align:right;color:var(--burgundy)">$840</td></tr>
+                      <tr style="border-bottom:1px solid var(--linen)"><td style="padding:9px 12px;font-size:13px;color:var(--soil)">Hansen Desert Hills Mortuary</td><td style="padding:9px 8px;font-size:12px;text-align:center;color:var(--soil);opacity:0.7">Faith</td><td style="padding:9px 8px;text-align:center;font-size:13px">—</td><td style="padding:9px 12px;font-size:13px;text-align:right;color:var(--burgundy);font-weight:bold">$70</td><td style="padding:9px 12px;font-size:13px;text-align:right;color:var(--burgundy)">$840</td></tr>
+                      <tr><td style="padding:9px 12px;font-size:13px;color:var(--soil)">Safeguard Estate & Financial</td><td style="padding:9px 8px;font-size:12px;text-align:center;color:var(--soil);opacity:0.7">Financial</td><td style="padding:9px 8px;text-align:center;font-size:13px">—</td><td style="padding:9px 12px;font-size:13px;text-align:right;color:var(--burgundy);font-weight:bold">$70</td><td style="padding:9px 12px;font-size:13px;text-align:right;color:var(--burgundy)">$840</td></tr>
+                    </tbody>
+                  </table>
+                </td>
+              </tr>
+              <tr style="border-bottom:1px solid var(--linen);cursor:pointer" onclick="toggleTier('standard')" title="Click to view partners">
+                <td style="padding:12px 8px;color:var(--soil);font-size:15px;font-family:'Cinzel',serif">Standard <span style="font-size:12px;opacity:0.5">▾</span></td>
                 <td style="padding:12px 8px;color:var(--soil);font-size:15px;text-align:center">8</td>
                 <td style="padding:12px 8px;color:var(--soil);font-size:15px;text-align:right">$50</td>
                 <td style="padding:12px 8px;color:var(--soil);font-size:15px;text-align:right">$400</td>
                 <td style="padding:12px 8px;color:var(--burgundy);font-size:15px;font-weight:bold;text-align:right">$280</td>
-                </tr>
+              </tr>
+              <tr id="tier-standard" style="display:none">
+                <td colspan="5" style="padding:0 8px 12px 8px">
+                  <table style="width:100%;border-collapse:collapse;font-family:'Faustina',serif;background:var(--sand);border-radius:8px;overflow:hidden">
+                    <thead><tr style="border-bottom:1px solid var(--linen)">
+                      <th style="text-align:left;padding:8px 12px;font-size:11px;letter-spacing:0.8px;color:var(--dusty-rose);font-weight:normal">PARTNER</th>
+                      <th style="text-align:center;padding:8px;font-size:11px;letter-spacing:0.8px;color:var(--dusty-rose);font-weight:normal">CATEGORY</th>
+                      <th style="text-align:center;padding:8px;font-size:11px;letter-spacing:0.8px;color:var(--dusty-rose);font-weight:normal">PARISHIONER</th>
+                      <th style="text-align:right;padding:8px 12px;font-size:11px;letter-spacing:0.8px;color:var(--dusty-rose);font-weight:normal">PARISH/MO</th>
+                      <th style="text-align:right;padding:8px 12px;font-size:11px;letter-spacing:0.8px;color:var(--dusty-rose);font-weight:normal">ANNUAL</th>
+                    </tr></thead>
+                    <tbody>
+                      <tr style="border-bottom:1px solid var(--linen)"><td style="padding:9px 12px;font-size:13px;color:var(--soil)">Honest Hands Home Repair</td><td style="padding:9px 8px;font-size:12px;text-align:center;color:var(--soil);opacity:0.7">Home</td><td style="padding:9px 8px;text-align:center">—</td><td style="padding:9px 12px;font-size:13px;text-align:right;color:var(--burgundy);font-weight:bold">$35</td><td style="padding:9px 12px;font-size:13px;text-align:right;color:var(--burgundy)">$420</td></tr>
+                      <tr style="border-bottom:1px solid var(--linen)"><td style="padding:9px 12px;font-size:13px;color:var(--soil)">Gavilan Peak Dental Care</td><td style="padding:9px 8px;font-size:12px;text-align:center;color:var(--soil);opacity:0.7">Health</td><td style="padding:9px 8px;text-align:center">—</td><td style="padding:9px 12px;font-size:13px;text-align:right;color:var(--burgundy);font-weight:bold">$35</td><td style="padding:9px 12px;font-size:13px;text-align:right;color:var(--burgundy)">$420</td></tr>
+                      <tr style="border-bottom:1px solid var(--linen)"><td style="padding:9px 12px;font-size:13px;color:var(--soil)">Mike's Absolute Glass & Detail</td><td style="padding:9px 8px;font-size:12px;text-align:center;color:var(--soil);opacity:0.7">Auto</td><td style="padding:9px 8px;text-align:center">—</td><td style="padding:9px 12px;font-size:13px;text-align:right;color:var(--burgundy);font-weight:bold">$35</td><td style="padding:9px 12px;font-size:13px;text-align:right;color:var(--burgundy)">$420</td></tr>
+                      <tr style="border-bottom:1px solid var(--linen)"><td style="padding:9px 12px;font-size:13px;color:var(--soil)">DCM Pools</td><td style="padding:9px 8px;font-size:12px;text-align:center;color:var(--soil);opacity:0.7">Home</td><td style="padding:9px 8px;text-align:center">—</td><td style="padding:9px 12px;font-size:13px;text-align:right;color:var(--burgundy);font-weight:bold">$35</td><td style="padding:9px 12px;font-size:13px;text-align:right;color:var(--burgundy)">$420</td></tr>
+                      <tr style="border-bottom:1px solid var(--linen)"><td style="padding:9px 12px;font-size:13px;color:var(--soil)">Rain Man Roofing</td><td style="padding:9px 8px;font-size:12px;text-align:center;color:var(--soil);opacity:0.7">Home</td><td style="padding:9px 8px;text-align:center">—</td><td style="padding:9px 12px;font-size:13px;text-align:right;color:var(--burgundy);font-weight:bold">$35</td><td style="padding:9px 12px;font-size:13px;text-align:right;color:var(--burgundy)">$420</td></tr>
+                      <tr style="border-bottom:1px solid var(--linen)"><td style="padding:9px 12px;font-size:13px;color:var(--soil)">Dryer Vent Wizard</td><td style="padding:9px 8px;font-size:12px;text-align:center;color:var(--soil);opacity:0.7">Home</td><td style="padding:9px 8px;text-align:center">—</td><td style="padding:9px 12px;font-size:13px;text-align:right;color:var(--burgundy);font-weight:bold">$35</td><td style="padding:9px 12px;font-size:13px;text-align:right;color:var(--burgundy)">$420</td></tr>
+                      <tr style="border-bottom:1px solid var(--linen)"><td style="padding:9px 12px;font-size:13px;color:var(--soil)">Merrill Gardens</td><td style="padding:9px 8px;font-size:12px;text-align:center;color:var(--soil);opacity:0.7">Services</td><td style="padding:9px 8px;text-align:center">—</td><td style="padding:9px 12px;font-size:13px;text-align:right;color:var(--burgundy);font-weight:bold">$35</td><td style="padding:9px 12px;font-size:13px;text-align:right;color:var(--burgundy)">$420</td></tr>
+                      <tr><td style="padding:9px 12px;font-size:13px;color:var(--soil)">Sacred Apps</td><td style="padding:9px 8px;font-size:12px;text-align:center;color:var(--soil);opacity:0.7">Tech</td><td style="padding:9px 8px;text-align:center">✅</td><td style="padding:9px 12px;font-size:13px;text-align:right;color:var(--burgundy);font-weight:bold">$35</td><td style="padding:9px 12px;font-size:13px;text-align:right;color:var(--burgundy)">$420</td></tr>
+                    </tbody>
+                  </table>
+                </td>
+              </tr>
+              <tr style="border-bottom:1px solid var(--linen);cursor:pointer" onclick="toggleTier('pros')" title="Click to view partners">
+                <td style="padding:12px 8px;color:var(--soil);font-size:15px;font-family:'Cinzel',serif;opacity:0.4">Parish Pros <span style="font-size:12px">▾</span></td>
+                <td style="padding:12px 8px;color:var(--soil);font-size:15px;text-align:center;opacity:0.4">0</td>
+                <td style="padding:12px 8px;color:var(--soil);font-size:15px;text-align:right;opacity:0.4">$10</td>
+                <td style="padding:12px 8px;color:var(--soil);font-size:15px;text-align:right;opacity:0.4">$0</td>
+                <td style="padding:12px 8px;color:var(--soil);font-size:15px;font-weight:bold;text-align:right;opacity:0.4">$0</td>
+              </tr>
+              <tr id="tier-pros" style="display:none">
+                <td colspan="5" style="padding:8px 8px 12px 8px">
+                  <div style="text-align:center;padding:16px;color:var(--soil);opacity:0.4;font-family:'Faustina',serif;font-size:14px">No active Parish Pros yet. Parishioner marketplace listings coming soon at $10/mo.</div>
+                </td>
+              </tr>
               <tr style="background:var(--sand)">
-                <td style="padding:12px 8px;color:var(--soil);font-size:15px;font-family:'Cinzel',serif">Total</td>
-                <td style="padding:12px 8px;color:var(--soil);font-size:15px;text-align:center;font-family:'Cinzel',serif">13</td>
-                <td style="padding:12px 8px;text-align:right"></td>
-                <td style="padding:12px 8px;color:var(--soil);font-size:15px;text-align:right;font-family:'Cinzel',serif">$900</td>
-                <td style="padding:12px 8px;color:var(--burgundy);font-size:17px;font-weight:bold;text-align:right;font-family:'Cinzel',serif">$630</td>
-                </tr>
+                <td style="padding:14px 8px;color:var(--soil);font-size:15px;font-family:'Cinzel',serif">Total</td>
+                <td style="padding:14px 8px;color:var(--soil);font-size:15px;text-align:center;font-family:'Cinzel',serif">13</td>
+                <td style="padding:14px 8px;text-align:right"></td>
+                <td style="padding:14px 8px;color:var(--soil);font-size:15px;text-align:right;font-family:'Cinzel',serif">$900</td>
+                <td style="padding:14px 8px;color:var(--burgundy);font-size:17px;font-weight:bold;text-align:right;font-family:'Cinzel',serif">$630</td>
+              </tr>
             </tbody>
           </table>
         </div>
-        <div class="card" style="margin-top:16px">
-          <div class="card-title">Annual Projection</div>
-          <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;margin-top:8px">
-            <div style="text-align:center;padding:16px;background:var(--sand);border-radius:10px">
-              <div style="font-size:11px;color:var(--dusty-rose);letter-spacing:1px;margin-bottom:6px">GROSS</div>
-              <div style="font-size:24px;font-family:'Cinzel',serif;color:var(--soil)">$10,800</div>
-              <div style="font-size:12px;color:var(--soil);opacity:0.5;margin-top:4px">per year</div>
-            </div>
-            <div style="text-align:center;padding:16px;background:var(--sand);border-radius:10px">
-              <div style="font-size:11px;color:var(--dusty-rose);letter-spacing:1px;margin-bottom:6px">PARISH EARNS</div>
-              <div style="font-size:24px;font-family:'Cinzel',serif;color:var(--burgundy)">$7,560</div>
-              <div style="font-size:12px;color:var(--soil);opacity:0.5;margin-top:4px">per year</div>
-            </div>
-
-          </div>
-          <div style="margin-top:16px;padding:14px;background:#FFF8E7;border-radius:10px;border-left:3px solid var(--gold)">
-            <div style="font-size:13px;color:var(--soil);font-family:'Faustina',serif;line-height:1.6">
-              <strong>Note:</strong> Platform fee covers app hosting, development, push notifications, and technical support. Saint Rose is on a complimentary plan through December 31, 2026. Platform licensing of $100/mo begins January 1, 2027 — covered by any two Premium advertisers.
-            </div>
-          </div>
+        <div style="margin-top:4px;padding:14px 16px;background:#FFF8E7;border-radius:10px;border-left:3px solid #C9A84C;font-size:13px;color:var(--soil);font-family:'Faustina',serif;line-height:1.6">
+          <strong>Note:</strong> Saint Rose is on a complimentary platform plan through December 31, 2026. Licensing of $100/mo begins January 1, 2027 — covered by any two Premium partners.
         </div>
       </div>
-
-      <!-- Finance Partners Page -->
       <!-- Finance Partners Page -->
       <div class="page" id="page-finance-partners">
         <!-- Premium -->
