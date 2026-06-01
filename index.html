@@ -871,6 +871,7 @@
     const isMinistry = u === 'nponiato';
     document.getElementById('topbar-date').textContent = new Date().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
     document.querySelectorAll('.ministry-only').forEach(el => el.style.display = isMinistry ? '' : 'none');
+      if (!isMinistry) {
       var tb = document.querySelector('.topbar'); tb.style.display = 'none'; tb.style.height = '0'; tb.style.overflow = 'hidden'; tb.style.margin = '0'; tb.style.padding = '0';
       document.querySelector('.content').style.padding = '0';
     } else if (isMinistry) {
