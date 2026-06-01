@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Sacred Apps — Finance Portal</title>
+<link href="https://fonts.googleapis.com/css2?family=Cinzel:wght@400;600&family=Faustina:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  :root {
+    --burgundy: #5C1A2E;
+    --dusty-rose: #C17A8A;
+    --gold: #C9A84C;
+    --linen: #E8DDD0;
+    --sand: #F7F3EE;
+    --soil: #3D2B2B;
+    --white: #FFFFFF;
+  }
+  body { font-family: 'Faustina', serif; background: var(--sand); color: var(--soil); }
+  
+  /* LOGIN */
+  #login { min-height: 100vh; display: flex; align-items: center; justify-content: center; background: var(--burgundy); }
+  .login-card { background: var(--white); border-radius: 16px; padding: 48px; width: 400px; text-align: center; box-shadow: 0 24px 80px rgba(0,0,0,0.3); }
+  .login-title { font-family: 'Cinzel', serif; font-size: 22px; color: var(--burgundy); margin-bottom: 6px; }
+  .login-sub { font-size: 14px; color: var(--dusty-rose); margin-bottom: 32px; }
+  .login-input { width: 100%; padding: 14px 16px; border: 1.5px solid var(--linen); border-radius: 10px; font-family: 'Faustina', serif; font-size: 16px; color: var(--soil); background: var(--sand); margin-bottom: 14px; outline: none; }
+  .login-btn { width: 100%; padding: 14px; background: var(--burgundy); color: var(--linen); border: none; border-radius: 10px; font-family: 'Cinzel', serif; font-size: 15px; letter-spacing: 1px; cursor: pointer; }
+  .login-error { color: red; font-size: 13px; margin-top: 10px; display: none; }
+
+  /* APP */
+  #app { display: none; }
+</style>
+</head>
+<body>
+
+<div id="login">
+  <div class="login-card">
+    <div class="login-title">Finance Council</div>
+    <div class="login-sub">Saint Rose Philippine Duchesne</div>
+    <input class="login-input" id="lu" type="text" placeholder="Username" />
+    <input class="login-input" id="lp" type="password" placeholder="Password" />
+    <button class="login-btn" onclick="doLogin()">Sign In</button>
+    <div class="login-error" id="lerr">Invalid credentials.</div>
+  </div>
+</div>
+
+<div id="app">
+  <p>Logged in!</p>
+</div>
+
+<script>
+  function doLogin() {
+    var u = document.getElementById('lu').value.trim();
+    var p = document.getElementById('lp').value.trim();
+    if (u === 'kevin' && p === 'finance2026') {
+      document.getElementById('login').style.display = 'none';
+      document.getElementById('app').style.display = 'block';
+    } else {
+      document.getElementById('lerr').style.display = 'block';
+    }
+  }
+</script>
+</body>
+</html>
