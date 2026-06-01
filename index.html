@@ -1070,7 +1070,7 @@
     document.querySelectorAll('.finance-only').forEach(el => el.style.display = isFinance ? '' : 'none');
     document.querySelectorAll('.ministry-only').forEach(el => el.style.display = isMinistry ? '' : 'none');
     if (isFinance) {
-      document.querySelector('.topbar').style.display = 'none';
+      var tb = document.querySelector('.topbar'); tb.style.display = 'none'; tb.style.height = '0'; tb.style.overflow = 'hidden'; tb.style.margin = '0'; tb.style.padding = '0';
       document.querySelector('.content').style.padding = '0';
       showPage('finance-dashboard', document.querySelector('.finance-only.nav-item'));
     } else if (isMinistry) {
