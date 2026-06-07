@@ -276,6 +276,8 @@
             <div class="inner-tab active" onclick="switchInnerTab('single',this)">Add Single Event</div>
             <div class="inner-tab" onclick="switchInnerTab('bulk',this)">Bulk Import — Week at a Glance</div>
             <div class="inner-tab" onclick="switchInnerTab('recent',this)">Manage Posted Events</div>
+            <div class="inner-tab" onclick="switchInnerTab('recurring',this)">Recurring Events</div>
+            <div class="inner-tab" onclick="switchInnerTab('cal',this);loadCalEvents()">Calendar View</div>
           </div>
 
           <!-- SINGLE EVENT -->
@@ -362,6 +364,100 @@
             </div>
           </div>
 
+
+          <!-- RECURRING EVENTS -->
+          <div class="inner-panel" id="panel-recurring">
+            <div class="info-box">Create a recurring event and automatically generate instances for the next several months.</div>
+            <div class="form-grid">
+              <div class="form-group form-full">
+                <label class="form-label">Event Title *</label>
+                <input type="text" class="form-input" id="rec-title" placeholder="e.g. Knights of Columbus Monthly Meeting">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Time *</label>
+                <input type="time" class="form-input" id="rec-time">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Location</label>
+                <input type="text" class="form-input" id="rec-location" placeholder="e.g. Parish Hall">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Category</label>
+                <select class="form-select" id="rec-category">
+                  <option value="Ministry">Ministry</option>
+                  <option value="Community">Community</option>
+                  <option value="Youth">Youth</option>
+                  <option value="Mass">Mass</option>
+                </select>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Recurrence Pattern *</label>
+                <select class="form-select" id="rec-pattern" onchange="updateRecurringPreview()">
+                  <option value="weekly">Every week (same day)</option>
+                  <option value="biweekly">Every 2 weeks</option>
+                  <option value="monthly-day">Monthly — specific day (e.g. every 15th)</option>
+                  <option value="monthly-nth">Monthly — nth weekday (e.g. 1st Tuesday)</option>
+                </select>
+              </div>
+              <div class="form-group" id="rec-nth-group" style="display:none">
+                <label class="form-label">Which occurrence?</label>
+                <div style="display:flex;gap:8px;">
+                  <select class="form-select" id="rec-nth" style="flex:1">
+                    <option value="1">1st</option>
+                    <option value="2">2nd</option>
+                    <option value="3">3rd</option>
+                    <option value="4">4th</option>
+                    <option value="last">Last</option>
+                  </select>
+                  <select class="form-select" id="rec-weekday" style="flex:1">
+                    <option value="0">Sunday</option>
+                    <option value="1">Monday</option>
+                    <option value="2">Tuesday</option>
+                    <option value="3">Wednesday</option>
+                    <option value="4">Thursday</option>
+                    <option value="5">Friday</option>
+                    <option value="6">Saturday</option>
+                  </select>
+                </div>
+              </div>
+              <div class="form-group">
+                <label class="form-label">Start From *</label>
+                <input type="date" class="form-input" id="rec-start">
+              </div>
+              <div class="form-group">
+                <label class="form-label">Generate how many months?</label>
+                <select class="form-select" id="rec-months">
+                  <option value="3">3 months</option>
+                  <option value="6" selected>6 months</option>
+                  <option value="12">12 months</option>
+                </select>
+              </div>
+              <div class="form-group form-full">
+                <label class="form-label">Description (optional)</label>
+                <textarea class="form-textarea" id="rec-desc" placeholder="Brief description..."></textarea>
+              </div>
+            </div>
+            <div class="btn-row">
+              <button class="btn btn-gold" onclick="previewRecurring()">Preview Dates →</button>
+            </div>
+            <div id="rec-preview" style="display:none;margin-top:16px;">
+              <div style="font-family:'Cinzel',serif;font-size:15px;color:var(--burgundy);margin-bottom:12px;">Preview — Dates to be Created</div>
+              <div id="rec-dates-list" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:16px;"></div>
+              <button class="btn btn-primary" onclick="submitRecurring()">Create All Events</button>
+              <div class="post-success" id="rec-success" style="margin-top:12px;">✓ Recurring events created successfully.</div>
+            </div>
+          </div>
+
+          <!-- CALENDAR VIEW -->
+          <div class="inner-panel" id="panel-cal">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
+              <button class="btn btn-outline btn-sm" onclick="calPrev()">← Prev</button>
+              <div style="font-family:'Cinzel',serif;font-size:18px;color:var(--burgundy)" id="cal-month-label">June 2026</div>
+              <button class="btn btn-outline btn-sm" onclick="calNext()">Next →</button>
+            </div>
+            <div id="cal-grid" style="display:grid;grid-template-columns:repeat(7,1fr);gap:4px;"></div>
+            <div id="cal-events-list" style="margin-top:16px;"></div>
+          </div>
           <!-- RECENT EVENTS -->
           <div class="inner-panel" id="panel-recent">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:16px;">
@@ -940,6 +1036,159 @@
   async function fs_delete(path) { await fetch(`${BASE}/${path}?key=${API_KEY}`,{method:'DELETE'}); }
   function gf(doc,key) { const f=doc.fields?.[key]; if(!f) return ''; if(f.booleanValue!==undefined) return f.booleanValue; return f.stringValue??f.integerValue??''; }
   function docId(doc) { return doc.name.split('/').pop(); }
+
+
+  // RECURRING EVENTS
+  function updateRecurringPreview() {
+    var pattern = document.getElementById('rec-pattern').value;
+    document.getElementById('rec-nth-group').style.display = pattern === 'monthly-nth' ? 'block' : 'none';
+  }
+
+  function getNthWeekday(year, month, nth, weekday) {
+    var count = 0;
+    var d = new Date(year, month, 1);
+    while (d.getMonth() === month) {
+      if (d.getDay() === weekday) { count++; if (count === nth) return new Date(d); }
+      d.setDate(d.getDate() + 1);
+    }
+    return null;
+  }
+
+  function getLastWeekday(year, month, weekday) {
+    var d = new Date(year, month + 1, 0);
+    while (d.getDay() !== weekday) d.setDate(d.getDate() - 1);
+    return new Date(d);
+  }
+
+  function generateRecurringDates() {
+    var pattern = document.getElementById('rec-pattern').value;
+    var startVal = document.getElementById('rec-start').value;
+    var months = parseInt(document.getElementById('rec-months').value);
+    if (!startVal) return [];
+    var start = new Date(startVal + 'T00:00:00');
+    var end = new Date(start);
+    end.setMonth(end.getMonth() + months);
+    var dates = [];
+    var cur = new Date(start);
+    if (pattern === 'weekly') {
+      while (cur <= end) { dates.push(new Date(cur)); cur.setDate(cur.getDate() + 7); }
+    } else if (pattern === 'biweekly') {
+      while (cur <= end) { dates.push(new Date(cur)); cur.setDate(cur.getDate() + 14); }
+    } else if (pattern === 'monthly-day') {
+      var dayOfMonth = start.getDate();
+      var m = start.getMonth(); var y = start.getFullYear();
+      while (new Date(y, m, dayOfMonth) <= end) {
+        dates.push(new Date(y, m, dayOfMonth));
+        m++; if (m > 11) { m = 0; y++; }
+      }
+    } else if (pattern === 'monthly-nth') {
+      var nth = document.getElementById('rec-nth').value;
+      var weekday = parseInt(document.getElementById('rec-weekday').value);
+      var m = start.getMonth(); var y = start.getFullYear();
+      for (var i = 0; i < months + 1; i++) {
+        var d = nth === 'last' ? getLastWeekday(y, m, weekday) : getNthWeekday(y, m, parseInt(nth), weekday);
+        if (d && d >= start && d <= end) dates.push(d);
+        m++; if (m > 11) { m = 0; y++; }
+      }
+    }
+    return dates;
+  }
+
+  function previewRecurring() {
+    var dates = generateRecurringDates();
+    if (!dates.length) { alert('Please fill in Start From date.'); return; }
+    var list = document.getElementById('rec-dates-list');
+    var dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    var monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    list.innerHTML = dates.map(function(d) {
+      return '<span style="background:var(--sand);border:1px solid var(--linen);border-radius:8px;padding:6px 10px;font-size:13px;color:var(--soil)">' +
+        dayNames[d.getDay()] + ' ' + monthNames[d.getMonth()] + ' ' + d.getDate() + '</span>';
+    }).join('');
+    document.getElementById('rec-preview').style.display = 'block';
+  }
+
+  async function submitRecurring() {
+    var title = document.getElementById('rec-title').value.trim();
+    var timeVal = document.getElementById('rec-time').value;
+    var location = document.getElementById('rec-location').value.trim();
+    var category = document.getElementById('rec-category').value;
+    var desc = document.getElementById('rec-desc').value.trim();
+    if (!title) { alert('Please enter a title.'); return; }
+    var dates = generateRecurringDates();
+    var API_KEY = 'AIzaSyBKjyHaRNkIjTV87zrhhvg6pBxarm3lcQ8';
+    var PROJECT_ID = 'saint-rose-anthem';
+    var timeStr = timeVal ? new Date('1970-01-01T' + timeVal).toLocaleTimeString('en-US', {hour:'numeric',minute:'2-digit'}) : '';
+    for (var i = 0; i < dates.length; i++) {
+      var d = dates[i];
+      var startAt = new Date(d);
+      if (timeVal) { var parts = timeVal.split(':'); startAt.setHours(parseInt(parts[0]), parseInt(parts[1])); }
+      var expiresAt = new Date(startAt); expiresAt.setHours(23, 59, 59);
+      var body = {fields:{
+        title:{stringValue:title}, time:{stringValue:timeStr}, location:{stringValue:location},
+        category:{stringValue:category}, description:{stringValue:desc}, source:{stringValue:'ministry'},
+        startAt:{stringValue:startAt.toISOString()}, expiresAt:{stringValue:expiresAt.toISOString()},
+        createdAt:{stringValue:new Date().toISOString()}
+      }};
+      await fetch('https://firestore.googleapis.com/v1/projects/' + PROJECT_ID + '/databases/(default)/documents/events?key=' + API_KEY,
+        {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+    }
+    document.getElementById('rec-success').style.display = 'block';
+    setTimeout(function(){ document.getElementById('rec-success').style.display = 'none'; }, 3000);
+  }
+
+  // CALENDAR VIEW
+  var calYear = new Date().getFullYear();
+  var calMonth = new Date().getMonth();
+  var calEvents = [];
+
+  async function loadCalEvents() {
+    var API_KEY = 'AIzaSyBKjyHaRNkIjTV87zrhhvg6pBxarm3lcQ8';
+    var PROJECT_ID = 'saint-rose-anthem';
+    var res = await fetch('https://firestore.googleapis.com/v1/projects/' + PROJECT_ID + '/databases/(default)/documents/events?key=' + API_KEY + '&pageSize=100');
+    var data = await res.json();
+    calEvents = (data.documents || []).map(function(doc) {
+      return {id:doc.name.split('/').pop(), title:doc.fields?.title?.stringValue||'', startAt:doc.fields?.startAt?.stringValue||''};
+    });
+    renderCal();
+  }
+
+  function renderCal() {
+    var monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    document.getElementById('cal-month-label').textContent = monthNames[calMonth] + ' ' + calYear;
+    var grid = document.getElementById('cal-grid');
+    var days = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    var firstDay = new Date(calYear, calMonth, 1).getDay();
+    var daysInMonth = new Date(calYear, calMonth + 1, 0).getDate();
+    var html = days.map(function(d){ return '<div style="text-align:center;font-size:10px;color:var(--dusty-rose);letter-spacing:1px;padding:4px">' + d + '</div>'; }).join('');
+    for (var i = 0; i < firstDay; i++) html += '<div></div>';
+    for (var d = 1; d <= daysInMonth; d++) {
+      var dateStr = calYear + '-' + String(calMonth+1).padStart(2,'0') + '-' + String(d).padStart(2,'0');
+      var hasEvent = calEvents.some(function(e){ return e.startAt && e.startAt.startsWith(dateStr); });
+      var dd = d;
+      html += '<div onclick="showCalDay(' + dd + ')" style="text-align:center;padding:6px 2px;border-radius:6px;cursor:pointer;font-size:13px;color:var(--soil);background:' + (hasEvent?'var(--linen)':'transparent') + ';font-weight:' + (hasEvent?'600':'normal') + ';border:' + (hasEvent?'1px solid var(--dusty-rose)':'1px solid transparent') + '">' + d + '</div>';
+    }
+    grid.innerHTML = html;
+  }
+
+  function showCalDay(day) {
+    var dateStr = calYear + '-' + String(calMonth+1).padStart(2,'0') + '-' + String(day).padStart(2,'0');
+    var dayEvts = calEvents.filter(function(e){ return e.startAt && e.startAt.startsWith(dateStr); });
+    var list = document.getElementById('cal-events-list');
+    if (!dayEvts.length) { list.innerHTML = '<div style="color:var(--dusty-rose);font-size:14px;padding:8px">No events on this day.</div>'; return; }
+    list.innerHTML = '<div style="font-family:'Cinzel',serif;font-size:14px;color:var(--burgundy);margin-bottom:8px">' + dateStr + '</div>' +
+      dayEvts.map(function(e){ return '<div style="background:var(--sand);border-radius:8px;padding:10px 14px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center"><span style="font-size:14px;color:var(--soil)">' + e.title + '</span><button onclick="deleteCalEvent('' + e.id + '')" style="background:none;border:none;color:var(--dusty-rose);cursor:pointer;font-size:13px;padding:4px 8px">Delete</button></div>'; }).join('');
+  }
+
+  async function deleteCalEvent(id) {
+    if (!confirm('Delete this event?')) return;
+    var API_KEY = 'AIzaSyBKjyHaRNkIjTV87zrhhvg6pBxarm3lcQ8';
+    var PROJECT_ID = 'saint-rose-anthem';
+    await fetch('https://firestore.googleapis.com/v1/projects/' + PROJECT_ID + '/databases/(default)/documents/events/' + id + '?key=' + API_KEY, {method:'DELETE'});
+    await loadCalEvents();
+  }
+
+  function calPrev() { calMonth--; if (calMonth < 0) { calMonth = 11; calYear--; } renderCal(); }
+  function calNext() { calMonth++; if (calMonth > 11) { calMonth = 0; calYear++; } renderCal(); }
 
   async function loadDashboard() {
     try {
