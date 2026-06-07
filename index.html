@@ -1176,7 +1176,7 @@
     var list = document.getElementById('cal-events-list');
     if (!dayEvts.length) { list.innerHTML = '<div style="color:var(--dusty-rose);font-size:14px;padding:8px">No events on this day.</div>'; return; }
     list.innerHTML = '<div style="font-family:Cinzel,serif;font-size:14px;color:var(--burgundy);margin-bottom:8px">' + dateStr + '</div>' +
-      dayEvts.map(function(e){ return '<div style="background:var(--sand);border-radius:8px;padding:10px 14px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center"><span style="font-size:14px;color:var(--soil)">' + e.title + '</span><button onclick="deleteCalEvent('' + e.id + '')" style="background:none;border:none;color:var(--dusty-rose);cursor:pointer;font-size:13px;padding:4px 8px">Delete</button></div>'; }).join('');
+      dayEvts.map(function(e){ return '<div style="background:var(--sand);border-radius:8px;padding:10px 14px;margin-bottom:6px;display:flex;justify-content:space-between;align-items:center"><span style="font-size:14px;color:var(--soil)">' + e.title + '</span><button onclick="deleteCalEvent(\'' + e.id + '\')" style="background:none;border:none;color:var(--dusty-rose);cursor:pointer;font-size:13px;padding:4px 8px">Delete</button></div>'; }).join('');
   }
 
   async function deleteCalEvent(id) {
