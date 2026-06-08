@@ -1391,7 +1391,7 @@
       const expired = all.filter(d=>{ const exp=gf(d,'expiresAt'); return exp && new Date(exp)<=now; });
       expired.forEach(d=>fs_delete('events/'+docId(d)));
       const events = all
-        .filter(d=>{ const exp=gf(d,'expiresAt'); return !exp||new Date(exp)>now; })
+        .filter(d=>{ const exp=gf(d,'expiresAt'); const sta=gf(d,'startAt'); return (!exp||new Date(exp)>now) && (!sta||new Date(sta)>now); })
         .sort((a,b)=>{ const da=gf(a,'startAt')||gf(a,'date'); const db=gf(b,'startAt')||gf(b,'date'); return new Date(da)-new Date(db); });
       if(events.length===0){
         list.innerHTML='<div class="empty-state"><div class="empty-icon">📅</div><div class="empty-title">No upcoming events</div><div class="empty-sub">Events you post will appear here.</div></div>';
