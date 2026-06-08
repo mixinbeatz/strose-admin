@@ -1388,7 +1388,7 @@
       const res = await fs_get('events');
       const now = new Date();
       const events = (res.documents||[])
-        .filter(d=>gf(d,'source')==='admin')
+        .filter(d=>gf(d,'source')==='admin'||gf(d,'source')==='ministry')
         .filter(d=>{ const exp=gf(d,'expiresAt'); return !exp||new Date(exp)>now; })
         .sort((a,b)=>{ const da=gf(a,'startAt')||gf(a,'date'); const db=gf(b,'startAt')||gf(b,'date'); return new Date(da)-new Date(db); });
       if(events.length===0){
