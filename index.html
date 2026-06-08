@@ -1397,16 +1397,20 @@
       }
       list.innerHTML=events.map(doc=>{
         const id=docId(doc);
-        const title=gf(doc,'title'),date=gf(doc,'date'),time=gf(doc,'time'),location=gf(doc,'location');
-        const dateShort=date?date.split(',')[0].substring(0,3).toUpperCase():'—';
-        const dayNum=date?date.match(/\d+/)?.[0]:'';
+        const title=gf(doc,'title'),time=gf(doc,'time'),location=gf(doc,'location'),ministry=gf(doc,'ministry')||gf(doc,'source')||'';
+        const startAt=gf(doc,'startAt')||gf(doc,'date')||'';
+        const dt=startAt?new Date(startAt):null;
+        const months=['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
+        const dateShort=dt?months[dt.getMonth()]:'—';
+        const dayNum=dt?dt.getDate():'';
+        const safeTitle=title.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
         return `<div class="event-row" id="evtrow-${id}">
           <div class="event-row-date"><div>${dateShort}</div><div style="font-size:18px;">${dayNum}</div></div>
           <div class="event-row-info">
             <div class="event-row-title">${title}</div>
-            <div class="event-row-meta">${[time,location].filter(x=>x).join(' · ')}</div>
+            <div class="event-row-meta">${[time,location].filter(x=>x).join(' · ')}${ministry?' <span style="color:var(--dusty-rose);font-size:11px;margin-left:6px;">'+ministry+'</span>':''}</div>
           </div>
-          <button class="btn btn-danger btn-sm" onclick="deleteEvent('${id}','${title.replace(/'/g,"\\'")}')">Delete</button>
+          <button class="btn btn-danger btn-sm" onclick="deleteEvent('${id}','${safeTitle}')">Delete</button>
         </div>`;
       }).join('');
     } catch(e){list.innerHTML='<div style="color:var(--danger);">Error loading.</div>';}
