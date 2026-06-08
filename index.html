@@ -1387,15 +1387,19 @@
     try {
       const res = await fs_get('events');
       const now = new Date();
-      const events = (res.documents||[])
-        .filter(d=>gf(d,'source')==='admin'||gf(d,'source')==='ministry')
+      const all = (res.documents||[]).filter(d=>gf(d,'source')==='admin'||gf(d,'source')==='ministry');
+      const expired = all.filter(d=>{ const exp=gf(d,'expiresAt'); return exp && new Date(exp)<=now; });
+      expired.forEach(d=>fs_delete('events/'+docId(d)));
+      const events = all
         .filter(d=>{ const exp=gf(d,'expiresAt'); return !exp||new Date(exp)>now; })
         .sort((a,b)=>{ const da=gf(a,'startAt')||gf(a,'date'); const db=gf(b,'startAt')||gf(b,'date'); return new Date(da)-new Date(db); });
       if(events.length===0){
-        list.innerHTML=`<div class="empty-state"><div class="empty-icon">📅</div><div class="empty-title">No upcoming events</div><div class="empty-sub">Events you post will appear here.</div></div>`;
+        list.innerHTML='<div class="empty-state"><div class="empty-icon">📅</div><div class="empty-title">No upcoming events</div><div class="empty-sub">Events you post will appear here.</div></div>';
         return;
       }
-      list.innerHTML=events.map(doc=>{
+      const expiredCount = expired.length;
+      const expiredNote = expiredCount>0?'<div style="font-size:12px;color:var(--dusty-rose);margin-bottom:12px;">✓ '+expiredCount+' expired event'+(expiredCount>1?'s':'')+'auto-deleted from Firestore.</div>':'';
+      list.innerHTML=expiredNote+events.map(doc=>{
         const id=docId(doc);
         const title=gf(doc,'title'),time=gf(doc,'time'),location=gf(doc,'location'),ministry=gf(doc,'ministry')||gf(doc,'source')||'';
         const startAt=gf(doc,'startAt')||gf(doc,'date')||'';
@@ -1404,14 +1408,7 @@
         const dateShort=dt?months[dt.getMonth()]:'—';
         const dayNum=dt?dt.getDate():'';
         const safeTitle=title.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-        return `<div class="event-row" id="evtrow-${id}">
-          <div class="event-row-date"><div>${dateShort}</div><div style="font-size:18px;">${dayNum}</div></div>
-          <div class="event-row-info">
-            <div class="event-row-title">${title}</div>
-            <div class="event-row-meta">${[time,location].filter(x=>x).join(' · ')}${ministry?' <span style="color:var(--dusty-rose);font-size:11px;margin-left:6px;">'+ministry+'</span>':''}</div>
-          </div>
-          <button class="btn btn-danger btn-sm" onclick="deleteEvent('${id}','${safeTitle}')">Delete</button>
-        </div>`;
+        return '<div class="event-row" id="evtrow-'+id+'"><div class="event-row-date"><div>'+dateShort+'</div><div style="font-size:18px;">'+dayNum+'</div></div><div class="event-row-info"><div class="event-row-title">'+title+'</div><div class="event-row-meta">'+[time,location].filter(x=>x).join(' · ')+(ministry?' <span style="color:var(--dusty-rose);font-size:11px;margin-left:6px;">'+ministry+'</span>':'')+'</div></div><button class="btn btn-danger btn-sm" onclick="deleteEvent(\''+id+'\',\''+safeTitle+'\')">Delete</button></div>';
       }).join('');
     } catch(e){list.innerHTML='<div style="color:var(--danger);">Error loading.</div>';}
   }
