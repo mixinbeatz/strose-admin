@@ -566,33 +566,55 @@
 
       <!-- MASS INTENTIONS -->
       <div class="page" id="page-intention">
-        <div class="card">
-          <div class="card-title">🕯️ Mass Intentions</div>
-          <div class="info-box">Post today's Mass intention. It will appear on the parish website and in the app.</div>
-          <div class="form-group">
-            <label class="form-label">Date</label>
-            <input type="date" class="form-input" id="intention-date" />
-          </div>
-          <div class="form-group">
-            <label class="form-label">Mass Time</label>
-            <select class="form-input" id="intention-mass">
-              <option value="7:30 AM Daily Mass">7:30 AM Daily Mass</option>
-              <option value="12:15 PM Noon Mass">12:15 PM Noon Mass</option>
-              <option value="4:00 PM Vigil Mass">4:00 PM Vigil Mass</option>
-              <option value="8:00 AM Sunday Mass">8:00 AM Sunday Mass</option>
-              <option value="11:00 AM Sunday Mass">11:00 AM Sunday Mass</option>
-              <option value="6:00 PM Wednesday Mass">6:00 PM Wednesday Mass</option>
-            </select>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Intention</label>
-            <input type="text" class="form-input" id="intention-text" placeholder="e.g. For the repose of the soul of John Smith" />
-          </div>
-          <button class="btn btn-primary" onclick="postIntention()">Post Intention</button>
+        <div class="inner-tabs">
+          <div class="inner-tab active" onclick="switchInnerTab('intention-single',this)">Single Entry</div>
+          <div class="inner-tab" onclick="switchInnerTab('intention-bulk',this)">Bulk Import</div>
+          <div class="inner-tab" onclick="switchInnerTab('intention-list-tab',this);loadIntentions()">Upcoming Intentions</div>
         </div>
-        <div class="card" style="margin-top:24px;">
-          <div class="card-title">Upcoming Intentions</div>
-          <div id="intention-list"><div style="color:var(--dusty-rose);font-size:14px;">Loading...</div></div>
+        <div class="inner-panel active" id="panel-intention-single">
+          <div class="card">
+            <div class="card-title">🕯️ Add Intention</div>
+            <div class="info-box">Post a single Mass intention. It will appear on the parish website.</div>
+            <div class="form-group">
+              <label class="form-label">Date</label>
+              <input type="date" class="form-input" id="intention-date" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Mass Time</label>
+              <select class="form-input" id="intention-mass">
+                <option value="7:30 AM Daily Mass">7:30 AM Daily Mass</option>
+                <option value="12:15 PM Noon Mass">12:15 PM Noon Mass</option>
+                <option value="4:00 PM Vigil Mass">4:00 PM Vigil Mass</option>
+                <option value="8:00 AM Sunday Mass">8:00 AM Sunday Mass</option>
+                <option value="11:00 AM Sunday Mass">11:00 AM Sunday Mass</option>
+                <option value="6:00 PM Wednesday Mass">6:00 PM Wednesday Mass</option>
+              </select>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Intention</label>
+              <input type="text" class="form-input" id="intention-text" placeholder="e.g. For the repose of the soul of John Smith" />
+            </div>
+            <button class="btn btn-primary" onclick="postIntention()">Post Intention</button>
+          </div>
+        </div>
+        <div class="inner-panel" id="panel-intention-bulk">
+          <div class="card">
+            <div class="card-title">📋 Bulk Import</div>
+            <div class="info-box">Paste one intention per line in this format:<br><strong>YYYY-MM-DD, Mass Time, Intention text</strong><br>Example: <em>2026-06-15, 7:30 AM Daily Mass, For the repose of the soul of John Smith</em></div>
+            <div class="form-group">
+              <label class="form-label">Paste Intentions</label>
+              <textarea class="form-textarea large" id="bulk-intention-text" placeholder="2026-06-15, 7:30 AM Daily Mass, For the repose of the soul of John Smith&#10;2026-06-15, 12:15 PM Noon Mass, For the Smith family&#10;2026-06-16, 7:30 AM Daily Mass, For healing of Mary Jones"></textarea>
+            </div>
+            <div id="bulk-intention-preview" style="margin-bottom:16px;"></div>
+            <button class="btn btn-outline" onclick="previewBulkIntentions()" style="margin-right:8px;">Preview</button>
+            <button class="btn btn-primary" id="bulk-import-btn" onclick="importBulkIntentions()" style="display:none;">Import All</button>
+          </div>
+        </div>
+        <div class="inner-panel" id="panel-intention-list-tab">
+          <div class="card">
+            <div class="card-title">Upcoming Intentions</div>
+            <div id="intention-list"><div style="color:var(--dusty-rose);font-size:14px;">Loading...</div></div>
+          </div>
         </div>
       </div>
       <!-- SONGSHEET -->
@@ -1888,6 +1910,65 @@
           '</div>';
       }).join('');
     } catch(e) { list.innerHTML = '<div style="color:var(--danger);">Error loading.</div>'; }
+  }
+  function previewBulkIntentions() {
+    const raw = document.getElementById('bulk-intention-text').value.trim();
+    if(!raw) { showToast('Nothing to preview.', 'error'); return; }
+    const lines = raw.split('
+').map(l=>l.trim()).filter(l=>l);
+    const parsed = lines.map(line => {
+      const parts = line.split(',').map(p=>p.trim());
+      if(parts.length < 3) return null;
+      const date = parts[0];
+      const mass = parts[1];
+      const intention = parts.slice(2).join(',').trim();
+      if(!date.match(/^\d{4}-\d{2}-\d{2}$/)) return null;
+      return {date, mass, intention};
+    }).filter(x=>x);
+    const preview = document.getElementById('bulk-intention-preview');
+    if(parsed.length === 0) {
+      preview.innerHTML = '<div style="color:var(--danger);font-size:14px;">No valid rows found. Check the format.</div>';
+      document.getElementById('bulk-import-btn').style.display = 'none';
+      return;
+    }
+    preview.innerHTML = '<div style="font-size:13px;color:var(--soil);margin-bottom:8px;">' + parsed.length + ' intention' + (parsed.length>1?'s':'') + ' ready to import:</div>' +
+      parsed.map(p => '<div style="padding:8px 0;border-bottom:1px solid var(--linen);font-size:13px;"><span style="color:var(--burgundy);margin-right:8px;">' + p.date + '</span><span style="color:var(--dusty-rose);margin-right:8px;">' + p.mass + '</span>' + p.intention + '</div>').join('');
+    document.getElementById('bulk-import-btn').style.display = 'inline-block';
+  }
+  async function importBulkIntentions() {
+    const raw = document.getElementById('bulk-intention-text').value.trim();
+    const lines = raw.split('
+').map(l=>l.trim()).filter(l=>l);
+    const parsed = lines.map(line => {
+      const parts = line.split(',').map(p=>p.trim());
+      if(parts.length < 3) return null;
+      const date = parts[0];
+      const mass = parts[1];
+      const intention = parts.slice(2).join(',').trim();
+      if(!date.match(/^\d{4}-\d{2}-\d{2}$/)) return null;
+      return {date, mass, intention};
+    }).filter(x=>x);
+    if(parsed.length === 0) { showToast('No valid rows to import.', 'error'); return; }
+    const btn = document.getElementById('bulk-import-btn');
+    btn.disabled = true; btn.textContent = 'Importing...';
+    let success = 0;
+    for(const item of parsed) {
+      try {
+        await fs_post('massIntentions', {
+          date: {stringValue: item.date},
+          mass: {stringValue: item.mass},
+          intention: {stringValue: item.intention},
+          postedBy: {stringValue: 'Parish Staff'},
+          createdAt: {stringValue: new Date().toISOString()}
+        });
+        success++;
+      } catch(e) {}
+    }
+    btn.disabled = false; btn.textContent = 'Import All';
+    showToast(success + ' intention' + (success>1?'s':'') + ' imported!', 'success');
+    document.getElementById('bulk-intention-text').value = '';
+    document.getElementById('bulk-intention-preview').innerHTML = '';
+    document.getElementById('bulk-import-btn').style.display = 'none';
   }
   async function deleteIntention(id) {
     if(!confirm('Delete this intention?')) return;
