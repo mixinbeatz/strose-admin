@@ -1915,7 +1915,6 @@
     const raw = document.getElementById('bulk-intention-text').value.trim();
     if(!raw) { showToast('Nothing to preview.', 'error'); return; }
     const rows = raw.split('\n').map(l=>l.trim()).filter(l=>l);
-').map(l=>l.trim()).filter(l=>l);
     const parsed = rows.map(line => {
       const parts = line.split(',').map(p=>p.trim());
       if(parts.length < 3) return null;
@@ -1938,7 +1937,6 @@
   async function importBulkIntentions() {
     const raw = document.getElementById('bulk-intention-text').value.trim();
     const rows = raw.split('\n').map(l=>l.trim()).filter(l=>l);
-').map(l=>l.trim()).filter(l=>l);
     const parsed = rows.map(line => {
       const parts = line.split(',').map(p=>p.trim());
       if(parts.length < 3) return null;
