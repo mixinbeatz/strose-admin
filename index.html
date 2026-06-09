@@ -970,7 +970,7 @@
   let allMembers = [];
   let bulkRows = [];
 
-  document.getElementById('daily-date').value = new Date().toISOString().split('T')[0];
+  const dailyDateEl = document.getElementById('daily-date'); if(dailyDateEl) dailyDateEl.value = new Date().toISOString().split('T')[0];
 
   // Set default start/end to today
   const nowLocal = new Date(); nowLocal.setMinutes(nowLocal.getMinutes() - nowLocal.getTimezoneOffset());
