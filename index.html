@@ -1032,7 +1032,7 @@
     if(id==='poll') loadPollResults();
     if(id==='reflection') loadCurrentReflection();
     if(id==='daily') { buildDailyRows(); loadScheduledReflections(); }
-    if(id==='intention') { loadIntentions(); document.getElementById('intention-date').valueAsDate = new Date(); }
+    if(id==='intention') { loadIntentions(); const dEl=document.getElementById('intention-date'); if(dEl) dEl.valueAsDate = new Date(); }
     if(id==='events') loadRecentEvents();
     if(id==='event-requests') loadEventRequests();
   }
