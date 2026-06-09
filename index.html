@@ -201,6 +201,7 @@
       <div class="nav-item staff-only" onclick="showPage('poll',this)"><span class="nav-icon">📊</span> Parish Voice Poll</div>
       <div class="nav-item staff-only" onclick="showPage('reflection',this)"><span class="nav-icon">📖</span> Weekly Reflection</div>
       <div class="nav-item staff-only" onclick="showPage('daily',this)"><span class="nav-icon">✝</span> Daily Reflection</div>
+      <div class="nav-item staff-only" onclick="showPage('intention',this)"><span class="nav-icon">🕯️</span> Mass Intentions</div>
       <div class="nav-item staff-only" onclick="showPage('songsheet',this)"><span class="nav-icon">🎵</span> Mass Songsheet</div>
       <div class="nav-item staff-only" onclick="showPage('welcome',this)"><span class="nav-icon">🌹</span> Welcome Message</div>
       <div class="nav-section ministry-only" style="display:none">Catholic Daughters</div>
@@ -563,6 +564,37 @@
         </div>
       </div>
 
+      <!-- MASS INTENTIONS -->
+      <div class="page" id="page-intention">
+        <div class="card">
+          <div class="card-title">🕯️ Mass Intentions</div>
+          <div class="info-box">Post today's Mass intention. It will appear on the parish website and in the app.</div>
+          <div class="form-group">
+            <label class="form-label">Date</label>
+            <input type="date" class="form-input" id="intention-date" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Mass Time</label>
+            <select class="form-input" id="intention-mass">
+              <option value="7:30 AM Daily Mass">7:30 AM Daily Mass</option>
+              <option value="12:15 PM Noon Mass">12:15 PM Noon Mass</option>
+              <option value="4:00 PM Vigil Mass">4:00 PM Vigil Mass</option>
+              <option value="8:00 AM Sunday Mass">8:00 AM Sunday Mass</option>
+              <option value="11:00 AM Sunday Mass">11:00 AM Sunday Mass</option>
+              <option value="6:00 PM Wednesday Mass">6:00 PM Wednesday Mass</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Intention</label>
+            <input type="text" class="form-input" id="intention-text" placeholder="e.g. For the repose of the soul of John Smith" />
+          </div>
+          <button class="btn btn-primary" onclick="postIntention()">Post Intention</button>
+        </div>
+        <div class="card" style="margin-top:24px;">
+          <div class="card-title">Upcoming Intentions</div>
+          <div id="intention-list"><div style="color:var(--dusty-rose);font-size:14px;">Loading...</div></div>
+        </div>
+      </div>
       <!-- SONGSHEET -->
       <div class="page" id="page-songsheet">
         <div class="card">
@@ -989,7 +1021,7 @@
     document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
     document.getElementById('page-'+id).classList.add('active');
     if(el) el.classList.add('active');
-    const titles = {dashboard:'Dashboard',events:'Events',announcement:'Post Announcement',fastblast:'Fast Blast',reflection:'Weekly Reflection',daily:'Daily Reflection',songsheet:'Mass Songsheet',welcome:'Welcome Message','music-ministry':'Music Ministry','music-members':'Music Ministry Members',approvals:'Parish Family Approvals',partners:'Partner Requests',directory:'Parish Family Directory','ministry-post':'Post to Members','cda-members':'My Members','prayer-chain':'Prayer Chain','prayer-submissions':'Prayer Submissions','submit-event':'Submit Event','event-requests':'Event Requests'};
+    const titles = {dashboard:'Dashboard',events:'Events',announcement:'Post Announcement',fastblast:'Fast Blast',reflection:'Weekly Reflection',daily:'Daily Reflection',songsheet:'Mass Songsheet',welcome:'Welcome Message','music-ministry':'Music Ministry','music-members':'Music Ministry Members',approvals:'Parish Family Approvals',partners:'Partner Requests',directory:'Parish Family Directory','ministry-post':'Post to Members','cda-members':'My Members','prayer-chain':'Prayer Chain','prayer-submissions':'Prayer Submissions','submit-event':'Submit Event','event-requests':'Event Requests',intention:'Mass Intentions'};
     document.getElementById('page-title').textContent = titles[id]||id;
     if(id==='approvals') loadApprovals();
     if(id==='partners') loadPartners();
@@ -1000,6 +1032,7 @@
     if(id==='poll') loadPollResults();
     if(id==='reflection') loadCurrentReflection();
     if(id==='daily') { buildDailyRows(); loadScheduledReflections(); }
+    if(id==='intention') { loadIntentions(); document.getElementById('intention-date').valueAsDate = new Date(); }
     if(id==='events') loadRecentEvents();
     if(id==='event-requests') loadEventRequests();
   }
@@ -1812,6 +1845,58 @@
     reader.readAsDataURL(file);
   }
 
+  // ── MASS INTENTIONS ──
+  async function postIntention() {
+    const date = document.getElementById('intention-date').value;
+    const mass = document.getElementById('intention-mass').value;
+    const text = document.getElementById('intention-text').value.trim();
+    if(!date || !text) { showToast('Please fill in date and intention.', 'error'); return; }
+    try {
+      await fs_post('massIntentions', {
+        date: {stringValue: date},
+        mass: {stringValue: mass},
+        intention: {stringValue: text},
+        postedBy: {stringValue: 'Parish Staff'},
+        createdAt: {stringValue: new Date().toISOString()}
+      });
+      document.getElementById('intention-text').value = '';
+      showToast('Intention posted!', 'success');
+      loadIntentions();
+    } catch(e) { showToast('Error posting intention.', 'error'); }
+  }
+  async function loadIntentions() {
+    const list = document.getElementById('intention-list');
+    if(!list) return;
+    try {
+      const res = await fs_get('massIntentions');
+      const now = new Date().toISOString().split('T')[0];
+      const items = (res.documents||[])
+        .filter(d => gf(d,'date') >= now)
+        .sort((a,b) => gf(a,'date').localeCompare(gf(b,'date')));
+      if(items.length === 0) { list.innerHTML = '<div style="color:var(--dusty-rose);font-size:14px;">No upcoming intentions posted.</div>'; return; }
+      list.innerHTML = items.map(doc => {
+        const id = docId(doc);
+        const date = gf(doc,'date');
+        const mass = gf(doc,'mass');
+        const intention = gf(doc,'intention');
+        const dt = new Date(date + 'T12:00:00');
+        const label = dt.toLocaleDateString('en-US', {weekday:'short', month:'short', day:'numeric'});
+        return '<div class="event-row" id="introw-' + id + '">' +
+          '<div class="event-row-date"><div style="font-size:11px;">' + label.split(' ')[0].toUpperCase() + '</div><div style="font-size:18px;">' + dt.getDate() + '</div></div>' +
+          '<div class="event-row-info"><div class="event-row-title">' + intention + '</div><div class="event-row-meta">' + mass + '</div></div>' +
+          '<button class="btn btn-danger btn-sm" onclick="deleteIntention('' + id + '')">Delete</button>' +
+          '</div>';
+      }).join('');
+    } catch(e) { list.innerHTML = '<div style="color:var(--danger);">Error loading.</div>'; }
+  }
+  async function deleteIntention(id) {
+    if(!confirm('Delete this intention?')) return;
+    try {
+      await fs_delete('massIntentions/' + id);
+      document.getElementById('introw-' + id)?.remove();
+      showToast('Intention deleted.', 'success');
+    } catch(e) { showToast('Error deleting.', 'error'); }
+  }
   async function postSongsheet() {
     const title = document.getElementById('ss-title').value.trim();
     if (!title) { showToast('Please enter a title.', 'error'); return; }
