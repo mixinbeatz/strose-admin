@@ -1593,14 +1593,14 @@
         const dateEl = document.getElementById('daily-date-' + i);
         if (!dateEl) continue;
         const date = dateEl.value;
-        const match = docs.find(function(d){ return gf(d,'date') === date; });
+        const match = activeDocs.find(function(d){ return gf(d,'date') === date; });
         if (match) {
           document.getElementById('daily-title-' + i).value = gf(match,'title') || '';
           document.getElementById('daily-body-' + i).value = gf(match,'body') || '';
         }
       }
       showToast('Scheduled reflections loaded.','success');
-      renderScheduledQueue(docs);
+      renderScheduledQueue(activeDocs);
     } catch(e) { showToast('Error loading.','error'); }
   }
   function emailDailyReflection() {
@@ -1650,7 +1650,7 @@
       showToast('No reflections to save — add text to at least one day.','error');
     }
   }
-  async function renderScheduledQueue(docs) {
+  async function renderScheduledQueue(activeDocs) {
     const el = document.getElementById('scheduled-queue');
     if (!el) return;
     if (!docs || docs.length === 0) { el.innerHTML = '<div style="color:var(--dusty-rose);font-size:14px;">No reflections scheduled.</div>'; return; }
