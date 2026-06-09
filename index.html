@@ -1914,9 +1914,9 @@
   function previewBulkIntentions() {
     const raw = document.getElementById('bulk-intention-text').value.trim();
     if(!raw) { showToast('Nothing to preview.', 'error'); return; }
-    const lines = raw.split('
+    const rows = raw.split('\n').map(l=>l.trim()).filter(l=>l);
 ').map(l=>l.trim()).filter(l=>l);
-    const parsed = lines.map(line => {
+    const parsed = rows.map(line => {
       const parts = line.split(',').map(p=>p.trim());
       if(parts.length < 3) return null;
       const date = parts[0];
@@ -1937,9 +1937,9 @@
   }
   async function importBulkIntentions() {
     const raw = document.getElementById('bulk-intention-text').value.trim();
-    const lines = raw.split('
+    const rows = raw.split('\n').map(l=>l.trim()).filter(l=>l);
 ').map(l=>l.trim()).filter(l=>l);
-    const parsed = lines.map(line => {
+    const parsed = rows.map(line => {
       const parts = line.split(',').map(p=>p.trim());
       if(parts.length < 3) return null;
       const date = parts[0];
