@@ -1664,7 +1664,7 @@
         '<div><div style="font-family:Cinzel,serif;font-size:13px;color:var(--burgundy);">' + date + '</div>' +
         '<div style="font-size:15px;color:var(--soil);margin-top:2px;">' + title + '</div>' +
         '<div style="font-size:12px;color:var(--dusty-rose);margin-top:2px;">' + body.substring(0,80) + (body.length>80?'...':'') + '</div></div>' +
-        '<button onclick="deleteScheduled(' + JSON.stringify(id) + ')" style="background:none;border:none;color:#CC3333;cursor:pointer;font-size:13px;padding:4px 8px;">Delete</button>' +
+        '<button onclick="deleteScheduled(\'' + id + '\')" style="background:none;border:none;color:#CC3333;cursor:pointer;font-size:13px;padding:4px 8px;">Delete</button>' +
         '</div>';
     }).join('');
   }
