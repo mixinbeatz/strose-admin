@@ -1884,7 +1884,7 @@
         return '<div class="event-row" id="introw-' + id + '">' +
           '<div class="event-row-date"><div style="font-size:11px;">' + label.split(' ')[0].toUpperCase() + '</div><div style="font-size:18px;">' + dt.getDate() + '</div></div>' +
           '<div class="event-row-info"><div class="event-row-title">' + intention + '</div><div class="event-row-meta">' + mass + '</div></div>' +
-          '<button class="btn btn-danger btn-sm" onclick="deleteIntention('' + id + '')">Delete</button>' +
+          '<div class="event-row" id="introw-' + id + '"><div class="event-row-date"><div style="font-size:11px;">' + label.split(' ')[0].toUpperCase() + '</div><div style="font-size:18px;">' + dt.getDate() + '</div></div><div class="event-row-info"><div class="event-row-title">' + intention + '</div><div class="event-row-meta">' + mass + '</div></div><button class="btn btn-danger btn-sm" onclick="deleteIntention(\'' + id + '\');">Delete</button></div>'
           '</div>';
       }).join('');
     } catch(e) { list.innerHTML = '<div style="color:var(--danger);">Error loading.</div>'; }
