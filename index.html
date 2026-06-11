@@ -205,6 +205,7 @@
       <div class="nav-item staff-only" onclick="showPage('songsheet',this)"><span class="nav-icon">🎵</span> Mass Songsheet</div>
       <div class="nav-item staff-only" onclick="showPage('welcome',this)"><span class="nav-icon">🌹</span> Welcome Message</div>
       <div class="nav-section ministry-only" style="display:none">Catholic Daughters</div>
+      <div class="nav-item ministry-only" style="display:none" onclick="showPage('my-ministry',this);loadMyMinistry()"><span class="nav-icon">⛪</span> My Ministry</div>
       <div class="nav-item ministry-only" style="display:none" onclick="showPage('ministry-post',this)"><span class="nav-icon">✝️</span> Post to Members</div>
       <div class="nav-item ministry-only" style="display:none" onclick="showPage('cda-members',this)"><span class="nav-icon">👥</span> My Members</div>
       <div class="nav-item ministry-only" style="display:none" onclick="showPage('prayer-chain',this)"><span class="nav-icon">🙏</span> Prayer Chain</div>
@@ -790,6 +791,49 @@
         </div>
       </div>
 
+      <!-- MY MINISTRY -->
+      <div class="page" id="page-my-ministry">
+        <div class="card">
+          <div class="card-title">⛪ My Ministry</div>
+          <div class="info-box">Edit your ministry's information below. Changes will appear on the parish website and in the app immediately.</div>
+          <div id="my-ministry-loading" style="color:var(--dusty-rose);font-size:14px;">Loading...</div>
+          <div id="my-ministry-form" style="display:none;">
+            <div class="form-group">
+              <label class="form-label">Ministry Name</label>
+              <input type="text" class="form-input" id="mm-name" disabled style="opacity:0.6;" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Schedule</label>
+              <input type="text" class="form-input" id="mm-schedule" placeholder="e.g. 2nd Wednesday of the month, 6:30 PM" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Location</label>
+              <input type="text" class="form-input" id="mm-location" placeholder="e.g. Parish Hall" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Description</label>
+              <textarea class="form-textarea" id="mm-description" style="min-height:120px;"></textarea>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Contact Name</label>
+              <input type="text" class="form-input" id="mm-contact" placeholder="e.g. Nancy Poniatowski" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Phone</label>
+              <input type="text" class="form-input" id="mm-phone" placeholder="e.g. 8478775020" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Email</label>
+              <input type="text" class="form-input" id="mm-email" placeholder="e.g. ministry@stroseanthem.com" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Link (optional)</label>
+              <input type="text" class="form-input" id="mm-link" placeholder="https://..." />
+            </div>
+            <button class="btn btn-primary" onclick="saveMyMinistry()">Save Changes</button>
+          </div>
+        </div>
+      </div>
       <!-- MINISTRY POST -->
       <div class="page" id="page-ministry-post">
         <div class="card">
@@ -986,6 +1030,7 @@
   const PROJECT_ID = 'saint-rose-anthem';
   const BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents`;
   const CREDS = { matt:'admin', admin:'admin', sacredapps:'admin1', nponiato:'cda2026' };
+  const MINISTRY_ID_MAP = { nponiato: 'cda' };
   let currentUser = '';
 
   let currentExpiry = 'week';
@@ -1043,7 +1088,7 @@
     document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
     document.getElementById('page-'+id).classList.add('active');
     if(el) el.classList.add('active');
-    const titles = {dashboard:'Dashboard',events:'Events',announcement:'Post Announcement',fastblast:'Fast Blast',reflection:'Weekly Reflection',daily:'Daily Reflection',songsheet:'Mass Songsheet',welcome:'Welcome Message','music-ministry':'Music Ministry','music-members':'Music Ministry Members',approvals:'Parish Family Approvals',partners:'Partner Requests',directory:'Parish Family Directory','ministry-post':'Post to Members','cda-members':'My Members','prayer-chain':'Prayer Chain','prayer-submissions':'Prayer Submissions','submit-event':'Submit Event','event-requests':'Event Requests',intention:'Mass Intentions'};
+    const titles = {dashboard:'Dashboard',events:'Events',announcement:'Post Announcement',fastblast:'Fast Blast',reflection:'Weekly Reflection',daily:'Daily Reflection',songsheet:'Mass Songsheet',welcome:'Welcome Message','music-ministry':'Music Ministry','music-members':'Music Ministry Members',approvals:'Parish Family Approvals',partners:'Partner Requests',directory:'Parish Family Directory','ministry-post':'Post to Members','cda-members':'My Members','prayer-chain':'Prayer Chain','prayer-submissions':'Prayer Submissions','submit-event':'Submit Event','event-requests':'Event Requests',intention:'Mass Intentions','my-ministry':'My Ministry'};
     document.getElementById('page-title').textContent = titles[id]||id;
     if(id==='approvals') loadApprovals();
     if(id==='partners') loadPartners();
@@ -1975,6 +2020,44 @@
       document.getElementById('introw-' + id)?.remove();
       showToast('Intention deleted.', 'success');
     } catch(e) { showToast('Error deleting.', 'error'); }
+  }
+  async function loadMyMinistry() {
+    const ministryId = MINISTRY_ID_MAP[currentUser];
+    if (!ministryId) { document.getElementById('my-ministry-loading').textContent = 'No ministry assigned to this account.'; return; }
+    try {
+      const res = await fs_get_doc('ministries/' + ministryId);
+      document.getElementById('mm-name').value = gf(res, 'name') || '';
+      document.getElementById('mm-schedule').value = gf(res, 'schedule') || '';
+      document.getElementById('mm-location').value = gf(res, 'location') || '';
+      document.getElementById('mm-description').value = gf(res, 'description') || '';
+      document.getElementById('mm-contact').value = gf(res, 'contact') || '';
+      document.getElementById('mm-phone').value = gf(res, 'phone') || '';
+      document.getElementById('mm-email').value = gf(res, 'email') || '';
+      document.getElementById('mm-link').value = gf(res, 'link') || '';
+      document.getElementById('my-ministry-loading').style.display = 'none';
+      document.getElementById('my-ministry-form').style.display = 'block';
+    } catch(e) {
+      document.getElementById('my-ministry-loading').textContent = 'Error loading ministry data.';
+    }
+  }
+  async function saveMyMinistry() {
+    const ministryId = MINISTRY_ID_MAP[currentUser];
+    if (!ministryId) return;
+    const fields = {
+      schedule: {stringValue: document.getElementById('mm-schedule').value.trim()},
+      location: {stringValue: document.getElementById('mm-location').value.trim()},
+      description: {stringValue: document.getElementById('mm-description').value.trim()},
+      contact: {stringValue: document.getElementById('mm-contact').value.trim()},
+      phone: {stringValue: document.getElementById('mm-phone').value.trim()},
+      email: {stringValue: document.getElementById('mm-email').value.trim()},
+      link: {stringValue: document.getElementById('mm-link').value.trim()},
+    };
+    try {
+      await fs_patch('ministries/' + ministryId, fields);
+      showToast('Ministry info updated!', 'success');
+    } catch(e) {
+      showToast('Error saving changes.', 'error');
+    }
   }
   async function postSongsheet() {
     const title = document.getElementById('ss-title').value.trim();
