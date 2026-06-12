@@ -1636,6 +1636,7 @@
         '<input type="hidden" id="daily-date-' + i + '" value="' + dateStr + '" />' +
         '<input type="text" class="form-input" id="daily-title-' + i + '" placeholder="Title (optional)" style="margin-bottom:8px;" />' +
         '<textarea class="form-textarea" id="daily-body-' + i + '" placeholder="Paste reflection text here..." style="min-height:100px;"></textarea>' +
+        '<input type="text" class="form-input" id="daily-music-' + i + '" placeholder="YouTube music link (optional) - e.g. https://youtu.be/XXXXX" style="margin-top:8px;" />' +
         '</div>';
     }
   }
@@ -1647,14 +1648,16 @@
         const dateEl = document.getElementById('daily-date-' + i);
         if (!dateEl) continue;
         const date = dateEl.value;
-        const match = activeDocs.find(function(d){ return gf(d,'date') === date; });
+        const match = docs.find(function(d){ return gf(d,'date') === date; });
         if (match) {
           document.getElementById('daily-title-' + i).value = gf(match,'title') || '';
           document.getElementById('daily-body-' + i).value = gf(match,'body') || '';
+          const musicEl = document.getElementById('daily-music-' + i);
+          if (musicEl) musicEl.value = gf(match,'musicUrl') || '';
         }
       }
       showToast('Scheduled reflections loaded.','success');
-      renderScheduledQueue(activeDocs);
+      renderScheduledQueue(docs);
     } catch(e) { showToast('Error loading.','error'); }
   }
   function emailDailyReflection() {
@@ -1675,10 +1678,12 @@
       const dateEl = document.getElementById('daily-date-' + i);
       const titleEl = document.getElementById('daily-title-' + i);
       const bodyEl = document.getElementById('daily-body-' + i);
+      const musicEl = document.getElementById('daily-music-' + i);
       if (!dateEl || !bodyEl) continue;
       const date = dateEl.value;
       const title = titleEl ? titleEl.value.trim() : '';
       const body = bodyEl.value.trim();
+      const musicUrl = musicEl ? musicEl.value.trim() : '';
       if (!body) continue;
       try {
         const existing = await fs_get('scheduledReflections');
@@ -1689,6 +1694,7 @@
           date:{stringValue:date},
           title:{stringValue:title},
           body:{stringValue:body},
+          musicUrl:{stringValue:musicUrl},
           postedBy:{stringValue:'Parish Staff'},
           createdAt:{stringValue:new Date().toISOString()}
         });
@@ -1704,7 +1710,7 @@
       showToast('No reflections to save — add text to at least one day.','error');
     }
   }
-  async function renderScheduledQueue(activeDocs) {
+  async function renderScheduledQueue(docs) {
     const el = document.getElementById('scheduled-queue');
     if (!el) return;
     if (!docs || docs.length === 0) { el.innerHTML = '<div style="color:var(--dusty-rose);font-size:14px;">No reflections scheduled.</div>'; return; }
@@ -1713,9 +1719,10 @@
       const date = gf(doc,'date');
       const title = gf(doc,'title') || '(no title)';
       const body = gf(doc,'body') || '';
+      const musicUrl = gf(doc,'musicUrl') || '';
       const id = doc.name.split('/').pop();
       return '<div style="padding:12px 0;border-bottom:0.5px solid var(--linen);display:flex;justify-content:space-between;align-items:flex-start;">' +
-        '<div><div style="font-family:Cinzel,serif;font-size:13px;color:var(--burgundy);">' + date + '</div>' +
+        '<div><div style="font-family:Cinzel,serif;font-size:13px;color:var(--burgundy);">' + date + (musicUrl ? ' &middot; Music' : '') + '</div>' +
         '<div style="font-size:15px;color:var(--soil);margin-top:2px;">' + title + '</div>' +
         '<div style="font-size:12px;color:var(--dusty-rose);margin-top:2px;">' + body.substring(0,80) + (body.length>80?'...':'') + '</div></div>' +
         '<button onclick="deleteScheduled(\'' + id + '\')" style="background:none;border:none;color:#CC3333;cursor:pointer;font-size:13px;padding:4px 8px;">Delete</button>' +
@@ -1733,10 +1740,12 @@
     const dateEl = document.getElementById('daily-date-0');
     const titleEl = document.getElementById('daily-title-0');
     const bodyEl = document.getElementById('daily-body-0');
+    const musicEl = document.getElementById('daily-music-0');
     if (!bodyEl || !bodyEl.value.trim()) { showToast('Add text to today\'s row first.', 'error'); return; }
     const date = dateEl ? dateEl.value : new Date().toISOString().split('T')[0];
     const title = titleEl ? titleEl.value.trim() : '';
     const body = bodyEl.value.trim();
+    const musicUrl = musicEl ? musicEl.value.trim() : '';
     try {
       const existing = await fs_get('dailyReflection');
       for (const doc of (existing.documents || [])) { await fs_delete(doc.name.split('/documents/')[1]); }
@@ -1744,6 +1753,7 @@
         date: {stringValue: date},
         title: {stringValue: title},
         body: {stringValue: body},
+        musicUrl: {stringValue: musicUrl},
         postedBy: {stringValue: 'Parish Staff'},
         createdAt: {stringValue: new Date().toISOString()}
       });
