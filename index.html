@@ -662,6 +662,14 @@
             <label class="form-label">Message <span style="color:#8B2635">*</span></label>
             <textarea class="form-input" id="fb-body" rows="4" placeholder="Brief urgent message..."></textarea>
           </div>
+          <div class="form-group">
+            <label class="form-label">Show on Home Screen for</label>
+            <select class="form-input" id="fb-duration">
+              <option value="24">24 hours</option>
+              <option value="48">2 days</option>
+              <option value="72">3 days</option>
+            </select>
+          </div>
           <div class="btn-row">
             <button class="btn btn-gold" onclick="postFastBlast()" style="background:#8B2635;color:#E8DDD0;">🔔 Send Fast Blast</button>
           </div>
@@ -1629,7 +1637,7 @@
     for (let i = 0; i < 7; i++) {
       const d = new Date(today);
       d.setDate(today.getDate() + i);
-      const dateStr = d.toISOString().split('T')[0];
+      const dateStr = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
       const label = d.toLocaleDateString('en-US', {weekday:'long', month:'short', day:'numeric'});
       container.innerHTML += '<div style="border:1px solid var(--linen);border-radius:10px;padding:16px;margin-bottom:12px;">' +
         '<div style="font-family:Cinzel,serif;font-size:13px;color:var(--burgundy);margin-bottom:10px;">' + label + '</div>' +
@@ -2281,9 +2289,11 @@
   async function postFastBlast() {
     const title = document.getElementById('fb-title').value.trim();
     const body = document.getElementById('fb-body').value.trim();
+    const durationHours = parseInt(document.getElementById('fb-duration').value, 10);
     if (!title || !body) { showToast('Title and message are required.', 'error'); return; }
     if (!confirm('Send Fast Blast to ALL parishioners?\n\n"' + title + '"\n\nThis cannot be undone.')) return;
     try {
+      const expiresAt = new Date(Date.now() + durationHours * 60 * 60 * 1000).toISOString();
       const url = BASE + '/fastBlast?key=' + API_KEY;
       const res = await fetch(url, {
         method: 'POST',
@@ -2291,6 +2301,7 @@
         body: JSON.stringify({ fields: {
           title: { stringValue: title },
           body: { stringValue: body },
+          expiresAt: { stringValue: expiresAt },
           postedBy: { stringValue: document.getElementById('logged-in-user').textContent },
           createdAt: { stringValue: new Date().toISOString() }
         }})
