@@ -670,10 +670,25 @@
               <option value="72">3 days</option>
             </select>
           </div>
+          <div class="form-group">
+            <label class="form-label">When to Send</label>
+            <select class="form-input" id="fb-when" onchange="document.getElementById('fb-schedule-group').style.display = this.value === 'schedule' ? 'block' : 'none';">
+              <option value="now">Send Now</option>
+              <option value="schedule">Schedule for Later</option>
+            </select>
+          </div>
+          <div class="form-group" id="fb-schedule-group" style="display:none;">
+            <label class="form-label">Send At</label>
+            <input type="datetime-local" class="form-input" id="fb-schedule-time" />
+          </div>
           <div class="btn-row">
             <button class="btn btn-gold" onclick="postFastBlast()" style="background:#8B2635;color:#E8DDD0;">🔔 Send Fast Blast</button>
           </div>
           <div class="post-success" id="fb-success">✓ Fast Blast sent to all parishioners.</div>
+        </div>
+        <div class="card" style="margin-top:16px;">
+          <div class="card-title">⏰ Scheduled Fast Blasts</div>
+          <div id="fb-scheduled-queue"><div style="color:var(--dusty-rose);font-size:14px;">Loading...</div></div>
         </div>
       </div>
 
@@ -1113,6 +1128,7 @@
     if(id==='prayer-submissions') loadPrayerSubmissions();
     if(id==='prayer-chain') loadActivePrayers();
     if(id==='announcement') loadActiveAnnouncements();
+    if(id==='fastblast') loadScheduledFastBlasts();
     if(id==='poll') loadPollResults();
     if(id==='reflection') loadCurrentReflection();
     if(id==='daily') { buildDailyRows(); loadScheduledReflections(); }
@@ -2290,7 +2306,43 @@
     const title = document.getElementById('fb-title').value.trim();
     const body = document.getElementById('fb-body').value.trim();
     const durationHours = parseInt(document.getElementById('fb-duration').value, 10);
+    const when = document.getElementById('fb-when').value;
     if (!title || !body) { showToast('Title and message are required.', 'error'); return; }
+
+    if (when === 'schedule') {
+      const scheduleVal = document.getElementById('fb-schedule-time').value;
+      if (!scheduleVal) { showToast('Please choose a date and time.', 'error'); return; }
+      const sendAt = new Date(scheduleVal);
+      if (sendAt <= new Date()) { showToast('Scheduled time must be in the future.', 'error'); return; }
+      if (!confirm('Schedule Fast Blast for ' + sendAt.toLocaleString() + '?\n\n"' + title + '"')) return;
+      try {
+        const url = BASE + '/scheduledFastBlast?key=' + API_KEY;
+        const res = await fetch(url, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ fields: {
+            title: { stringValue: title },
+            body: { stringValue: body },
+            durationHours: { integerValue: durationHours },
+            sendAt: { stringValue: sendAt.toISOString() },
+            postedBy: { stringValue: document.getElementById('logged-in-user').textContent },
+            createdAt: { stringValue: new Date().toISOString() }
+          }})
+        });
+        const data = await res.json();
+        if (data.name) {
+          document.getElementById('fb-success').style.display = 'block';
+          setTimeout(() => document.getElementById('fb-success').style.display = 'none', 3000);
+          document.getElementById('fb-title').value = '';
+          document.getElementById('fb-body').value = '';
+          document.getElementById('fb-schedule-time').value = '';
+          showToast('Fast Blast scheduled!', 'success');
+          loadScheduledFastBlasts();
+        } else { showToast('Error scheduling.', 'error'); }
+      } catch(e) { showToast('Error scheduling.', 'error'); }
+      return;
+    }
+
     if (!confirm('Send Fast Blast to ALL parishioners?\n\n"' + title + '"\n\nThis cannot be undone.')) return;
     try {
       const expiresAt = new Date(Date.now() + durationHours * 60 * 60 * 1000).toISOString();
@@ -2315,6 +2367,36 @@
         showToast('Fast Blast sent!', 'success');
       } else { showToast('Error sending.', 'error'); }
     } catch(e) { showToast('Error sending.', 'error'); }
+  }
+
+  async function loadScheduledFastBlasts() {
+    const el = document.getElementById('fb-scheduled-queue');
+    if (!el) return;
+    try {
+      const res = await fs_get('scheduledFastBlast');
+      const docs = (res.documents || []).sort(function(a,b){ return gf(a,'sendAt') > gf(b,'sendAt') ? 1 : -1; });
+      if (docs.length === 0) { el.innerHTML = '<div style="color:var(--dusty-rose);font-size:14px;">No scheduled Fast Blasts.</div>'; return; }
+      el.innerHTML = docs.map(function(doc) {
+        const id = doc.name.split('/').pop();
+        const title = gf(doc,'title') || '';
+        const body = gf(doc,'body') || '';
+        const sendAt = gf(doc,'sendAt') || '';
+        const sendAtLabel = sendAt ? new Date(sendAt).toLocaleString() : '';
+        return '<div style="padding:12px 0;border-bottom:0.5px solid var(--linen);display:flex;justify-content:space-between;align-items:flex-start;">' +
+          '<div><div style="font-family:Cinzel,serif;font-size:13px;color:var(--burgundy);">' + sendAtLabel + '</div>' +
+          '<div style="font-size:15px;color:var(--soil);margin-top:2px;">' + title + '</div>' +
+          '<div style="font-size:12px;color:var(--dusty-rose);margin-top:2px;">' + body.substring(0,80) + (body.length>80?'...':'') + '</div></div>' +
+          '<button onclick="cancelScheduledFastBlast(\'' + id + '\')" style="background:none;border:none;color:#CC3333;cursor:pointer;font-size:13px;padding:4px 8px;">Cancel</button>' +
+          '</div>';
+      }).join('');
+    } catch(e) { el.innerHTML = '<div style="color:var(--dusty-rose);font-size:14px;">Error loading.</div>'; }
+  }
+
+  async function cancelScheduledFastBlast(id) {
+    if (!confirm('Cancel this scheduled Fast Blast?')) return;
+    await fs_delete('scheduledFastBlast/' + id);
+    showToast('Cancelled.', 'success');
+    loadScheduledFastBlasts();
   }
 
   // Ministry expiry state
