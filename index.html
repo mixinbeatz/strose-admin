@@ -1044,7 +1044,7 @@
   const API_KEY = 'AIzaSyBKjyHaRNkIjTV87zrhhvg6pBxarm3lcQ8';
   const PROJECT_ID = 'saint-rose-anthem';
   const BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents`;
-  const CREDS = { matt:'admin', admin:'admin', sacredapps:'admin1', nponiato:'cda2026' };
+  const CREDS = { mficarra:'music2026', admin:'admin', sacredapps:'admin1', nponiato:'cda2026' };
   const MINISTRY_ID_MAP = { nponiato: 'cda' };
   const MINISTRY_NAME_MAP = { nponiato: 'Catholic Daughters' };
   let currentUser = '';
@@ -1072,7 +1072,7 @@
       document.getElementById('login-screen').style.display = 'none';
       document.getElementById('app').style.display = 'flex';
       currentUser = u;
-      document.getElementById('logged-in-user').textContent = u==='sacredapps'?'Sacred Apps Admin':u==='nponiato'?'Nancy Poniatowski':u==='matt'?'Matthew Ficarra':'Parish Staff';
+      document.getElementById('logged-in-user').textContent = u==='sacredapps'?'Sacred Apps Admin':u==='nponiato'?'Nancy Poniatowski':u==='mficarra'?'Matthew Ficarra':'Parish Staff';
       applyRoleNav(u);
       loadDashboard();
     } else { document.getElementById('login-error').style.display = 'block'; }
