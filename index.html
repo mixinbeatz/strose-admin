@@ -268,6 +268,10 @@
           <div class="card-title">📖 Current Weekly Reflection</div>
           <div id="current-reflection"><div style="color:var(--dusty-rose);font-size:14px;">Loading...</div></div>
         </div>
+        <div class="card">
+          <div class="card-title">Today's Daily Reflection</div>
+          <div id="current-daily"><div style="color:var(--dusty-rose);font-size:14px;">Loading...</div></div>
+        </div>
       </div>
 
       <!-- EVENTS PAGE -->
@@ -1343,6 +1347,21 @@
           <div style="font-family:'Cinzel',serif;font-size:18px;color:var(--burgundy);margin-bottom:6px;">${gf(r,'subtitle')||gf(r,'heading')}</div>
           <div style="color:var(--dusty-rose);font-size:14px;margin-bottom:10px;">${gf(r,'author')} · ${gf(r,'heading')}</div>
           <div style="font-size:14px;color:var(--soil);line-height:1.7;max-height:100px;overflow:hidden;opacity:0.8;">${(gf(r,'body')||'No text saved yet.').substring(0,400)}...</div>`;
+      }
+      var dailyEl = document.getElementById('current-daily');
+      var today = new Date().toLocaleDateString('en-CA', {timeZone: 'America/Phoenix'});
+      var dailyDocs = (dailyRef.documents||[]).filter(function(d){ return gf(d,'date') === today; });
+      var dailyDoc = dailyDocs.length > 0 ? dailyDocs[0] : (dailyRef.documents||[])[0];
+      if(dailyDoc && dailyEl) {
+        var dt = gf(dailyDoc,'title') || '(no title)';
+        var db = gf(dailyDoc,'body') || 'No text saved yet.';
+        var dd = gf(dailyDoc,'date') || '';
+        var dm = gf(dailyDoc,'musicUrl') || '';
+        dailyEl.innerHTML = '<div style="font-family:Cinzel,serif;font-size:16px;color:var(--burgundy);margin-bottom:6px;">' + dt + '</div>' +
+          '<div style="color:var(--dusty-rose);font-size:13px;margin-bottom:10px;">' + dd + (dm ? ' &middot; Music included' : '') + '</div>' +
+          '<div style="font-size:14px;color:var(--soil);line-height:1.7;max-height:100px;overflow:hidden;opacity:0.8;">' + db.substring(0,400) + (db.length>400?'...':'') + '</div>';
+      } else if(dailyEl) {
+        dailyEl.innerHTML = '<div style="color:var(--dusty-rose);font-size:14px;">No reflection published today.</div>';
       }
     } catch(e){console.log(e);}
   }
