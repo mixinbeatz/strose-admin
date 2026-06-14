@@ -522,6 +522,10 @@
           <div class="card-title">📖 Weekly Reflection</div>
           <div class="info-box">This reflection appears on the Home screen. Paste Fr. Bing's full reflection text — parishioners will read it in a full-screen reader inside the app.</div>
           <div class="form-group">
+            <label class="form-label">Liturgical Date</label>
+            <input type="text" class="form-input" id="ref-liturgical" placeholder="e.g. 11th Sunday in Ordinary Time" />
+          </div>
+          <div class="form-group">
             <label class="form-label">Title</label>
             <input type="text" class="form-input" id="ref-heading" placeholder="e.g. The Good Shepherd — 4th Sunday of Easter" />
           </div>
@@ -1601,6 +1605,7 @@
     document.getElementById('ref-heading').value = window._currentReflection.title || '';
     document.getElementById('ref-author').value = window._currentReflection.author || '';
     document.getElementById('ref-body').value = window._currentReflection.body || '';
+    document.getElementById('ref-liturgical').value = window._currentReflection.liturgicalDate || '';
   }
   async function loadCurrentReflection() {
     try {
@@ -1614,7 +1619,9 @@
         const body=gf(r,'body')||'';
         const updated=gf(r,'updatedAt')||'';
         const updatedLabel=updated?new Date(updated).toLocaleString('en-US',{weekday:'short',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}):'';
-        window._currentReflection = {title, author, body};
+        const liturgicalDate = gf(r,'liturgicalDate')||'';
+        const publishAt = gf(r,'publishAt')||'';
+        window._currentReflection = {title, author, body, liturgicalDate, publishAt};
         if(el) el.innerHTML='<div style="padding:12px 0;">' +
           '<div style="font-family:Cinzel,serif;font-size:14px;color:var(--burgundy);margin-bottom:4px;">' + title + '</div>' +
           '<div style="font-size:13px;color:var(--dusty-rose);margin-bottom:8px;">' + author + (updatedLabel?' &middot; Updated '+updatedLabel:'') + '</div>' +
@@ -1631,11 +1638,20 @@
     const heading=document.getElementById('ref-heading').value.trim();
     const author=document.getElementById('ref-author').value.trim();
     const body=document.getElementById('ref-body').value.trim();
+    const liturgicalDate=document.getElementById('ref-liturgical').value.trim();
     if(!heading||!body){showToast('Please fill in title and text.','error');return;}
+    // Auto-calculate next Saturday 3pm Arizona time
+    const now = new Date();
+    const day = now.getDay();
+    const daysUntilSat = (6 - day + 7) % 7 || 7;
+    const nextSat = new Date(now);
+    nextSat.setDate(now.getDate() + daysUntilSat);
+    nextSat.setHours(22, 0, 0, 0); // 3pm AZ = 10pm UTC (MST, no DST)
+    const publishAt = nextSat.toISOString();
     try {
       const existing=await fs_get('weeklyReflection');
       for(const doc of (existing.documents||[])){await fs_delete(doc.name.split('/documents/')[1]);}
-      await fs_post('weeklyReflection',{heading:{stringValue:heading},subtitle:{stringValue:heading},fullTitle:{stringValue:heading},author:{stringValue:author},body:{stringValue:body},link:{stringValue:''},updatedAt:{stringValue:new Date().toISOString()}});
+      await fs_post('weeklyReflection',{heading:{stringValue:heading},subtitle:{stringValue:heading},fullTitle:{stringValue:heading},author:{stringValue:author},body:{stringValue:body},liturgicalDate:{stringValue:liturgicalDate},publishAt:{stringValue:publishAt},link:{stringValue:''},updatedAt:{stringValue:new Date().toISOString()}});
       document.getElementById('ref-success').style.display='block';
       showToast('Reflection updated!','success');
       setTimeout(()=>{document.getElementById('ref-success').style.display='none';},4000);
