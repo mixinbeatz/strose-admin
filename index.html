@@ -1620,6 +1620,7 @@
       document.getElementById('ref-success').style.display='block';
       showToast('Reflection updated!','success');
       setTimeout(()=>{document.getElementById('ref-success').style.display='none';},4000);
+      loadCurrentReflection();
     } catch(e){showToast('Error updating.','error');}
   }
 
