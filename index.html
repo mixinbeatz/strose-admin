@@ -1325,7 +1325,7 @@
 
   async function loadDashboard() {
     try {
-      const [fam,parts,ref,prayerSubs,eventReqs] = await Promise.all([fs_get('parishFamily'),fs_get('partnerRequests'),fs_get('weeklyReflection'),fs_get('prayerSubmissions'),fs_get('eventRequests')]);
+      const [fam,parts,ref,prayerSubs,eventReqs,dailyRef] = await Promise.all([fs_get('parishFamily'),fs_get('partnerRequests'),fs_get('weeklyReflection'),fs_get('prayerSubmissions'),fs_get('eventRequests'),fs_get('dailyReflection')]);
       const pendingPrayers = (prayerSubs.documents||[]).filter(d=>gf(d,'status')==='pending');
       const prayerBadge = document.getElementById('prayer-sub-count');
       if (prayerBadge) { prayerBadge.textContent = pendingPrayers.length; prayerBadge.style.display = pendingPrayers.length > 0 ? '' : 'none'; }
