@@ -523,7 +523,7 @@
           </div>
           <div class="form-group">
             <label class="form-label">Author</label>
-            <input type="text" class="form-input" id="ref-author" value="Fr. Bing Colasito" />
+            <input type="text" class="form-input" id="ref-author" placeholder="Fr. Bing Colasito" />
           </div>
           <div class="form-group">
             <label class="form-label">Full Reflection Text *</label>
@@ -531,9 +531,12 @@
           </div>
           <div class="btn-row">
             <button class="btn btn-primary" onclick="postReflection()">Update Reflection</button>
-            <button class="btn btn-outline" onclick="loadCurrentReflection()">Load Current</button>
           </div>
           <div class="post-success" id="ref-success">✓ Reflection updated successfully.</div>
+        </div>
+        <div class="card" style="margin-top:16px;">
+          <div class="card-title">📋 Currently Live</div>
+          <div id="ref-preview"><div style="color:var(--dusty-rose);font-size:14px;">Loading...</div></div>
         </div>
       </div>
 
@@ -1121,6 +1124,7 @@
     if(id==='prayer-chain') loadActivePrayers();
     if(id==='announcement') loadActiveAnnouncements();
     if(id==='fastblast') loadScheduledFastBlasts();
+    if(id==='reflection') loadCurrentReflection();
     if(id==='poll') loadPollResults();
     if(id==='reflection') loadCurrentReflection();
     if(id==='daily') { buildDailyRows(); loadScheduledReflections(); }
@@ -1577,13 +1581,24 @@
     try {
       const res=await fs_get('weeklyReflection');
       const docs=res.documents||[];
+      const el=document.getElementById('ref-preview');
       if(docs.length>0){
         const r=docs[docs.length-1];
-        document.getElementById('ref-heading').value=gf(r,'heading');
-        document.getElementById('ref-author').value=gf(r,'author')||'Fr. Bing Colasito';
-        document.getElementById('ref-body').value=gf(r,'body')||'';
-        showToast('Current reflection loaded.','success');
-      } else {showToast('No reflection found.','error');}
+        const title=gf(r,'heading')||'(no title)';
+        const author=gf(r,'author')||'Fr. Bing Colasito';
+        const body=gf(r,'body')||'';
+        const updated=gf(r,'updatedAt')||'';
+        const updatedLabel=updated?new Date(updated).toLocaleString('en-US',{weekday:'short',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}):'';
+        if(el) el.innerHTML='<div style="padding:12px 0;">' +
+          '<div style="font-family:Cinzel,serif;font-size:14px;color:var(--burgundy);margin-bottom:4px;">' + title + '</div>' +
+          '<div style="font-size:13px;color:var(--dusty-rose);margin-bottom:8px;">' + author + (updatedLabel?' &middot; Updated '+updatedLabel:'') + '</div>' +
+          '<div style="font-size:14px;color:var(--soil);line-height:1.6;">' + body.substring(0,300) + (body.length>300?'...':'') + '</div>' +
+          '<button onclick="document.getElementById('ref-heading').value='' + title.replace(/'/g,"\'") + '';document.getElementById('ref-author').value='' + author.replace(/'/g,"\'") + '';document.getElementById('ref-body').value=document.getElementById('ref-preview').dataset.body||'';" style="margin-top:12px;background:none;border:1px solid var(--linen);border-radius:8px;padding:6px 14px;font-size:13px;cursor:pointer;color:var(--soil);">Load into form to edit</div>' +
+          '</div>';
+        if(el) el.dataset.body=body;
+      } else {
+        if(el) el.innerHTML='<div style="color:var(--dusty-rose);font-size:14px;">No reflection posted yet.</div>';
+      }
     } catch(e){showToast('Error loading.','error');}
   }
 
