@@ -1577,6 +1577,12 @@
   }
 
   // ── REFLECTION ──
+  function loadReflectionIntoForm() {
+    if (!window._currentReflection) return;
+    document.getElementById('ref-heading').value = window._currentReflection.title || '';
+    document.getElementById('ref-author').value = window._currentReflection.author || '';
+    document.getElementById('ref-body').value = window._currentReflection.body || '';
+  }
   async function loadCurrentReflection() {
     try {
       const res=await fs_get('weeklyReflection');
@@ -1589,13 +1595,13 @@
         const body=gf(r,'body')||'';
         const updated=gf(r,'updatedAt')||'';
         const updatedLabel=updated?new Date(updated).toLocaleString('en-US',{weekday:'short',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}):'';
+        window._currentReflection = {title, author, body};
         if(el) el.innerHTML='<div style="padding:12px 0;">' +
           '<div style="font-family:Cinzel,serif;font-size:14px;color:var(--burgundy);margin-bottom:4px;">' + title + '</div>' +
           '<div style="font-size:13px;color:var(--dusty-rose);margin-bottom:8px;">' + author + (updatedLabel?' &middot; Updated '+updatedLabel:'') + '</div>' +
           '<div style="font-size:14px;color:var(--soil);line-height:1.6;">' + body.substring(0,300) + (body.length>300?'...':'') + '</div>' +
-          '<button onclick="document.getElementById('ref-heading').value='' + title.replace(/'/g,"\'") + '';document.getElementById('ref-author').value='' + author.replace(/'/g,"\'") + '';document.getElementById('ref-body').value=document.getElementById('ref-preview').dataset.body||'';" style="margin-top:12px;background:none;border:1px solid var(--linen);border-radius:8px;padding:6px 14px;font-size:13px;cursor:pointer;color:var(--soil);">Load into form to edit</div>' +
+          '<button onclick="loadReflectionIntoForm()" style="margin-top:12px;background:none;border:1px solid var(--linen);border-radius:8px;padding:6px 14px;font-size:13px;cursor:pointer;color:var(--soil);">Load into form to edit</button>' +
           '</div>';
-        if(el) el.dataset.body=body;
       } else {
         if(el) el.innerHTML='<div style="color:var(--dusty-rose);font-size:14px;">No reflection posted yet.</div>';
       }
