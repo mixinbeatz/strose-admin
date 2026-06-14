@@ -518,12 +518,8 @@
           <div class="card-title">📖 Weekly Reflection</div>
           <div class="info-box">This reflection appears on the Home screen. Paste Fr. Bing's full reflection text — parishioners will read it in a full-screen reader inside the app.</div>
           <div class="form-group">
-            <label class="form-label">Liturgical Heading</label>
-            <input type="text" class="form-input" id="ref-heading" placeholder="e.g. 6th Sunday of Easter" />
-          </div>
-          <div class="form-group">
-            <label class="form-label">Reflection Title</label>
-            <input type="text" class="form-input" id="ref-subtitle" placeholder="e.g. Born to Live, Born to Love" />
+            <label class="form-label">Title</label>
+            <input type="text" class="form-input" id="ref-heading" placeholder="e.g. The Good Shepherd — 4th Sunday of Easter" />
           </div>
           <div class="form-group">
             <label class="form-label">Author</label>
@@ -532,10 +528,6 @@
           <div class="form-group">
             <label class="form-label">Full Reflection Text *</label>
             <textarea class="form-textarea large" id="ref-body" placeholder="Paste the full text of Fr. Bing's reflection here..."></textarea>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Link to Web Version (optional)</label>
-            <input type="url" class="form-input" id="ref-link" placeholder="https://www.stroseanthem.com/blog..." />
           </div>
           <div class="btn-row">
             <button class="btn btn-primary" onclick="postReflection()">Update Reflection</button>
@@ -1588,10 +1580,8 @@
       if(docs.length>0){
         const r=docs[docs.length-1];
         document.getElementById('ref-heading').value=gf(r,'heading');
-        document.getElementById('ref-subtitle').value=gf(r,'subtitle');
         document.getElementById('ref-author').value=gf(r,'author')||'Fr. Bing Colasito';
         document.getElementById('ref-body').value=gf(r,'body')||'';
-        document.getElementById('ref-link').value=gf(r,'link')||'';
         showToast('Current reflection loaded.','success');
       } else {showToast('No reflection found.','error');}
     } catch(e){showToast('Error loading.','error');}
@@ -1599,15 +1589,13 @@
 
   async function postReflection() {
     const heading=document.getElementById('ref-heading').value.trim();
-    const subtitle=document.getElementById('ref-subtitle').value.trim();
     const author=document.getElementById('ref-author').value.trim();
     const body=document.getElementById('ref-body').value.trim();
-    const link=document.getElementById('ref-link').value.trim();
-    if(!heading||!subtitle||!body){showToast('Please fill in heading, title, and text.','error');return;}
+    if(!heading||!body){showToast('Please fill in title and text.','error');return;}
     try {
       const existing=await fs_get('weeklyReflection');
       for(const doc of (existing.documents||[])){await fs_delete(doc.name.split('/documents/')[1]);}
-      await fs_post('weeklyReflection',{heading:{stringValue:heading},subtitle:{stringValue:subtitle},fullTitle:{stringValue:`${heading}: ${subtitle}`},author:{stringValue:author},body:{stringValue:body},link:{stringValue:link},updatedAt:{stringValue:new Date().toISOString()}});
+      await fs_post('weeklyReflection',{heading:{stringValue:heading},subtitle:{stringValue:heading},fullTitle:{stringValue:heading},author:{stringValue:author},body:{stringValue:body},link:{stringValue:''},updatedAt:{stringValue:new Date().toISOString()}});
       document.getElementById('ref-success').style.display='block';
       showToast('Reflection updated!','success');
       setTimeout(()=>{document.getElementById('ref-success').style.display='none';},4000);
