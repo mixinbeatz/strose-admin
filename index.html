@@ -1281,9 +1281,19 @@
   async function loadCalEvents() {
     var API_KEY = 'AIzaSyBKjyHaRNkIjTV87zrhhvg6pBxarm3lcQ8';
     var PROJECT_ID = 'saint-rose-anthem';
-    var res = await fetch('https://firestore.googleapis.com/v1/projects/' + PROJECT_ID + '/databases/(default)/documents/events?key=' + API_KEY + '&pageSize=100');
-    var data = await res.json();
-    calEvents = (data.documents || []).map(function(doc) {
+    var allDocs = [];
+    var pageToken = '';
+    var page = 0;
+    while (page < 10) {
+      var url = 'https://firestore.googleapis.com/v1/projects/' + PROJECT_ID + '/databases/(default)/documents/events?key=' + API_KEY + '&pageSize=300' + (pageToken ? '&pageToken=' + pageToken : '');
+      var res = await fetch(url);
+      var data = await res.json();
+      allDocs = allDocs.concat(data.documents || []);
+      if (!data.nextPageToken) break;
+      pageToken = data.nextPageToken;
+      page++;
+    }
+    calEvents = allDocs.map(function(doc) {
       return {id:doc.name.split('/').pop(), title:doc.fields?.title?.stringValue||'', startAt:doc.fields?.startAt?.stringValue||''};
     });
     renderCal();
