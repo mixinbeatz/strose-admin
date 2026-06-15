@@ -1394,8 +1394,9 @@
       });
       document.getElementById('evt-success').style.display='block';
       showToast('Event added!','success');
+      clearSingleEvt();
       setTimeout(()=>{document.getElementById('evt-success').style.display='none';},4000);
-      loadRecentEvents();
+      setTimeout(()=>loadRecentEvents(), 1000);
     } catch(e){showToast('Error adding event.','error');}
   }
 
@@ -1403,6 +1404,9 @@
     document.getElementById('evt-title').value='';
     document.getElementById('evt-location').value='';
     document.getElementById('evt-desc').value='';
+    document.getElementById('evt-start').value='';
+    document.getElementById('evt-end').value='';
+    document.getElementById('evt-category').value='Ministry';
   }
 
   // ── BULK PARSER ──
