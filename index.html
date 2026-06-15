@@ -195,13 +195,13 @@
       <div class="nav-section staff-only">Overview</div>
       <div class="nav-item staff-only active" onclick="showPage('dashboard',this)"><span class="nav-icon">⊞</span> Dashboard</div>
       <div class="nav-section staff-only">Content</div>
-      <div class="nav-item staff-only" onclick="showPage('events',this)"><span class="nav-icon">📅</span> Events</div>
+      <div class="nav-item staff-only office-only" onclick="showPage('events',this)"><span class="nav-icon">📅</span> Events</div>
       <div class="nav-item staff-only" onclick="showPage('announcement',this)"><span class="nav-icon">📢</span> Post Announcement</div>
-      <div class="nav-item staff-only" onclick="showPage('fastblast',this)"><span class="nav-icon">🔔</span> Fast Blast</div>
+      <div class="nav-item staff-only office-only" onclick="showPage('fastblast',this)"><span class="nav-icon">🔔</span> Fast Blast</div>
       <div class="nav-item staff-only" onclick="showPage('poll',this)"><span class="nav-icon">📊</span> Parish Voice Poll</div>
-      <div class="nav-item staff-only" onclick="showPage('reflection',this)"><span class="nav-icon">📖</span> Weekly Reflection</div>
-      <div class="nav-item staff-only" onclick="showPage('daily',this)"><span class="nav-icon">✝</span> Daily Reflection</div>
-      <div class="nav-item staff-only" onclick="showPage('intention',this)"><span class="nav-icon">🕯️</span> Mass Intentions</div>
+      <div class="nav-item staff-only office-only" onclick="showPage('reflection',this)"><span class="nav-icon">📖</span> Weekly Reflection</div>
+      <div class="nav-item staff-only office-only" onclick="showPage('daily',this)"><span class="nav-icon">✝</span> Daily Reflection</div>
+      <div class="nav-item staff-only office-only" onclick="showPage('intention',this)"><span class="nav-icon">🕯️</span> Mass Intentions</div>
       <div class="nav-item staff-only" onclick="showPage('songsheet',this)"><span class="nav-icon">🎵</span> Mass Songsheet</div>
       <div class="nav-item staff-only" onclick="showPage('welcome',this)"><span class="nav-icon">🌹</span> Welcome Message</div>
       <div class="nav-section ministry-only" style="display:none">Catholic Daughters</div>
@@ -1062,7 +1062,7 @@
   const API_KEY = 'AIzaSyBKjyHaRNkIjTV87zrhhvg6pBxarm3lcQ8';
   const PROJECT_ID = 'saint-rose-anthem';
   const BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents`;
-  const CREDS = { mficarra:'music2026', admin:'admin', sacredapps:'admin1', nponiato:'cda2026' };
+  const CREDS = { mficarra:'music2026', admin:'admin', sacredapps:'admin1', nponiato:'cda2026', cheyanne:'office2026' };
   const MINISTRY_ID_MAP = { nponiato: 'cda' };
   const MINISTRY_NAME_MAP = { nponiato: 'Catholic Daughters' };
   let currentUser = '';
@@ -1090,7 +1090,7 @@
       document.getElementById('login-screen').style.display = 'none';
       document.getElementById('app').style.display = 'flex';
       currentUser = u;
-      document.getElementById('logged-in-user').textContent = u==='sacredapps'?'Sacred Apps Admin':u==='nponiato'?'Nancy Poniatowski':u==='mficarra'?'Matthew Ficarra':'Parish Staff';
+      document.getElementById('logged-in-user').textContent = u==='sacredapps'?'Sacred Apps Admin':u==='nponiato'?'Nancy Poniatowski':u==='mficarra'?'Matthew Ficarra':u==='cheyanne'?'Cheyanne':'Parish Staff';
       applyRoleNav(u);
       loadDashboard();
     } else { document.getElementById('login-error').style.display = 'block'; }
@@ -1098,14 +1098,23 @@
 
   function applyRoleNav(u) {
     const isMinistry = u === 'nponiato';
+    const isOffice = u === 'cheyanne';
     document.getElementById('topbar-date').textContent = new Date().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
     document.querySelectorAll('.ministry-only').forEach(el => el.style.display = isMinistry ? '' : 'none');
-    document.querySelectorAll('.staff-only').forEach(el => el.style.display = isMinistry ? 'none' : '');
-      if (!isMinistry) {
+    if (isOffice) {
+      document.querySelectorAll('.staff-only').forEach(el => el.style.display = 'none');
+      document.querySelectorAll('.office-only').forEach(el => el.style.display = '');
+    } else {
+      document.querySelectorAll('.staff-only').forEach(el => el.style.display = isMinistry ? 'none' : '');
+      document.querySelectorAll('.office-only').forEach(el => el.style.display = isMinistry ? 'none' : '');
+    }
+    if (!isMinistry && !isOffice) {
       var tb = document.querySelector('.topbar'); tb.style.display = 'none'; tb.style.height = '0'; tb.style.overflow = 'hidden'; tb.style.margin = '0'; tb.style.padding = '0';
       document.querySelector('.content').style.padding = '0';
     } else if (isMinistry) {
       showPage('ministry-post', document.querySelector('.ministry-only.nav-item')); loadMinistryPosts();
+    } else if (isOffice) {
+      showPage('events', document.querySelector('.office-only.nav-item'));
     }
   }
 
