@@ -1750,7 +1750,9 @@
         }
       }
       showToast('Scheduled reflections loaded.','success');
-      renderScheduledQueue(docs);
+      const today = new Date().toLocaleDateString('en-CA', {timeZone: 'America/Phoenix'});
+      const upcoming = docs.filter(function(d){ return gf(d,'date') >= today; });
+      renderScheduledQueue(upcoming);
     } catch(e) { showToast('Error loading.','error'); }
   }
   function emailDailyReflection() {
