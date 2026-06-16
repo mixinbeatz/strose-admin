@@ -1132,6 +1132,7 @@
     document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
     document.getElementById('page-'+id).classList.add('active');
     if(el) el.classList.add('active');
+    window.scrollTo(0,0);
     const titles = {dashboard:'Dashboard',events:'Events',announcement:'Post Announcement',fastblast:'Fast Blast',reflection:'Weekly Reflection',daily:'Daily Reflection',songsheet:'Mass Songsheet',welcome:'Welcome Message','music-ministry':'Music Ministry','music-members':'Music Ministry Members',approvals:'Parish Family Approvals',partners:'Partner Requests',directory:'Parish Family Directory','ministry-post':'Post to Members','cda-members':'My Members','prayer-chain':'Prayer Chain','prayer-submissions':'Prayer Submissions','submit-event':'Submit Event','event-requests':'Event Requests',intention:'Mass Intentions','my-ministry':'My Ministry'};
     document.getElementById('page-title').textContent = titles[id]||id;
     if(id==='approvals') loadApprovals();
@@ -1155,6 +1156,7 @@
     document.querySelectorAll('.inner-panel').forEach(p=>p.classList.remove('active'));
     el.classList.add('active');
     document.getElementById('panel-'+id).classList.add('active');
+    window.scrollTo(0,0);
     if(id==='recent') loadRecentEvents();
   }
 
