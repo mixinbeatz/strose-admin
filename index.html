@@ -2024,11 +2024,14 @@
   }
 
   // == MASS INTENTIONS ==
+  var postingIntention = false;
   async function postIntention() {
+    if (postingIntention) return;
     const date = document.getElementById('intention-date').value;
     const mass = document.getElementById('intention-mass').value;
     const text = document.getElementById('intention-text').value.trim();
     if(!date || !text) { showToast('Please fill in date and intention.', 'error'); return; }
+    postingIntention = true;
     try {
       await fs_post('massIntentions', {
         date: {stringValue: date},
@@ -2041,13 +2044,14 @@
       showToast('Intention posted!', 'success');
       loadIntentions();
     } catch(e) { showToast('Error posting intention.', 'error'); }
+    finally { postingIntention = false; }
   }
   async function loadIntentions() {
     const list = document.getElementById('intention-list');
     if(!list) return;
     try {
       const res = await fs_get('massIntentions');
-      const now = new Date().toISOString().split('T')[0];
+      const now = new Date().toLocaleDateString('en-CA', {timeZone: 'America/Phoenix'});
       const items = (res.documents||[])
         .filter(d => gf(d,'date') >= now)
         .sort((a,b) => gf(a,'date').localeCompare(gf(b,'date')));
