@@ -1182,6 +1182,11 @@
   async function fs_patch(path,fields) { const mask=Object.keys(fields).map(f=>`updateMask.fieldPaths=${f}`).join('&'); const r=await fetch(`${BASE}/${path}?key=${API_KEY}&${mask}`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({fields})}); return await r.json(); }
   async function fs_delete(path) { await fetch(`${BASE}/${path}?key=${API_KEY}`,{method:'DELETE'}); }
   function gf(doc,key) { const f=doc.fields?.[key]; if(!f) return ''; if(f.booleanValue!==undefined) return f.booleanValue; return f.stringValue??f.integerValue??''; }
+  // Safely embed user-entered text inside a single-quoted JS string AND a double-quoted HTML attribute (e.g. onclick="fn('${escAttr(name)}')").
+  // Fixes names/titles containing a double quote (e.g. Robert "Bob" Smith) breaking the onclick attribute and crashing the button.
+  function escAttr(s) { return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  // Safely embed user-entered text as HTML content (prevents stray < > & from breaking layout/markup).
+  function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
   function docId(doc) { return doc.name.split('/').pop(); }
 
 
@@ -1583,8 +1588,8 @@
         const months=['JAN','FEB','MAR','APR','MAY','JUN','JUL','AUG','SEP','OCT','NOV','DEC'];
         const dateShort=dt?months[dt.getMonth()]:'—';
         const dayNum=dt?dt.getDate():'';
-        const safeTitle=title.replace(/\\/g,'\\\\').replace(/'/g,"\\'");
-        return '<div class="event-row" id="evtrow-'+id+'"><div class="event-row-date"><div>'+dateShort+'</div><div style="font-size:18px;">'+dayNum+'</div></div><div class="event-row-info"><div class="event-row-title">'+title+'</div><div class="event-row-meta">'+[time,location].filter(x=>x).join(' · ')+(ministry?' <span style="color:var(--dusty-rose);font-size:11px;margin-left:6px;">'+ministry+'</span>':'')+'</div></div><button class="btn btn-danger btn-sm" onclick="deleteEvent(\''+id+'\',\''+safeTitle+'\')">Delete</button></div>';
+        const safeTitle=escAttr(title);
+        return '<div class="event-row" id="evtrow-'+id+'"><div class="event-row-date"><div>'+dateShort+'</div><div style="font-size:18px;">'+dayNum+'</div></div><div class="event-row-info"><div class="event-row-title">'+escHtml(title)+'</div><div class="event-row-meta">'+[time,location].filter(x=>x).join(' · ')+(ministry?' <span style="color:var(--dusty-rose);font-size:11px;margin-left:6px;">'+escHtml(ministry)+'</span>':'')+'</div></div><button class="btn btn-danger btn-sm" onclick="deleteEvent(\''+id+'\',\''+safeTitle+'\')">Delete</button></div>';
       }).join('');
     } catch(e){list.innerHTML='<div style="color:var(--danger);">Error loading.</div>';}
   }
@@ -1869,13 +1874,13 @@
         return `<div class="approval-card" id="approval-${id}">
           <div class="approval-avatar">${photo?`<img src="${photo}" onclick="openLightbox('${photo}')"/>`:(name.charAt(0)||'?')}</div>
           <div class="approval-info">
-            <div class="approval-name">${name}</div>
-            <div class="approval-meta">${email}${ministries?' · '+ministries:''}</div>
-            ${bio?`<div class="approval-bio">${bio}</div>`:''}
+            <div class="approval-name">${escHtml(name)}</div>
+            <div class="approval-meta">${escHtml(email)}${ministries?' · '+escHtml(ministries):''}</div>
+            ${bio?`<div class="approval-bio">${escHtml(bio)}</div>`:''}
           </div>
           <div class="approval-actions">
-            <button class="btn btn-success btn-sm" onclick="approveFamily('${id}','${name.replace(/'/g,"\\'")}')">Approve</button>
-            <button class="btn btn-danger btn-sm" onclick="rejectFamily('${id}','${name.replace(/'/g,"\\'")}')">Reject</button>
+            <button class="btn btn-success btn-sm" onclick="approveFamily('${id}','${escAttr(name)}')">Approve</button>
+            <button class="btn btn-danger btn-sm" onclick="rejectFamily('${id}','${escAttr(name)}')">Reject</button>
           </div>
         </div>`;
       }).join('');
@@ -1910,12 +1915,12 @@
         const tierClass=tier.toLowerCase().includes('premium')?'tier-premium':tier.toLowerCase().includes('pro')?'tier-pro':'tier-standard';
         const tierLabel=tier.toLowerCase().includes('premium')?'Premium':tier.toLowerCase().includes('pro')?'Parish Pro':'Standard';
         return `<div class="partner-card" id="partner-${id}">
-          <div class="partner-card-header"><div class="partner-name">${biz}</div><span class="tier-badge ${tierClass}">${tierLabel}</span></div>
-          <div class="partner-meta">${contact} · ${email} · ${phone}${website?' · <a href="'+website+'" target="_blank" style="color:var(--burgundy);">'+website+'</a>':''}</div>
-          ${desc?`<div class="partner-desc">${desc}</div>`:''}
+          <div class="partner-card-header"><div class="partner-name">${escHtml(biz)}</div><span class="tier-badge ${tierClass}">${tierLabel}</span></div>
+          <div class="partner-meta">${escHtml(contact)} · ${escHtml(email)} · ${escHtml(phone)}${website?' · <a href="'+website+'" target="_blank" style="color:var(--burgundy);">'+escHtml(website)+'</a>':''}</div>
+          ${desc?`<div class="partner-desc">${escHtml(desc)}</div>`:''}
           <div style="display:flex;gap:8px;">
-            <button class="btn btn-success btn-sm" onclick="approvePartner('${id}','${biz.replace(/'/g,"\\'")}')">✓ Approve for Saint Rose</button>
-            <button class="btn btn-outline btn-sm" onclick="declinePartner('${id}','${biz.replace(/'/g,"\\'")}')">Decline</button>
+            <button class="btn btn-success btn-sm" onclick="approvePartner('${id}','${escAttr(biz)}')">✓ Approve for Saint Rose</button>
+            <button class="btn btn-outline btn-sm" onclick="declinePartner('${id}','${escAttr(biz)}')">Decline</button>
           </div>
         </div>`;
       }).join('');
@@ -1958,8 +1963,8 @@
       }
       html += `<div class="approval-card" id="dir-${id}">
           <div class="approval-avatar">${photo?`<img src="${photo}" onclick="openLightbox('${photo}')"/>`:(name.charAt(0)||'?')}</div>
-          <div class="approval-info"><div class="approval-name">${name}</div><div class="approval-meta">${email}${ministries?' · '+ministries:''}</div></div>
-          <div class="approval-actions"><button class="btn btn-danger btn-sm" onclick="removeMember('${id}','${name.replace(/'/g,"\\'")}')">Remove</button></div>
+          <div class="approval-info"><div class="approval-name">${escHtml(name)}</div><div class="approval-meta">${escHtml(email)}${ministries?' · '+escHtml(ministries):''}</div></div>
+          <div class="approval-actions"><button class="btn btn-danger btn-sm" onclick="removeMember('${id}','${escAttr(name)}')">Remove</button></div>
         </div>`;
     });
     list.innerHTML = html;
