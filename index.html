@@ -1158,7 +1158,7 @@
 <script>
   const API_KEY = 'AIzaSyBKjyHaRNkIjTV87zrhhvg6pBxarm3lcQ8';
   const PROJECT_ID = 'saint-rose-anthem';
-  const BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents`;
+  const BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/parishes/saint-rose-anthem`;
   const CREDS = { mficarra:'music2026', admin:'admin', sacredapps:'admin1', nponiato:'cda2026', cheyanne:'office2026' };
   const MINISTRY_ID_MAP = { nponiato: 'cda' };
   const MINISTRY_NAME_MAP = { nponiato: 'Catholic Daughters' };
@@ -1388,7 +1388,7 @@
         startAt:{stringValue:startAt.toISOString()}, expiresAt:{stringValue:expiresAt.toISOString()},
         createdAt:{stringValue:new Date().toISOString()}
       }};
-      await fetch('https://firestore.googleapis.com/v1/projects/' + PROJECT_ID + '/databases/(default)/documents/events?key=' + API_KEY,
+      await fetch('https://firestore.googleapis.com/v1/projects/' + PROJECT_ID + '/databases/(default)/documents/parishes/saint-rose-anthem/events?key=' + API_KEY,
         {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
     }
     document.getElementById('rec-success').style.display = 'block';
@@ -1407,7 +1407,7 @@
     var pageToken = '';
     var page = 0;
     while (page < 10) {
-      var url = 'https://firestore.googleapis.com/v1/projects/' + PROJECT_ID + '/databases/(default)/documents/events?key=' + API_KEY + '&pageSize=300' + (pageToken ? '&pageToken=' + pageToken : '');
+      var url = 'https://firestore.googleapis.com/v1/projects/' + PROJECT_ID + '/databases/(default)/documents/parishes/saint-rose-anthem/events?key=' + API_KEY + '&pageSize=300' + (pageToken ? '&pageToken=' + pageToken : '');
       var res = await fetch(url);
       var data = await res.json();
       allDocs = allDocs.concat(data.documents || []);
@@ -1452,7 +1452,7 @@
     if (!confirm('Delete this event?')) return;
     var API_KEY = 'AIzaSyBKjyHaRNkIjTV87zrhhvg6pBxarm3lcQ8';
     var PROJECT_ID = 'saint-rose-anthem';
-    await fetch('https://firestore.googleapis.com/v1/projects/' + PROJECT_ID + '/databases/(default)/documents/events/' + id + '?key=' + API_KEY, {method:'DELETE'});
+    await fetch('https://firestore.googleapis.com/v1/projects/' + PROJECT_ID + '/databases/(default)/documents/parishes/saint-rose-anthem/events/' + id + '?key=' + API_KEY, {method:'DELETE'});
     await loadCalEvents();
   }
 
@@ -1811,7 +1811,7 @@
     const publishAt = nextSat.toISOString();
     try {
       const existing=await fs_get('weeklyReflection');
-      for(const doc of (existing.documents||[])){await fs_delete(doc.name.split('/documents/')[1]);}
+      for(const doc of (existing.documents||[])){await fs_delete(doc.name.split('/documents/parishes/saint-rose-anthem/')[1]);}
       await fs_post('weeklyReflection',{heading:{stringValue:heading},subtitle:{stringValue:heading},fullTitle:{stringValue:heading},author:{stringValue:author},body:{stringValue:body},liturgicalDate:{stringValue:liturgicalDate},publishAt:{stringValue:publishAt},link:{stringValue:''},updatedAt:{stringValue:new Date().toISOString()}});
       document.getElementById('ref-success').style.display='block';
       showToast('Reflection updated!','success');
@@ -1842,7 +1842,7 @@
     if(!body){showToast('Please paste the reflection text.','error');return;}
     try {
       const existing=await fs_get('dailyReflection');
-      for(const doc of (existing.documents||[]).filter(d=>gf(d,'date')===date)){await fs_delete(doc.name.split('/documents/')[1]);}
+      for(const doc of (existing.documents||[]).filter(d=>gf(d,'date')===date)){await fs_delete(doc.name.split('/documents/parishes/saint-rose-anthem/')[1]);}
       await fs_post('dailyReflection',{date:{stringValue:date},title:{stringValue:title},body:{stringValue:body},postedBy:{stringValue:'Parish Staff'},createdAt:{stringValue:new Date().toISOString()}});
       document.getElementById('daily-success').style.display='block';
       showToast('Daily reflection posted!','success');
@@ -1920,7 +1920,7 @@
       try {
         const existing = await fs_get('scheduledReflections');
         for (const doc of (existing.documents||[]).filter(function(d){ return gf(d,'date')===date; })) {
-          await fs_delete(doc.name.split('/documents/')[1]);
+          await fs_delete(doc.name.split('/documents/parishes/saint-rose-anthem/')[1]);
         }
         await fs_post('scheduledReflections',{
           date:{stringValue:date},
@@ -1980,7 +1980,7 @@
     const musicUrl = musicEl ? musicEl.value.trim() : '';
     try {
       const existing = await fs_get('dailyReflection');
-      for (const doc of (existing.documents || [])) { await fs_delete(doc.name.split('/documents/')[1]); }
+      for (const doc of (existing.documents || [])) { await fs_delete(doc.name.split('/documents/parishes/saint-rose-anthem/')[1]); }
       await fs_post('dailyReflection', {
         date: {stringValue: date},
         title: {stringValue: title},
@@ -2376,7 +2376,7 @@
       const url = 'https://firebasestorage.googleapis.com/v0/b/' + BUCKET + '/o/' + encodeURIComponent(uploadData.name) + '?alt=media';
       // Clear old songsheets
       const existing = await fs_get('songsheets');
-      for (const doc of (existing.documents || [])) { await fs_delete(doc.name.split('/documents/')[1]); }
+      for (const doc of (existing.documents || [])) { await fs_delete(doc.name.split('/documents/parishes/saint-rose-anthem/')[1]); }
       // Save new one
       await fs_post('songsheets', {
         title: { stringValue: title },
