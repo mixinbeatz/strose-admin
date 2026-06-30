@@ -1201,9 +1201,12 @@
     document.getElementById('topbar-date').textContent = new Date().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
     var mpt = document.getElementById('mobile-page-title'); if(mpt) mpt.textContent = 'Dashboard';
 
-    document.querySelectorAll('.ministry-only').forEach(el => el.style.display = isMinistry ? '' : 'none');
-    document.querySelectorAll('.staff-only').forEach(el => el.style.display = isMatt ? '' : 'none');
-    document.querySelectorAll('.cheyanne-only').forEach(el => el.style.display = isCheyanne ? '' : 'none');
+    document.querySelectorAll('.ministry-only, .staff-only, .cheyanne-only').forEach(el => {
+      var show = (el.classList.contains('ministry-only') && isMinistry)
+              || (el.classList.contains('staff-only') && isMatt)
+              || (el.classList.contains('cheyanne-only') && isCheyanne);
+      el.style.display = show ? '' : 'none';
+    });
 
     if (isMinistry) {
       showPage('ministry-post', document.querySelector('.ministry-only.nav-item')); loadMinistryPosts();
