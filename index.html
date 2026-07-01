@@ -247,13 +247,13 @@
     <div class="login-logo">✝</div>
     <div class="login-title">Parish Admin Portal</div>
     <div class="login-sub">Saint Rose Philippine Duchesne</div>
-    <input type="text" id="login-user" placeholder="Username" autocomplete="off" />
+    <input type="email" id="login-user" placeholder="Email" autocomplete="off" />
     <div style="position:relative;">
       <input type="password" id="login-pass" placeholder="Password" style="padding-right:44px;width:100%;box-sizing:border-box;" />
       <span id="eye-toggle" onclick="var i=document.getElementById('login-pass');i.type=i.type==='password'?'text':'password';document.getElementById('eye-toggle').textContent=i.type==='password'?'\u{1F441}':'\u{1F648}';" style="position:absolute;right:12px;top:50%;transform:translateY(-50%);cursor:pointer;font-size:16px;user-select:none;">&#128065;</span>
     </div>
     <button class="login-btn" onclick="doLogin()">Sign In</button>
-    <div class="login-error" id="login-error">Invalid username or password.</div>
+    <div class="login-error" id="login-error">Invalid email or password.</div>
   </div>
 </div>
 
@@ -1159,10 +1159,18 @@
   const API_KEY = 'AIzaSyBKjyHaRNkIjTV87zrhhvg6pBxarm3lcQ8';
   const PROJECT_ID = 'saint-rose-anthem';
   const BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/parishes/saint-rose-anthem`;
-  const CREDS = { mficarra:'music2026', admin:'admin', sacredapps:'admin1', nponiato:'cda2026', cheyanne:'office2026' };
-  const MINISTRY_ID_MAP = { nponiato: 'cda' };
-  const MINISTRY_NAME_MAP = { nponiato: 'Catholic Daughters' };
+  const MINISTRY_NAME_MAP = { cda: 'Catholic Daughters' }; // ministry id (custom claim) -> display name
+  const STAFF_NAME_MAP = {
+    'markramski@gmail.com': 'Mark Ramotowski',
+    'mficarra@stroseanthem.com': 'Matthew Ficarra',
+    'cbosn@stroseanthem.com': 'Cheyanne Bosn',
+    'pnovak@stroseanthem.com': 'Paul Novak',
+    'thenrich@stroseanthem.com': 'Tom Henrich',
+    'frbcolasito@stroseanthem.com': 'Fr. Bing Colasito'
+    // add nponiato's real email here once her account is bootstrapped
+  };
   let currentUser = '';
+  let currentClaims = null;
 
   let currentExpiry = 'week';
   let allMembers = [];
@@ -1179,23 +1187,80 @@
   document.getElementById('evt-end').value = endStr;
 
   document.getElementById('login-pass').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
+  tryRestoreSession();
 
-  function doLogin() {
-    const u = document.getElementById('login-user').value.trim();
-    const p = document.getElementById('login-pass').value;
-    if (CREDS[u] === p) {
-      document.getElementById('login-screen').style.display = 'none';
-      document.getElementById('app').style.display = 'flex';
-      currentUser = u;
-      document.getElementById('logged-in-user').textContent = u==='sacredapps'?'Sacred Apps Admin':u==='nponiato'?'Nancy Poniatowski':u==='mficarra'?'Matthew Ficarra':u==='cheyanne'?'Cheyanne':'Parish Staff';
-      applyRoleNav(u);
-      loadDashboard();
-    } else { document.getElementById('login-error').style.display = 'block'; }
+  function decodeJwt(token) {
+    const payload = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+    const json = decodeURIComponent(atob(payload).split('').map(c => '%' + c.charCodeAt(0).toString(16).padStart(2, '0')).join(''));
+    return JSON.parse(json);
   }
 
-  function applyRoleNav(u) {
-    const isMinistry = u === 'nponiato';
-    const isCheyanne = u === 'cheyanne';
+  function setSession(idToken, refreshToken) {
+    localStorage.setItem('authIdToken', idToken);
+    localStorage.setItem('authRefreshToken', refreshToken);
+    currentClaims = decodeJwt(idToken);
+    currentUser = currentClaims.email || '';
+  }
+
+  function clearSession() {
+    localStorage.removeItem('authIdToken');
+    localStorage.removeItem('authRefreshToken');
+    currentClaims = null;
+    currentUser = '';
+  }
+
+  // Attaches the current ID token to a Firestore/API call. Use this once portal reads/writes require auth (re-lock step).
+  function authedFetch(url, options) {
+    options = options || {};
+    const token = localStorage.getItem('authIdToken');
+    if (!token) return fetch(url, options);
+    options.headers = Object.assign({}, options.headers, { Authorization: 'Bearer ' + token });
+    return fetch(url, options);
+  }
+
+  function enterApp() {
+    document.getElementById('login-screen').style.display = 'none';
+    document.getElementById('app').style.display = 'flex';
+    document.getElementById('logged-in-user').textContent = STAFF_NAME_MAP[currentUser] || (currentClaims.role ? currentClaims.role.charAt(0).toUpperCase() + currentClaims.role.slice(1) : 'Parish Staff');
+    applyRoleNav();
+    loadDashboard();
+  }
+
+  async function tryRestoreSession() {
+    const token = localStorage.getItem('authIdToken');
+    if (!token) return false;
+    try {
+      const claims = decodeJwt(token);
+      if (claims.exp && claims.exp * 1000 < Date.now()) { clearSession(); return false; }
+      currentClaims = claims;
+      currentUser = claims.email || '';
+      enterApp();
+      return true;
+    } catch (e) { clearSession(); return false; }
+  }
+
+  async function doLogin() {
+    const email = document.getElementById('login-user').value.trim();
+    const pass = document.getElementById('login-pass').value;
+    document.getElementById('login-error').style.display = 'none';
+    try {
+      const res = await fetch(`https://identitytoolkit.googleapis.com/v1/accounts:signInWithPassword?key=${API_KEY}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password: pass, returnSecureToken: true })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error((data.error && data.error.message) || 'Login failed');
+      setSession(data.idToken, data.refreshToken);
+      enterApp();
+    } catch (err) {
+      document.getElementById('login-error').style.display = 'block';
+    }
+  }
+
+  function applyRoleNav() {
+    const isMinistry = !!(currentClaims && currentClaims.role === 'ministry');
+    const isCheyanne = !!(currentClaims && currentClaims.email === 'cbosn@stroseanthem.com');
     const isMatt     = !isMinistry && !isCheyanne;
 
     document.getElementById('topbar-date').textContent = new Date().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
@@ -1220,6 +1285,7 @@
   }
 
   function signOut() {
+    clearSession();
     var tb = document.querySelector('.topbar'); if (tb) tb.style.display = 'flex';
     var ct = document.querySelector('.content'); if (ct) ct.style.padding = '32px';
     document.getElementById('login-screen').style.display = 'flex';
@@ -2280,7 +2346,7 @@
     } catch(e) { showToast('Error deleting.', 'error'); }
   }
   async function loadMyMinistry() {
-    const ministryId = MINISTRY_ID_MAP[currentUser];
+    const ministryId = currentClaims && currentClaims.ministry;
     if (!ministryId) { document.getElementById('my-ministry-loading').textContent = 'No ministry assigned to this account.'; return; }
     try {
       const res = await fs_get_doc('ministries/' + ministryId);
@@ -2299,7 +2365,7 @@
     }
   }
   async function saveMyMinistry() {
-    const ministryId = MINISTRY_ID_MAP[currentUser];
+    const ministryId = currentClaims && currentClaims.ministry;
     if (!ministryId) return;
     const fields = {
       schedule: {stringValue: document.getElementById('mm-schedule').value.trim()},
@@ -2322,7 +2388,7 @@
     if (!list) return;
     list.innerHTML = '<div style="color:var(--dusty-rose);font-size:14px;">Loading...</div>';
     try {
-      const ministryName = MINISTRY_NAME_MAP[currentUser] || 'Catholic Daughters';
+      const ministryName = MINISTRY_NAME_MAP[currentClaims && currentClaims.ministry] || 'Catholic Daughters';
       const res = await fs_get('ministryPosts');
       const now = new Date();
       const docs = (res.documents || [])
@@ -3039,8 +3105,8 @@
     var description = document.getElementById('se-description').value.trim();
     var link = document.getElementById('se-link').value.trim();
     if (!title) { showToast('Title is required.', 'error'); return; }
-    var ministry = currentUser === 'nponiato' ? 'Catholic Daughters' : 'Ministry';
-    var submittedBy = currentUser === 'nponiato' ? 'Nancy Poniatowski' : currentUser;
+    var ministry = MINISTRY_NAME_MAP[currentClaims && currentClaims.ministry] || 'Ministry';
+    var submittedBy = STAFF_NAME_MAP[currentUser] || currentUser;
     try {
       await fs_post('eventRequests', {
         title: {stringValue: title},
