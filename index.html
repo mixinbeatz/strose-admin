@@ -1381,11 +1381,15 @@
     return null;
   }
 
-  async function fs_get(col) { const r=await fetch(`${BASE}/${col}?key=${API_KEY}&pageSize=100`); return await r.json(); }
-  async function fs_get_doc(path) { const r=await fetch(`${BASE}/${path}?key=${API_KEY}`); return await r.json(); }
-  async function fs_post(col,fields) { const r=await fetch(`${BASE}/${col}?key=${API_KEY}`,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({fields})}); return await r.json(); }
-  async function fs_patch(path,fields) { const mask=Object.keys(fields).map(f=>`updateMask.fieldPaths=${f}`).join('&'); const r=await fetch(`${BASE}/${path}?key=${API_KEY}&${mask}`,{method:'PATCH',headers:{'Content-Type':'application/json'},body:JSON.stringify({fields})}); return await r.json(); }
-  async function fs_delete(path) { await fetch(`${BASE}/${path}?key=${API_KEY}`,{method:'DELETE'}); }
+  function authHeaders(extra) {
+    const token = localStorage.getItem('authIdToken');
+    return token ? Object.assign({ Authorization: 'Bearer ' + token }, extra || {}) : (extra || {});
+  }
+  async function fs_get(col) { const r=await fetch(`${BASE}/${col}?key=${API_KEY}&pageSize=100`,{headers:authHeaders()}); return await r.json(); }
+  async function fs_get_doc(path) { const r=await fetch(`${BASE}/${path}?key=${API_KEY}`,{headers:authHeaders()}); return await r.json(); }
+  async function fs_post(col,fields) { const r=await fetch(`${BASE}/${col}?key=${API_KEY}`,{method:'POST',headers:authHeaders({'Content-Type':'application/json'}),body:JSON.stringify({fields})}); return await r.json(); }
+  async function fs_patch(path,fields) { const mask=Object.keys(fields).map(f=>`updateMask.fieldPaths=${f}`).join('&'); const r=await fetch(`${BASE}/${path}?key=${API_KEY}&${mask}`,{method:'PATCH',headers:authHeaders({'Content-Type':'application/json'}),body:JSON.stringify({fields})}); return await r.json(); }
+  async function fs_delete(path) { await fetch(`${BASE}/${path}?key=${API_KEY}`,{method:'DELETE',headers:authHeaders()}); }
   function gf(doc,key) { const f=doc.fields?.[key]; if(!f) return ''; if(f.booleanValue!==undefined) return f.booleanValue; return f.stringValue??f.integerValue??''; }
   // Safely embed user-entered text inside a single-quoted JS string AND a double-quoted HTML attribute (e.g. onclick="fn('${escAttr(name)}')").
   // Fixes names/titles containing a double quote (e.g. Robert "Bob" Smith) breaking the onclick attribute and crashing the button.
