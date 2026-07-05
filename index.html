@@ -1518,7 +1518,13 @@
       page++;
     }
     calEvents = allDocs.map(function(doc) {
-      return {id:doc.name.split('/').pop(), title:doc.fields?.title?.stringValue||'', startAt:doc.fields?.startAt?.stringValue||''};
+      var startAt = doc.fields?.startAt?.stringValue||'';
+      var localDate = '';
+      if (startAt) {
+        var d = new Date(startAt);
+        localDate = d.toLocaleDateString('en-CA', {timeZone:'America/Phoenix'});
+      }
+      return {id:doc.name.split('/').pop(), title:doc.fields?.title?.stringValue||'', startAt:startAt, localDate:localDate};
     });
     renderCal();
   }
@@ -1534,7 +1540,7 @@
     for (var i = 0; i < firstDay; i++) html += '<div></div>';
     for (var d = 1; d <= daysInMonth; d++) {
       var dateStr = calYear + '-' + String(calMonth+1).padStart(2,'0') + '-' + String(d).padStart(2,'0');
-      var hasEvent = calEvents.some(function(e){ return e.startAt && e.startAt.startsWith(dateStr); });
+      var hasEvent = calEvents.some(function(e){ return e.localDate === dateStr; });
       var dd = d;
       html += '<div onclick="showCalDay(' + dd + ')" style="text-align:center;padding:6px 2px;border-radius:6px;cursor:pointer;font-size:13px;color:var(--soil);background:' + (hasEvent?'var(--linen)':'transparent') + ';font-weight:' + (hasEvent?'600':'normal') + ';border:' + (hasEvent?'1px solid var(--dusty-rose)':'1px solid transparent') + '">' + d + '</div>';
     }
@@ -1543,7 +1549,7 @@
 
   function showCalDay(day) {
     var dateStr = calYear + '-' + String(calMonth+1).padStart(2,'0') + '-' + String(day).padStart(2,'0');
-    var dayEvts = calEvents.filter(function(e){ return e.startAt && e.startAt.startsWith(dateStr); });
+    var dayEvts = calEvents.filter(function(e){ return e.localDate === dateStr; });
     var list = document.getElementById('cal-events-list');
     if (!dayEvts.length) { list.innerHTML = '<div style="color:var(--dusty-rose);font-size:14px;padding:8px">No events on this day.</div>'; return; }
     list.innerHTML = '<div style="font-family:Cinzel,serif;font-size:14px;color:var(--burgundy);margin-bottom:8px">' + dateStr + '</div>' +
@@ -1555,7 +1561,10 @@
     var API_KEY = 'AIzaSyBKjyHaRNkIjTV87zrhhvg6pBxarm3lcQ8';
     var PROJECT_ID = 'saint-rose-anthem';
     await fetch('https://firestore.googleapis.com/v1/projects/' + PROJECT_ID + '/databases/(default)/documents/parishes/saint-rose-anthem/events/' + id + '?key=' + API_KEY, {method:'DELETE'});
-    await loadCalEvents();
+    calEvents = calEvents.filter(function(e){ return e.id !== id; });
+    renderCal();
+    var day = parseInt(document.getElementById('cal-events-list').querySelector('div')?.textContent?.split('-')[2]);
+    if (day) showCalDay(day);
   }
 
   function calPrev() { calMonth--; if (calMonth < 0) { calMonth = 11; calYear--; } renderCal(); }
