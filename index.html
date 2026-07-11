@@ -1912,14 +1912,18 @@
     const body=document.getElementById('ref-body').value.trim();
     const liturgicalDate=document.getElementById('ref-liturgical').value.trim();
     if(!heading||!body){showToast('Please fill in title and text.','error');return;}
-    // Auto-calculate next Saturday 3pm Arizona time
+    // Compute the upcoming Saturday 3pm Arizona time (UTC-7, no DST), entirely in UTC terms
+    // so this is correct regardless of the poster's device timezone or time of day.
     const now = new Date();
-    const day = now.getDay();
-    const daysUntilSat = (6 - day + 7) % 7 || 7;
-    const nextSat = new Date(now);
-    nextSat.setDate(now.getDate() + daysUntilSat);
-    nextSat.setHours(22, 0, 0, 0); // 3pm AZ = 10pm UTC (MST, no DST)
-    const publishAt = nextSat.toISOString();
+    const azNow = new Date(now.getTime() - 7 * 60 * 60 * 1000); // shift to AZ wall-clock, read via UTC getters
+    const azDay = azNow.getUTCDay();
+    const daysUntilSat = (6 - azDay + 7) % 7 || 7;
+    const publishAt = new Date(Date.UTC(
+      azNow.getUTCFullYear(),
+      azNow.getUTCMonth(),
+      azNow.getUTCDate() + daysUntilSat,
+      22, 0, 0, 0  // 22:00 UTC = 3pm AZ, same calendar day, no rollover needed
+    )).toISOString();
     try {
       const existing=await fs_get('weeklyReflection');
       for(const doc of (existing.documents||[])){await fs_delete(doc.name.split('/documents/parishes/saint-rose-anthem/')[1]);}
