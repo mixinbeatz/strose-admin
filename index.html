@@ -642,7 +642,7 @@
           <div class="post-success" id="ref-success">✓ Reflection updated successfully.</div>
         </div>
         <div class="card" style="margin-top:16px;">
-          <div class="card-title">📋 Currently Live</div>
+          <div class="card-title" id="ref-card-title">📋 Weekly Reflection</div>
           <div id="ref-preview"><div style="color:var(--dusty-rose);font-size:14px;">Loading...</div></div>
         </div>
       </div>
@@ -1894,7 +1894,16 @@
         const liturgicalDate = gf(r,'liturgicalDate')||'';
         const publishAt = gf(r,'publishAt')||'';
         window._currentReflection = {title, author, body, liturgicalDate, publishAt};
+        const nowIso = new Date().toISOString();
+        const isLive = publishAt && publishAt <= nowIso;
+        const publishLabel = publishAt ? new Date(publishAt).toLocaleString('en-US',{timeZone:'America/Phoenix',weekday:'short',month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}) + ' AZ' : '';
+        const titleEl = document.getElementById('ref-card-title');
+        if(titleEl) titleEl.textContent = isLive ? '🟢 Currently Live' : '🕒 Upcoming';
+        const statusBadge = isLive
+          ? '<div style="display:inline-block;font-size:12px;font-weight:600;color:#2E7D32;background:#E8F5E9;border-radius:6px;padding:3px 10px;margin-bottom:8px;">🟢 Live now</div>'
+          : '<div style="display:inline-block;font-size:12px;font-weight:600;color:var(--burgundy);background:var(--linen);border-radius:6px;padding:3px 10px;margin-bottom:8px;">🕒 Scheduled for ' + publishLabel + '</div>';
         if(el) el.innerHTML='<div style="padding:12px 0;">' +
+          statusBadge +
           '<div style="font-family:Cinzel,serif;font-size:14px;color:var(--burgundy);margin-bottom:4px;">' + title + '</div>' +
           '<div style="font-size:13px;color:var(--dusty-rose);margin-bottom:8px;">' + author + (updatedLabel?' &middot; Updated '+updatedLabel:'') + '</div>' +
           '<div style="font-size:14px;color:var(--soil);line-height:1.6;">' + body.substring(0,300) + (body.length>300?'...':'') + '</div>' +
