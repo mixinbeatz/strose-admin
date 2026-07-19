@@ -666,7 +666,7 @@
           <div class="form-group"><label class="form-label">Contact Phone</label><input type="text" class="form-input" id="dev-contact-phone" placeholder="e.g. 6235551234" /></div>
           <div class="form-group"><label class="form-label">Contact Email</label><input type="text" class="form-input" id="dev-contact-email" placeholder="e.g. pnovak@stroseanthem.com" /></div>
           <div class="form-group">
-            <label class="form-label">Photos / Mockups</label>
+            <label class="form-label">Photos of the Item</label>
             <div class="upload-zone" style="border:2px dashed var(--linen);border-radius:12px;padding:32px;text-align:center;cursor:pointer;background:var(--sand);position:relative;">
               <input type="file" accept="image/*" multiple onchange="handleDevPhotosUpload(this)" style="position:absolute;inset:0;opacity:0;cursor:pointer;" />
               <div style="font-size:36px;margin-bottom:8px;">🖼️</div>
@@ -674,16 +674,19 @@
               <div style="font-size:12px;color:var(--dusty-rose);">Select one or more images</div>
               <div id="dev-photos-filename" style="margin-top:12px;font-size:13px;color:var(--success);display:none;"></div>
             </div>
+            <div id="dev-existing-photos" style="margin-top:10px;display:flex;flex-wrap:wrap;gap:8px;"></div>
           </div>
           <div class="form-group">
-            <label class="form-label">Mockup PDF (optional)</label>
+            <label class="form-label">Placement Mockup (optional)</label>
+            <div class="info-box" style="margin-bottom:10px;">A single image showing where this would go in the church (e.g. mocked up on the vestibule wall).</div>
             <div class="upload-zone" style="border:2px dashed var(--linen);border-radius:12px;padding:32px;text-align:center;cursor:pointer;background:var(--sand);position:relative;">
-              <input type="file" accept="application/pdf" onchange="handleDevPdfUpload(this)" style="position:absolute;inset:0;opacity:0;cursor:pointer;" />
-              <div style="font-size:36px;margin-bottom:8px;">📄</div>
-              <div style="font-family:'Cinzel',serif;font-size:14px;color:var(--burgundy);margin-bottom:4px;">Upload PDF</div>
-              <div style="font-size:12px;color:var(--dusty-rose);">PDF files only</div>
-              <div id="dev-pdf-filename" style="margin-top:12px;font-size:13px;color:var(--success);display:none;"></div>
+              <input type="file" accept="image/*" onchange="handleDevMockupUpload(this)" style="position:absolute;inset:0;opacity:0;cursor:pointer;" />
+              <div style="font-size:36px;margin-bottom:8px;">📍</div>
+              <div style="font-family:'Cinzel',serif;font-size:14px;color:var(--burgundy);margin-bottom:4px;">Upload Placement Mockup</div>
+              <div style="font-size:12px;color:var(--dusty-rose);">One image</div>
+              <div id="dev-mockup-filename" style="margin-top:12px;font-size:13px;color:var(--success);display:none;"></div>
             </div>
+            <div id="dev-existing-mockup" style="margin-top:10px;"></div>
           </div>
           <div class="btn-row">
             <button class="btn btn-primary" id="dev-save-btn" onclick="saveDevelopmentItem()">Add Opportunity</button>
@@ -2374,8 +2377,10 @@
   // == PARISH DEVELOPMENT ==
   let devPhotosBase64 = [];
   let devPhotosFileNames = [];
-  let devPdfBase64 = '';
-  let devPdfFileName = '';
+  let devMockupBase64 = '';
+  let devMockupFileName = '';
+  let devExistingImages = [];
+  let devExistingMockup = '';
   let devEditingId = null;
 
   function handleDevPhotosUpload(input) {
@@ -2392,23 +2397,23 @@
         loaded++;
         if (loaded === files.length) {
           const fn = document.getElementById('dev-photos-filename');
-          fn.textContent = '✓ ' + devPhotosBase64.length + ' photo(s) selected (add more or Save)';
+          fn.textContent = '✓ ' + devPhotosBase64.length + ' new photo(s) selected (add more or Save)';
           fn.style.display = 'block';
-          input.value = ''; // reset so the same file(s) can be re-picked if needed
+          input.value = '';
         }
       };
       reader.readAsDataURL(file);
     });
   }
 
-  function handleDevPdfUpload(input) {
+  function handleDevMockupUpload(input) {
     const file = input.files[0];
     if (!file) return;
-    devPdfFileName = file.name;
+    devMockupFileName = file.name;
     const reader = new FileReader();
     reader.onload = e => {
-      devPdfBase64 = e.target.result.split(',')[1];
-      const fn = document.getElementById('dev-pdf-filename');
+      devMockupBase64 = e.target.result.split(',')[1];
+      const fn = document.getElementById('dev-mockup-filename');
       fn.textContent = '✓ ' + file.name;
       fn.style.display = 'block';
     };
@@ -2429,12 +2434,45 @@
     return 'https://firebasestorage.googleapis.com/v0/b/' + BUCKET + '/o/' + encodeURIComponent(uploadData.name) + '?alt=media';
   }
 
+  function renderExistingPhotos() {
+    const el = document.getElementById('dev-existing-photos');
+    if (!el) return;
+    el.innerHTML = devExistingImages.map((url, idx) =>
+      '<div style="position:relative;width:70px;height:70px;">' +
+        '<img src="' + url + '" style="width:70px;height:70px;object-fit:cover;border-radius:8px;border:1px solid var(--linen);" />' +
+        '<button onclick="removeExistingDevPhoto(' + idx + ')" style="position:absolute;top:-6px;right:-6px;background:#CC3333;color:#fff;border:none;border-radius:50%;width:20px;height:20px;font-size:12px;cursor:pointer;line-height:1;">✕</button>' +
+      '</div>'
+    ).join('');
+  }
+
+  function removeExistingDevPhoto(idx) {
+    devExistingImages.splice(idx, 1);
+    renderExistingPhotos();
+  }
+
+  function renderExistingMockup() {
+    const el = document.getElementById('dev-existing-mockup');
+    if (!el) return;
+    if (!devExistingMockup) { el.innerHTML = ''; return; }
+    el.innerHTML = '<div style="position:relative;width:100px;height:100px;">' +
+        '<img src="' + devExistingMockup + '" style="width:100px;height:100px;object-fit:cover;border-radius:8px;border:1px solid var(--linen);" />' +
+        '<button onclick="removeExistingDevMockup()" style="position:absolute;top:-6px;right:-6px;background:#CC3333;color:#fff;border:none;border-radius:50%;width:20px;height:20px;font-size:12px;cursor:pointer;line-height:1;">✕</button>' +
+      '</div>';
+  }
+
+  function removeExistingDevMockup() {
+    devExistingMockup = '';
+    renderExistingMockup();
+  }
+
   function resetDevForm() {
     devEditingId = null;
     devPhotosBase64 = [];
     devPhotosFileNames = [];
-    devPdfBase64 = '';
-    devPdfFileName = '';
+    devMockupBase64 = '';
+    devMockupFileName = '';
+    devExistingImages = [];
+    devExistingMockup = '';
     document.getElementById('dev-title').value = '';
     document.getElementById('dev-category').value = '';
     document.getElementById('dev-description').value = '';
@@ -2444,7 +2482,9 @@
     document.getElementById('dev-contact-phone').value = '';
     document.getElementById('dev-contact-email').value = '';
     document.getElementById('dev-photos-filename').style.display = 'none';
-    document.getElementById('dev-pdf-filename').style.display = 'none';
+    document.getElementById('dev-mockup-filename').style.display = 'none';
+    renderExistingPhotos();
+    renderExistingMockup();
     document.getElementById('dev-form-title').textContent = '🖼️ Add New Opportunity';
     document.getElementById('dev-save-btn').textContent = 'Add Opportunity';
   }
@@ -2462,17 +2502,18 @@
     const btn = document.getElementById('dev-save-btn');
     btn.disabled = true; btn.textContent = 'Saving...';
     try {
-      let imageUrls = [];
+      let newImageUrls = [];
       if (devPhotosBase64.length > 0) {
         for (let i = 0; i < devPhotosBase64.length; i++) {
           const url = await uploadDevFile(devPhotosBase64[i], devPhotosFileNames[i], 'parishDevelopment', 'image/jpeg');
-          imageUrls.push(url);
+          newImageUrls.push(url);
         }
       }
-      let pdfUrl = '';
-      if (devPdfBase64) {
-        pdfUrl = await uploadDevFile(devPdfBase64, devPdfFileName, 'parishDevelopment', 'application/pdf');
+      let mockupUrl = devExistingMockup;
+      if (devMockupBase64) {
+        mockupUrl = await uploadDevFile(devMockupBase64, devMockupFileName, 'parishDevelopment', 'image/jpeg');
       }
+      const finalImages = devExistingImages.concat(newImageUrls);
       const fields = {
         title: { stringValue: title },
         category: { stringValue: category },
@@ -2483,14 +2524,10 @@
         contactPhone: { stringValue: contactPhone },
         contactEmail: { stringValue: contactEmail },
         status: { stringValue: 'open' },
+        images: { arrayValue: { values: finalImages.map(u => ({ stringValue: u })) } },
+        mockupImageUrl: { stringValue: mockupUrl },
         updatedAt: { stringValue: new Date().toISOString() }
       };
-      if (imageUrls.length > 0) {
-        fields.images = { arrayValue: { values: imageUrls.map(u => ({ stringValue: u })) } };
-      }
-      if (pdfUrl) {
-        fields.pdfUrl = { stringValue: pdfUrl };
-      }
       if (devEditingId) {
         await fs_patch('developmentOpportunities/' + devEditingId, fields);
         showToast('Opportunity updated!', 'success');
@@ -2510,6 +2547,12 @@
 
   function loadDevIntoForm(id, item) {
     devEditingId = id;
+    devExistingImages = item.images || [];
+    devExistingMockup = item.mockupImageUrl || '';
+    devPhotosBase64 = [];
+    devPhotosFileNames = [];
+    devMockupBase64 = '';
+    devMockupFileName = '';
     document.getElementById('dev-title').value = item.title || '';
     document.getElementById('dev-category').value = item.category || '';
     document.getElementById('dev-description').value = item.description || '';
@@ -2518,6 +2561,10 @@
     document.getElementById('dev-contact-name').value = item.contactName || 'Paul Novak';
     document.getElementById('dev-contact-phone').value = item.contactPhone || '';
     document.getElementById('dev-contact-email').value = item.contactEmail || '';
+    document.getElementById('dev-photos-filename').style.display = 'none';
+    document.getElementById('dev-mockup-filename').style.display = 'none';
+    renderExistingPhotos();
+    renderExistingMockup();
     document.getElementById('dev-form-title').textContent = '🖼️ Edit Opportunity';
     document.getElementById('dev-save-btn').textContent = 'Save Changes';
     window.scrollTo(0,0);
@@ -2570,11 +2617,13 @@
       }
       const items = docs.map(d => {
         const id = d.name.split('/').pop();
+        const images = d.fields.images?.arrayValue?.values?.map(v => v.stringValue) || [];
         const item = {
           title: gf(d,'title'), category: gf(d,'category'), description: gf(d,'description'),
           cost: gf(d,'cost'), order: gf(d,'order'), status: gf(d,'status') || 'open',
           contactName: gf(d,'contactName'), contactPhone: gf(d,'contactPhone'), contactEmail: gf(d,'contactEmail'),
-          thankYouMessage: gf(d,'thankYouMessage'), estimatedDate: gf(d,'estimatedDate')
+          thankYouMessage: gf(d,'thankYouMessage'), estimatedDate: gf(d,'estimatedDate'),
+          images, mockupImageUrl: gf(d,'mockupImageUrl')
         };
         return { id, item };
       }).sort((a,b) => {
@@ -2586,9 +2635,10 @@
           ? '<span style="display:inline-block;font-size:11px;font-weight:600;color:#2E7D32;background:#E8F5E9;border-radius:6px;padding:2px 8px;margin-left:8px;">✓ Funded</span>'
           : '<span style="display:inline-block;font-size:11px;font-weight:600;color:var(--burgundy);background:var(--linen);border-radius:6px;padding:2px 8px;margin-left:8px;">Open</span>';
         const costLabel = item.cost ? '$' + parseInt(item.cost).toLocaleString() : '';
+        const photoCount = item.images.length ? item.images.length + ' photo(s)' + (item.mockupImageUrl ? ' + mockup' : '') : (item.mockupImageUrl ? 'mockup only' : 'no photos');
         return '<div style="padding:14px 0;border-bottom:1px solid var(--linen);">' +
           '<div style="font-family:Cinzel,serif;font-size:15px;color:var(--burgundy);">' + item.title + statusBadge + '</div>' +
-          '<div style="font-size:13px;color:var(--dusty-rose);margin-top:2px;">' + (item.category||'') + (costLabel?' &middot; '+costLabel:'') + '</div>' +
+          '<div style="font-size:13px;color:var(--dusty-rose);margin-top:2px;">' + (item.category||'') + (costLabel?' &middot; '+costLabel:'') + ' &middot; ' + photoCount + '</div>' +
           (item.status === 'funded' && item.thankYouMessage ? '<div style="font-size:13px;color:var(--soil);margin-top:6px;font-style:italic;">' + item.thankYouMessage + (item.estimatedDate?' &middot; Est. '+item.estimatedDate:'') + '</div>' : '') +
           '<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;">' +
           '<button onclick=\'loadDevIntoForm("' + id + '", ' + JSON.stringify(item).replace(/'/g,"&#39;") + ')\' style="background:none;border:1px solid var(--linen);border-radius:8px;padding:5px 12px;font-size:12px;cursor:pointer;color:var(--soil);">Edit</button>' +
@@ -2601,7 +2651,7 @@
     } catch (e) { showToast('Error loading opportunities.', 'error'); }
   }
 
-  // == MASS INTENTIONS ==
+    // == MASS INTENTIONS ==
   var postingIntention = false;
   async function postIntention() {
     if (postingIntention) return;
