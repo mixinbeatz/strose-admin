@@ -277,6 +277,7 @@
       <div class="nav-section staff-only cheyanne-only">Content</div>
       <div class="nav-item staff-only" onclick="showPage('events',this)"><span class="nav-icon">📅</span> Events</div>
       <div class="nav-item staff-only cheyanne-only" onclick="showPage('fastblast',this)"><span class="nav-icon">🔔</span> Fast Blast</div>
+      <div class="nav-item staff-only" onclick="showPage('parish-development',this);loadDevelopmentItems()"><span class="nav-icon">🖼️</span> Parish Development</div>
       <div class="nav-item staff-only cheyanne-only" onclick="showPage('announcement',this)"><span class="nav-icon">📢</span> Post Announcement</div>
       <div class="nav-item staff-only cheyanne-only" onclick="showPage('poll',this)"><span class="nav-icon">📊</span> Parish Voice Poll</div>
       <div class="nav-item staff-only cheyanne-only" onclick="showPage('reflection',this)"><span class="nav-icon">📖</span> Weekly Reflection</div>
@@ -651,6 +652,49 @@
         </div>
       </div>
 
+      <!-- PARISH DEVELOPMENT -->
+      <div class="page" id="page-parish-development">
+        <div class="card">
+          <div class="card-title" id="dev-form-title">🖼️ Add New Opportunity</div>
+          <div class="info-box">Big-ticket parish development items (paintings, statues, stained glass, etc.) shown to parishioners as giving opportunities.</div>
+          <div class="form-group"><label class="form-label">Title *</label><input type="text" class="form-input" id="dev-title" placeholder="e.g. Vestibule Paintings" /></div>
+          <div class="form-group"><label class="form-label">Category</label><input type="text" class="form-input" id="dev-category" placeholder="e.g. Paintings, Statues, Stained Glass" /></div>
+          <div class="form-group"><label class="form-label">Description *</label><textarea class="form-textarea large" id="dev-description" placeholder="Describe the item, its purpose, and placement..."></textarea></div>
+          <div class="form-group"><label class="form-label">Cost ($)</label><input type="text" class="form-input" id="dev-cost" placeholder="e.g. 15000" /></div>
+          <div class="form-group"><label class="form-label">Order (display position)</label><input type="text" class="form-input" id="dev-order" placeholder="e.g. 1" /></div>
+          <div class="form-group"><label class="form-label">Contact Name</label><input type="text" class="form-input" id="dev-contact-name" value="Paul Novak" /></div>
+          <div class="form-group"><label class="form-label">Contact Phone</label><input type="text" class="form-input" id="dev-contact-phone" placeholder="e.g. 6235551234" /></div>
+          <div class="form-group"><label class="form-label">Contact Email</label><input type="text" class="form-input" id="dev-contact-email" placeholder="e.g. pnovak@stroseanthem.com" /></div>
+          <div class="form-group">
+            <label class="form-label">Photos / Mockups</label>
+            <div class="upload-zone" style="border:2px dashed var(--linen);border-radius:12px;padding:32px;text-align:center;cursor:pointer;background:var(--sand);position:relative;">
+              <input type="file" accept="image/*" multiple onchange="handleDevPhotosUpload(this)" style="position:absolute;inset:0;opacity:0;cursor:pointer;" />
+              <div style="font-size:36px;margin-bottom:8px;">🖼️</div>
+              <div style="font-family:'Cinzel',serif;font-size:14px;color:var(--burgundy);margin-bottom:4px;">Upload Photos</div>
+              <div style="font-size:12px;color:var(--dusty-rose);">Select one or more images</div>
+              <div id="dev-photos-filename" style="margin-top:12px;font-size:13px;color:var(--success);display:none;"></div>
+            </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Mockup PDF (optional)</label>
+            <div class="upload-zone" style="border:2px dashed var(--linen);border-radius:12px;padding:32px;text-align:center;cursor:pointer;background:var(--sand);position:relative;">
+              <input type="file" accept="application/pdf" onchange="handleDevPdfUpload(this)" style="position:absolute;inset:0;opacity:0;cursor:pointer;" />
+              <div style="font-size:36px;margin-bottom:8px;">📄</div>
+              <div style="font-family:'Cinzel',serif;font-size:14px;color:var(--burgundy);margin-bottom:4px;">Upload PDF</div>
+              <div style="font-size:12px;color:var(--dusty-rose);">PDF files only</div>
+              <div id="dev-pdf-filename" style="margin-top:12px;font-size:13px;color:var(--success);display:none;"></div>
+            </div>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-primary" id="dev-save-btn" onclick="saveDevelopmentItem()">Add Opportunity</button>
+            <button class="btn btn-outline" onclick="resetDevForm()">Clear / New</button>
+          </div>
+        </div>
+        <div class="card" style="margin-top:16px;">
+          <div class="card-title">📋 All Opportunities</div>
+          <div id="dev-items-list"><div style="color:var(--dusty-rose);font-size:14px;">Loading...</div></div>
+        </div>
+      </div>
       <!-- DAILY REFLECTION -->
       <div class="page" id="page-daily">
         <div class="card">
@@ -1340,7 +1384,7 @@
     if(el) el.classList.add('active');
     window.scrollTo(0,0);
     closeSidebar();
-    const titles = {dashboard:'Dashboard',events:'Events',announcement:'Post Announcement',fastblast:'Fast Blast',reflection:'Weekly Reflection',daily:'Daily Reflection',songsheet:'Mass Songsheet',welcome:'Welcome Message','music-ministry':'Music Ministry','music-members':'Music Ministry Members',approvals:'Parish Family Approvals',partners:'Partner Requests',directory:'Parish Family Directory','ministry-post':'Post to Members','cda-members':'My Members','prayer-chain':'Prayer Chain','prayer-submissions':'Prayer Submissions','submit-event':'Submit Event','event-requests':'Event Requests',intention:'Mass Intentions','my-ministry':'My Ministry'};
+    const titles = {dashboard:'Dashboard',events:'Events',announcement:'Post Announcement',fastblast:'Fast Blast',reflection:'Weekly Reflection','parish-development':'Parish Development',daily:'Daily Reflection',songsheet:'Mass Songsheet',welcome:'Welcome Message','music-ministry':'Music Ministry','music-members':'Music Ministry Members',approvals:'Parish Family Approvals',partners:'Partner Requests',directory:'Parish Family Directory','ministry-post':'Post to Members','cda-members':'My Members','prayer-chain':'Prayer Chain','prayer-submissions':'Prayer Submissions','submit-event':'Submit Event','event-requests':'Event Requests',intention:'Mass Intentions','my-ministry':'My Ministry'};
     document.getElementById('page-title').textContent = titles[id]||id;
     var mpt = document.getElementById('mobile-page-title'); if(mpt) mpt.textContent = titles[id]||id;
     if(id==='approvals') loadApprovals();
@@ -2325,6 +2369,235 @@
       fn.style.display = 'block';
     };
     reader.readAsDataURL(file);
+  }
+
+  // == PARISH DEVELOPMENT ==
+  let devPhotosBase64 = [];
+  let devPhotosFileNames = [];
+  let devPdfBase64 = '';
+  let devPdfFileName = '';
+  let devEditingId = null;
+
+  function handleDevPhotosUpload(input) {
+    const files = Array.from(input.files || []);
+    if (!files.length) return;
+    devPhotosBase64 = [];
+    devPhotosFileNames = [];
+    let loaded = 0;
+    files.forEach((file, idx) => {
+      const reader = new FileReader();
+      reader.onload = e => {
+        devPhotosBase64[idx] = e.target.result.split(',')[1];
+        devPhotosFileNames[idx] = file.name;
+        loaded++;
+        if (loaded === files.length) {
+          const fn = document.getElementById('dev-photos-filename');
+          fn.textContent = '✓ ' + files.length + ' photo(s) selected';
+          fn.style.display = 'block';
+        }
+      };
+      reader.readAsDataURL(file);
+    });
+  }
+
+  function handleDevPdfUpload(input) {
+    const file = input.files[0];
+    if (!file) return;
+    devPdfFileName = file.name;
+    const reader = new FileReader();
+    reader.onload = e => {
+      devPdfBase64 = e.target.result.split(',')[1];
+      const fn = document.getElementById('dev-pdf-filename');
+      fn.textContent = '✓ ' + file.name;
+      fn.style.display = 'block';
+    };
+    reader.readAsDataURL(file);
+  }
+
+  async function uploadDevFile(base64, fileName, folder, contentType) {
+    const BUCKET = 'saint-rose-anthem.firebasestorage.app';
+    const ts = Date.now();
+    const path = folder + '/' + ts + '_' + fileName.replace(/\s+/g, '_');
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    const uploadUrl = 'https://firebasestorage.googleapis.com/v0/b/' + BUCKET + '/o/' + encodeURIComponent(path) + '?uploadType=media&key=' + API_KEY;
+    const uploadRes = await fetch(uploadUrl, { method: 'POST', headers: { 'Content-Type': contentType }, body: bytes.buffer });
+    const uploadData = await uploadRes.json();
+    if (!uploadData.name) throw new Error('Upload failed');
+    return 'https://firebasestorage.googleapis.com/v0/b/' + BUCKET + '/o/' + encodeURIComponent(uploadData.name) + '?alt=media';
+  }
+
+  function resetDevForm() {
+    devEditingId = null;
+    devPhotosBase64 = [];
+    devPhotosFileNames = [];
+    devPdfBase64 = '';
+    devPdfFileName = '';
+    document.getElementById('dev-title').value = '';
+    document.getElementById('dev-category').value = '';
+    document.getElementById('dev-description').value = '';
+    document.getElementById('dev-cost').value = '';
+    document.getElementById('dev-order').value = '';
+    document.getElementById('dev-contact-name').value = 'Paul Novak';
+    document.getElementById('dev-contact-phone').value = '';
+    document.getElementById('dev-contact-email').value = '';
+    document.getElementById('dev-photos-filename').style.display = 'none';
+    document.getElementById('dev-pdf-filename').style.display = 'none';
+    document.getElementById('dev-form-title').textContent = '🖼️ Add New Opportunity';
+    document.getElementById('dev-save-btn').textContent = 'Add Opportunity';
+  }
+
+  async function saveDevelopmentItem() {
+    const title = document.getElementById('dev-title').value.trim();
+    const category = document.getElementById('dev-category').value.trim();
+    const description = document.getElementById('dev-description').value.trim();
+    const cost = document.getElementById('dev-cost').value.trim();
+    const order = document.getElementById('dev-order').value.trim();
+    const contactName = document.getElementById('dev-contact-name').value.trim();
+    const contactPhone = document.getElementById('dev-contact-phone').value.trim();
+    const contactEmail = document.getElementById('dev-contact-email').value.trim();
+    if (!title || !description) { showToast('Please fill in title and description.', 'error'); return; }
+    const btn = document.getElementById('dev-save-btn');
+    btn.disabled = true; btn.textContent = 'Saving...';
+    try {
+      let imageUrls = [];
+      if (devPhotosBase64.length > 0) {
+        for (let i = 0; i < devPhotosBase64.length; i++) {
+          const url = await uploadDevFile(devPhotosBase64[i], devPhotosFileNames[i], 'parishDevelopment', 'image/jpeg');
+          imageUrls.push(url);
+        }
+      }
+      let pdfUrl = '';
+      if (devPdfBase64) {
+        pdfUrl = await uploadDevFile(devPdfBase64, devPdfFileName, 'parishDevelopment', 'application/pdf');
+      }
+      const fields = {
+        title: { stringValue: title },
+        category: { stringValue: category },
+        description: { stringValue: description },
+        cost: { stringValue: cost },
+        order: { stringValue: order },
+        contactName: { stringValue: contactName },
+        contactPhone: { stringValue: contactPhone },
+        contactEmail: { stringValue: contactEmail },
+        status: { stringValue: 'open' },
+        updatedAt: { stringValue: new Date().toISOString() }
+      };
+      if (imageUrls.length > 0) {
+        fields.images = { arrayValue: { values: imageUrls.map(u => ({ stringValue: u })) } };
+      }
+      if (pdfUrl) {
+        fields.pdfUrl = { stringValue: pdfUrl };
+      }
+      if (devEditingId) {
+        await fs_patch('developmentOpportunities/' + devEditingId, fields);
+        showToast('Opportunity updated!', 'success');
+      } else {
+        fields.createdAt = { stringValue: new Date().toISOString() };
+        await fs_post('developmentOpportunities', fields);
+        showToast('Opportunity added!', 'success');
+      }
+      btn.disabled = false;
+      resetDevForm();
+      loadDevelopmentItems();
+    } catch (e) {
+      showToast('Error saving.', 'error');
+      btn.disabled = false; btn.textContent = devEditingId ? 'Save Changes' : 'Add Opportunity';
+    }
+  }
+
+  function loadDevIntoForm(id, item) {
+    devEditingId = id;
+    document.getElementById('dev-title').value = item.title || '';
+    document.getElementById('dev-category').value = item.category || '';
+    document.getElementById('dev-description').value = item.description || '';
+    document.getElementById('dev-cost').value = item.cost || '';
+    document.getElementById('dev-order').value = item.order || '';
+    document.getElementById('dev-contact-name').value = item.contactName || 'Paul Novak';
+    document.getElementById('dev-contact-phone').value = item.contactPhone || '';
+    document.getElementById('dev-contact-email').value = item.contactEmail || '';
+    document.getElementById('dev-form-title').textContent = '🖼️ Edit Opportunity';
+    document.getElementById('dev-save-btn').textContent = 'Save Changes';
+    window.scrollTo(0,0);
+  }
+
+  async function markDevFunded(id) {
+    const thankYou = prompt('Thank-you message (e.g. "In memory of the Smith Family"):');
+    if (thankYou === null) return;
+    const estimatedDate = prompt('Estimated install/delivery date (optional, free text):') || '';
+    try {
+      await fs_patch('developmentOpportunities/' + id, {
+        status: { stringValue: 'funded' },
+        thankYouMessage: { stringValue: thankYou },
+        estimatedDate: { stringValue: estimatedDate },
+        updatedAt: { stringValue: new Date().toISOString() }
+      });
+      showToast('Marked as funded!', 'success');
+      loadDevelopmentItems();
+    } catch (e) { showToast('Error updating.', 'error'); }
+  }
+
+  async function markDevOpen(id) {
+    try {
+      await fs_patch('developmentOpportunities/' + id, {
+        status: { stringValue: 'open' },
+        updatedAt: { stringValue: new Date().toISOString() }
+      });
+      showToast('Reopened.', 'success');
+      loadDevelopmentItems();
+    } catch (e) { showToast('Error updating.', 'error'); }
+  }
+
+  async function deleteDevItem(id) {
+    if (!confirm('Delete this opportunity permanently?')) return;
+    try {
+      await fs_delete('developmentOpportunities/' + id);
+      showToast('Deleted.', 'success');
+      loadDevelopmentItems();
+    } catch (e) { showToast('Error deleting.', 'error'); }
+  }
+
+  async function loadDevelopmentItems() {
+    try {
+      const res = await fs_get('developmentOpportunities');
+      const docs = res.documents || [];
+      const el = document.getElementById('dev-items-list');
+      if (docs.length === 0) {
+        el.innerHTML = '<div style="color:var(--dusty-rose);font-size:14px;">No opportunities yet.</div>';
+        return;
+      }
+      const items = docs.map(d => {
+        const id = d.name.split('/').pop();
+        const item = {
+          title: gf(d,'title'), category: gf(d,'category'), description: gf(d,'description'),
+          cost: gf(d,'cost'), order: gf(d,'order'), status: gf(d,'status') || 'open',
+          contactName: gf(d,'contactName'), contactPhone: gf(d,'contactPhone'), contactEmail: gf(d,'contactEmail'),
+          thankYouMessage: gf(d,'thankYouMessage'), estimatedDate: gf(d,'estimatedDate')
+        };
+        return { id, item };
+      }).sort((a,b) => {
+        if (a.item.status !== b.item.status) return a.item.status === 'open' ? -1 : 1;
+        return (parseInt(a.item.order)||999) - (parseInt(b.item.order)||999);
+      });
+      el.innerHTML = items.map(({id, item}) => {
+        const statusBadge = item.status === 'funded'
+          ? '<span style="display:inline-block;font-size:11px;font-weight:600;color:#2E7D32;background:#E8F5E9;border-radius:6px;padding:2px 8px;margin-left:8px;">✓ Funded</span>'
+          : '<span style="display:inline-block;font-size:11px;font-weight:600;color:var(--burgundy);background:var(--linen);border-radius:6px;padding:2px 8px;margin-left:8px;">Open</span>';
+        const costLabel = item.cost ? '$' + parseInt(item.cost).toLocaleString() : '';
+        return '<div style="padding:14px 0;border-bottom:1px solid var(--linen);">' +
+          '<div style="font-family:Cinzel,serif;font-size:15px;color:var(--burgundy);">' + item.title + statusBadge + '</div>' +
+          '<div style="font-size:13px;color:var(--dusty-rose);margin-top:2px;">' + (item.category||'') + (costLabel?' &middot; '+costLabel:'') + '</div>' +
+          (item.status === 'funded' && item.thankYouMessage ? '<div style="font-size:13px;color:var(--soil);margin-top:6px;font-style:italic;">' + item.thankYouMessage + (item.estimatedDate?' &middot; Est. '+item.estimatedDate:'') + '</div>' : '') +
+          '<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;">' +
+          '<button onclick=\'loadDevIntoForm("' + id + '", ' + JSON.stringify(item).replace(/'/g,"&#39;") + ')\' style="background:none;border:1px solid var(--linen);border-radius:8px;padding:5px 12px;font-size:12px;cursor:pointer;color:var(--soil);">Edit</button>' +
+          (item.status === 'open'
+            ? '<button onclick=\'markDevFunded("' + id + '")\' style="background:none;border:1px solid #2E7D32;border-radius:8px;padding:5px 12px;font-size:12px;cursor:pointer;color:#2E7D32;">Mark Funded</button>'
+            : '<button onclick=\'markDevOpen("' + id + '")\' style="background:none;border:1px solid var(--linen);border-radius:8px;padding:5px 12px;font-size:12px;cursor:pointer;color:var(--soil);">Reopen</button>') +
+          '<button onclick=\'deleteDevItem("' + id + '")\' style="background:none;border:1px solid #CC3333;border-radius:8px;padding:5px 12px;font-size:12px;cursor:pointer;color:#CC3333;">Delete</button>' +
+          '</div></div>';
+      }).join('');
+    } catch (e) { showToast('Error loading opportunities.', 'error'); }
   }
 
   // == MASS INTENTIONS ==
