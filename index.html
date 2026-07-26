@@ -1978,10 +1978,22 @@
     } catch(e){showToast('Error loading.','error');}
   }
 
+  function normalizeReflectionBody(raw) {
+    // PDF copy-paste leaves a line break at the end of every original visual line,
+    // not just at real paragraph breaks. Collapse single line breaks into spaces,
+    // but keep real paragraph breaks (blank line / 2+ newlines) intact.
+    return raw
+      .replace(/\r\n/g, '\n')
+      .replace(/\n{2,}/g, '\u0000PARA\u0000')
+      .replace(/\n/g, ' ')
+      .replace(/\u0000PARA\u0000/g, '\n\n')
+      .replace(/ +/g, ' ')
+      .trim();
+  }
   async function postReflection() {
     const heading=document.getElementById('ref-heading').value.trim();
     const author=document.getElementById('ref-author').value.trim();
-    const body=document.getElementById('ref-body').value.trim();
+    const body=normalizeReflectionBody(document.getElementById('ref-body').value.trim());
     const liturgicalDate=document.getElementById('ref-liturgical').value.trim();
     if(!heading||!body){showToast('Please fill in title and text.','error');return;}
     // Compute the target Saturday 3pm Arizona time (UTC-7, no DST), entirely in UTC terms
