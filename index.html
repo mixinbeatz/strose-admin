@@ -376,6 +376,13 @@
             <button class="btn btn-outline" onclick="showPage('approvals',navItem('approvals'))">Review Approvals</button>
           </div>
         </div>
+        <div class="card">
+          <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;">
+            <span>📢 Current Announcements</span>
+            <button class="btn btn-outline btn-sm" onclick="loadActiveAnnouncements('dashboard-announcements-list')">&#128260; Refresh</button>
+          </div>
+          <div id="dashboard-announcements-list"><div style="color:var(--dusty-rose);font-size:13px;">Loading...</div></div>
+        </div>
       </div>
 
       <!-- EVENTS PAGE -->
@@ -1645,6 +1652,7 @@
       document.getElementById('stat-pending').textContent = pending.length;
       document.getElementById('stat-partners').textContent = preqs.length;
       document.getElementById('approval-count').textContent = pending.length;
+      loadActiveAnnouncements('dashboard-announcements-list');
     } catch(e){console.log(e);}
   }
 
@@ -3274,8 +3282,10 @@
     window.open(url, '_blank');
   }
 
-  async function loadActiveAnnouncements() {
-    const list = document.getElementById('active-announcements-list');
+  async function loadActiveAnnouncements(targetId) {
+    targetId = targetId || 'active-announcements-list';
+    const list = document.getElementById(targetId);
+    if (!list) return;
     list.innerHTML = '<div style="color:var(--dusty-rose);font-size:13px;">Loading...</div>';
     try {
       const res = await fs_get('announcements');
@@ -3289,7 +3299,7 @@
         const title = doc.fields?.title?.stringValue || '';
         const body = doc.fields?.body?.stringValue || '';
         const expires = doc.fields?.expiresAt?.stringValue ? new Date(doc.fields.expiresAt.stringValue).toLocaleDateString('en-US',{month:'short',day:'numeric'}) : 'No expiry';
-        return `<div id="aann-${id}" style="padding:14px;border-bottom:1px solid var(--linen);">
+        return `<div data-ann-id="${id}" style="padding:14px;border-bottom:1px solid var(--linen);">
           <div style="font-family:'Cinzel',serif;font-size:13px;color:var(--burgundy);margin-bottom:4px;">${title}</div>
           <div style="font-size:12px;color:var(--soil);line-height:1.5;margin-bottom:6px;">${body.substring(0,100)}${body.length>100?'...':''}</div>
           <div style="font-size:11px;color:var(--dusty-rose);margin-bottom:8px;">Expires ${expires}</div>
@@ -3320,7 +3330,7 @@
     if (!confirm('Delete this announcement?')) return;
     try {
       await fs_delete('announcements/' + id);
-      document.getElementById('aann-' + id)?.remove();
+      document.querySelectorAll('[data-ann-id="' + id + '"]').forEach(el => el.remove());
       showToast('Announcement deleted.', 'success');
     } catch(e) { showToast('Error deleting.', 'error'); }
   }
