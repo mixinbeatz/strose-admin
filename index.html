@@ -47,6 +47,14 @@
   .nav-item { display: flex; align-items: center; gap: 12px; padding: 11px 24px; color: rgba(255,255,255,0.7); font-size: 15px; cursor: pointer; transition: all 0.15s; border-left: 3px solid transparent; position: relative; }
   .nav-item:hover { background: rgba(255,255,255,0.06); color: var(--linen); }
   .nav-item.active { background: rgba(255,255,255,0.1); color: var(--gold); border-left-color: var(--gold); }
+  .nav-section-toggle { display: flex; align-items: center; justify-content: space-between; padding: 12px 24px 4px; font-size: 10px; letter-spacing: 2px; color: rgba(255,255,255,0.3); text-transform: uppercase; cursor: pointer; user-select: none; }
+  .nav-section-toggle:hover { color: rgba(255,255,255,0.55); }
+  .nav-chevron { font-size: 12px; transition: transform 0.15s; }
+  .nav-group { overflow: hidden; max-height: 2000px; transition: max-height 0.2s ease; }
+  .nav-group.collapsed { max-height: 0; }
+  .nav-group.collapsed + .nav-section-toggle .nav-chevron,
+  .nav-section-toggle.collapsed .nav-chevron { transform: rotate(-90deg); }
+  .nav-subsection { padding: 10px 24px 2px; font-size: 11px; letter-spacing: 0.5px; color: rgba(255,255,255,0.35); font-family: inherit; }
   .nav-icon { font-size: 18px; width: 20px; text-align: center; }
   .nav-badge { position: absolute; right: 20px; background: var(--gold); color: var(--burgundy); font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 20px; }
   .sidebar-footer { padding: 16px 24px; border-top: 1px solid rgba(255,255,255,0.1); }
@@ -273,39 +281,46 @@
       <div class="nav-section staff-only cheyanne-only">Overview</div>
       <div class="nav-item staff-only cheyanne-only active" onclick="showPage('dashboard',this)"><span class="nav-icon">⊞</span> Dashboard</div>
 
+      <!-- DIRECTORY & APPROVALS -->
+      <div class="nav-section-toggle collapsed staff-only cheyanne-only" onclick="toggleNavSection(this)"><span>Directory &amp; Approvals</span><span class="nav-chevron">▾</span></div>
+      <div class="nav-group collapsed">
+        <div class="nav-item staff-only cheyanne-only" onclick="showPage('approvals',this)"><span class="nav-icon">👥</span> Parish Family Approvals <span class="nav-badge" id="approval-count">0</span></div>
+        <div class="nav-item staff-only" onclick="showPage('event-requests',this)"><span class="nav-icon">📋</span> Event Requests <span class="nav-badge" id="event-req-count" style="display:none">0</span></div>
+        <div class="nav-item staff-only" onclick="showPage('directory',this)"><span class="nav-icon">📋</span> Parish Family Directory</div>
+      </div>
+
+      <!-- MINISTRIES -->
+      <div class="nav-section-toggle collapsed staff-only" onclick="toggleNavSection(this)"><span>Ministries</span><span class="nav-chevron">▾</span></div>
+      <div class="nav-group collapsed">
+        <div class="nav-subsection staff-only">Parish Development</div>
+        <div class="nav-item staff-only" onclick="showPage('parish-development',this);loadDevelopmentItems()"><span class="nav-icon">🖼️</span> Manage</div>
+
+        <div class="nav-subsection staff-only">Music Ministry</div>
+        <div class="nav-item staff-only" onclick="showPage('music-ministry',this)"><span class="nav-icon">🎵</span> Post to Music Ministry</div>
+        <div class="nav-item staff-only" onclick="showPage('songsheet',this)"><span class="nav-icon">🎵</span> Mass Songsheet</div>
+        <div class="nav-item staff-only" onclick="showPage('music-members',this)"><span class="nav-icon">👥</span> Music Members</div>
+
+        <div class="nav-subsection ministry-only" style="display:none">Catholic Daughters</div>
+        <div class="nav-item ministry-only" style="display:none" onclick="showPage('my-ministry',this);loadMyMinistry()"><span class="nav-icon">⛪</span> My Ministry</div>
+        <div class="nav-item ministry-only" style="display:none" onclick="showPage('ministry-post',this);loadMinistryPosts()"><span class="nav-icon">✝️</span> Post to Members</div>
+        <div class="nav-item ministry-only" style="display:none" onclick="showPage('cda-members',this)"><span class="nav-icon">👥</span> My Members</div>
+        <div class="nav-item ministry-only" style="display:none" onclick="showPage('prayer-chain',this)"><span class="nav-icon">🙏</span> Prayer Chain</div>
+        <div class="nav-item ministry-only" style="display:none" onclick="showPage('prayer-submissions',this)"><span class="nav-icon">📬</span> Submissions <span class="nav-badge" id="prayer-sub-count" style="display:none">0</span></div>
+        <div class="nav-item ministry-only" style="display:none" onclick="showPage('submit-event',this)"><span class="nav-icon">📅</span> Submit Event</div>
+      </div>
+
       <!-- CONTENT — Matt sees everything; Cheyanne sees her specific set in her order -->
-      <div class="nav-section staff-only cheyanne-only">Content</div>
-      <div class="nav-item staff-only" onclick="showPage('events',this)"><span class="nav-icon">📅</span> Events</div>
-      <div class="nav-item staff-only cheyanne-only" onclick="showPage('fastblast',this)"><span class="nav-icon">🔔</span> Fast Blast</div>
-      <div class="nav-item staff-only" onclick="showPage('parish-development',this);loadDevelopmentItems()"><span class="nav-icon">🖼️</span> Parish Development</div>
-      <div class="nav-item staff-only cheyanne-only" onclick="showPage('announcement',this)"><span class="nav-icon">📢</span> Post Announcement</div>
-      <div class="nav-item staff-only cheyanne-only" onclick="showPage('poll',this)"><span class="nav-icon">📊</span> Parish Voice Poll</div>
-      <div class="nav-item staff-only cheyanne-only" onclick="showPage('reflection',this)"><span class="nav-icon">📖</span> Weekly Reflection</div>
-      <div class="nav-item staff-only cheyanne-only" onclick="showPage('daily',this)"><span class="nav-icon">✝</span> Daily Reflection</div>
-      <div class="nav-item staff-only cheyanne-only" onclick="showPage('intention',this)"><span class="nav-icon">🕯️</span> Mass Intentions</div>
-      <div class="nav-item staff-only cheyanne-only" onclick="showPage('welcome',this)"><span class="nav-icon">🌹</span> Welcome Message</div>
-
-      <!-- MINISTRY LEADER (CDA etc) -->
-      <div class="nav-section ministry-only" style="display:none">Catholic Daughters</div>
-      <div class="nav-item ministry-only" style="display:none" onclick="showPage('my-ministry',this);loadMyMinistry()"><span class="nav-icon">⛪</span> My Ministry</div>
-      <div class="nav-item ministry-only" style="display:none" onclick="showPage('ministry-post',this);loadMinistryPosts()"><span class="nav-icon">✝️</span> Post to Members</div>
-      <div class="nav-item ministry-only" style="display:none" onclick="showPage('cda-members',this)"><span class="nav-icon">👥</span> My Members</div>
-      <div class="nav-item ministry-only" style="display:none" onclick="showPage('prayer-chain',this)"><span class="nav-icon">🙏</span> Prayer Chain</div>
-      <div class="nav-item ministry-only" style="display:none" onclick="showPage('prayer-submissions',this)"><span class="nav-icon">📬</span> Submissions <span class="nav-badge" id="prayer-sub-count" style="display:none">0</span></div>
-      <div class="nav-item ministry-only" style="display:none" onclick="showPage('submit-event',this)"><span class="nav-icon">📅</span> Submit Event</div>
-
-      <!-- MUSIC MINISTRY — Matt only (includes Songsheet) -->
-      <div class="nav-section staff-only">Music Ministry</div>
-      <div class="nav-item staff-only" onclick="showPage('music-ministry',this)"><span class="nav-icon">🎵</span> Post to Music Ministry</div>
-      <div class="nav-item staff-only" onclick="showPage('songsheet',this)"><span class="nav-icon">🎵</span> Mass Songsheet</div>
-      <div class="nav-item staff-only" onclick="showPage('music-members',this)"><span class="nav-icon">👥</span> Music Members</div>
-
-      <!-- DIRECTORY — Matt + Cheyanne -->
-      <div class="nav-section staff-only cheyanne-only">Directory</div>
-      <div class="nav-item staff-only cheyanne-only" onclick="showPage('approvals',this)"><span class="nav-icon">👥</span> Parish Family Approvals <span class="nav-badge" id="approval-count">0</span></div>
-      <div class="nav-item staff-only" onclick="showPage('partners',this)"><span class="nav-icon">🏢</span> Partner Requests <span class="nav-badge" id="partner-count">0</span></div>
-      <div class="nav-item staff-only" onclick="showPage('event-requests',this)"><span class="nav-icon">📋</span> Event Requests <span class="nav-badge" id="event-req-count" style="display:none">0</span></div>
-      <div class="nav-item staff-only" onclick="showPage('directory',this)"><span class="nav-icon">📋</span> Parish Family Directory</div>
+      <div class="nav-section-toggle collapsed staff-only cheyanne-only" onclick="toggleNavSection(this)"><span>Content</span><span class="nav-chevron">▾</span></div>
+      <div class="nav-group collapsed">
+        <div class="nav-item staff-only" onclick="showPage('events',this)"><span class="nav-icon">📅</span> Events</div>
+        <div class="nav-item staff-only cheyanne-only" onclick="showPage('fastblast',this)"><span class="nav-icon">🔔</span> Fast Blast</div>
+        <div class="nav-item staff-only cheyanne-only" onclick="showPage('announcement',this)"><span class="nav-icon">📢</span> Post Announcement</div>
+        <div class="nav-item staff-only cheyanne-only" onclick="showPage('poll',this)"><span class="nav-icon">📊</span> Parish Voice Poll</div>
+        <div class="nav-item staff-only cheyanne-only" onclick="showPage('reflection',this)"><span class="nav-icon">📖</span> Weekly Reflection</div>
+        <div class="nav-item staff-only cheyanne-only" onclick="showPage('daily',this)"><span class="nav-icon">✝</span> Daily Reflection</div>
+        <div class="nav-item staff-only cheyanne-only" onclick="showPage('intention',this)"><span class="nav-icon">🕯️</span> Mass Intentions</div>
+        <div class="nav-item staff-only cheyanne-only" onclick="showPage('welcome',this)"><span class="nav-icon">🌹</span> Welcome Message</div>
+      </div>
     </nav>
     <div class="sidebar-footer">
       <button class="signout-btn" onclick="signOut()">Sign Out</button>
@@ -1376,6 +1391,11 @@
 
   // Finds a sidebar nav item by the page id it navigates to (e.g. navItem('approvals')).
   // Safer than a hardcoded array index, which silently breaks whenever role-gated nav items are added/removed/reordered.
+  function toggleNavSection(el) {
+    el.classList.toggle('collapsed');
+    const group = el.nextElementSibling;
+    if (group && group.classList.contains('nav-group')) group.classList.toggle('collapsed');
+  }
   function navItem(id) { return document.querySelector(`.nav-item[onclick*="showPage('${id}'"]`); }
   function openSidebar() { document.getElementById('sidebar').classList.add('open'); document.getElementById('sidebar-overlay').classList.add('active'); document.body.style.overflow='hidden'; }
   function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebar-overlay').classList.remove('active'); document.body.style.overflow=''; }
