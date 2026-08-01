@@ -1922,12 +1922,13 @@
   }
 
   // ── REFLECTION ──
-  function loadReflectionIntoForm() {
-    if (!window._currentReflection) return;
-    document.getElementById('ref-heading').value = window._currentReflection.title || '';
-    document.getElementById('ref-author').value = window._currentReflection.author || '';
-    document.getElementById('ref-body').value = window._currentReflection.body || '';
-    document.getElementById('ref-liturgical').value = window._currentReflection.liturgicalDate || '';
+  function loadReflectionIntoForm(isLive) {
+    const r = isLive ? window._liveReflection : window._scheduledReflection;
+    if (!r) return;
+    document.getElementById('ref-heading').value = r.title || '';
+    document.getElementById('ref-author').value = r.author || '';
+    document.getElementById('ref-body').value = r.body || '';
+    document.getElementById('ref-liturgical').value = r.liturgicalDate || '';
   }
   function renderReflectionCard(r, isLive) {
     const title=gf(r,'heading')||'(no title)';
@@ -1945,7 +1946,7 @@
       '<div style="font-family:Cinzel,serif;font-size:14px;color:var(--burgundy);margin-bottom:4px;">' + title + '</div>' +
       '<div style="font-size:13px;color:var(--dusty-rose);margin-bottom:8px;">' + author + (updatedLabel?' &middot; Updated '+updatedLabel:'') + '</div>' +
       '<div style="font-size:14px;color:var(--soil);line-height:1.6;">' + body.substring(0,300) + (body.length>300?'...':'') + '</div>' +
-      '<button onclick="loadReflectionIntoForm()" style="margin-top:12px;background:none;border:1px solid var(--linen);border-radius:8px;padding:6px 14px;font-size:13px;cursor:pointer;color:var(--soil);">Load into form to edit</button>' +
+      '<button onclick="loadReflectionIntoForm(' + isLive + ')" style="margin-top:12px;background:none;border:1px solid var(--linen);border-radius:8px;padding:6px 14px;font-size:13px;cursor:pointer;color:var(--soil);">Load into form to edit</button>' +
       '</div>';
   }
   async function loadCurrentReflection() {
@@ -1962,16 +1963,18 @@
         .sort((a,b) => (gf(a,'publishAt')||'').localeCompare(gf(b,'publishAt')||''));
       if(liveDocs.length>0){
         const r=liveDocs[0];
-        window._currentReflection = {title: gf(r,'heading'), author: gf(r,'author'), body: gf(r,'body'), liturgicalDate: gf(r,'liturgicalDate'), publishAt: gf(r,'publishAt')};
+        window._liveReflection = {title: gf(r,'heading'), author: gf(r,'author'), body: gf(r,'body'), liturgicalDate: gf(r,'liturgicalDate'), publishAt: gf(r,'publishAt')};
         if(currentEl) currentEl.innerHTML = renderReflectionCard(r, true);
       } else {
+        window._liveReflection = null;
         if(currentEl) currentEl.innerHTML='<div style="color:var(--dusty-rose);font-size:14px;">No reflection currently live.</div>';
       }
       if(futureDocs.length>0){
         if(scheduledCard) scheduledCard.style.display='block';
         if(scheduledEl) scheduledEl.innerHTML = renderReflectionCard(futureDocs[0], false);
-        if(liveDocs.length===0) window._currentReflection = {title: gf(futureDocs[0],'heading'), author: gf(futureDocs[0],'author'), body: gf(futureDocs[0],'body'), liturgicalDate: gf(futureDocs[0],'liturgicalDate'), publishAt: gf(futureDocs[0],'publishAt')};
+        window._scheduledReflection = {title: gf(futureDocs[0],'heading'), author: gf(futureDocs[0],'author'), body: gf(futureDocs[0],'body'), liturgicalDate: gf(futureDocs[0],'liturgicalDate'), publishAt: gf(futureDocs[0],'publishAt')};
       } else {
+        window._scheduledReflection = null;
         if(scheduledCard) scheduledCard.style.display='none';
       }
     } catch(e){showToast('Error loading.','error');}
