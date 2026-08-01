@@ -1273,9 +1273,9 @@
   }
 
   // Attaches the current ID token to a Firestore/API call. Use this once portal reads/writes require auth (re-lock step).
-  function authedFetch(url, options) {
+  async function authedFetch(url, options) {
     options = options || {};
-    const token = localStorage.getItem('authIdToken');
+    const token = await getValidIdToken();
     if (!token) return fetch(url, options);
     options.headers = Object.assign({}, options.headers, { Authorization: 'Bearer ' + token });
     return fetch(url, options);
@@ -1447,15 +1447,47 @@
     return null;
   }
 
-  function authHeaders(extra) {
+  async function refreshIdToken() {
+    const refreshToken = localStorage.getItem('authRefreshToken');
+    if (!refreshToken) return null;
+    try {
+      const res = await fetch(`https://securetoken.googleapis.com/v1/token?key=${API_KEY}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+        body: `grant_type=refresh_token&refresh_token=${refreshToken}`
+      });
+      const data = await res.json();
+      if (!res.ok) { clearSession(); return null; }
+      localStorage.setItem('authIdToken', data.id_token);
+      localStorage.setItem('authRefreshToken', data.refresh_token);
+      currentClaims = decodeJwt(data.id_token);
+      currentUser = currentClaims.email || '';
+      return data.id_token;
+    } catch (e) { return null; }
+  }
+  // Returns a valid (non-expired) ID token, silently refreshing via the stored
+  // refresh token if the current one is expired or expiring within 5 minutes.
+  async function getValidIdToken() {
     const token = localStorage.getItem('authIdToken');
+    if (!token) return null;
+    try {
+      const claims = decodeJwt(token);
+      if (claims.exp && claims.exp * 1000 < Date.now() + 5 * 60 * 1000) {
+        const newToken = await refreshIdToken();
+        return newToken || token;
+      }
+      return token;
+    } catch (e) { return token; }
+  }
+  async function authHeaders(extra) {
+    const token = await getValidIdToken();
     return token ? Object.assign({ Authorization: 'Bearer ' + token }, extra || {}) : (extra || {});
   }
-  async function fs_get(col) { const r=await fetch(`${BASE}/${col}?key=${API_KEY}&pageSize=100`,{headers:authHeaders()}); return await r.json(); }
-  async function fs_get_doc(path) { const r=await fetch(`${BASE}/${path}?key=${API_KEY}`,{headers:authHeaders()}); return await r.json(); }
-  async function fs_post(col,fields) { const r=await fetch(`${BASE}/${col}?key=${API_KEY}`,{method:'POST',headers:authHeaders({'Content-Type':'application/json'}),body:JSON.stringify({fields})}); return await r.json(); }
-  async function fs_patch(path,fields) { const mask=Object.keys(fields).map(f=>`updateMask.fieldPaths=${f}`).join('&'); const r=await fetch(`${BASE}/${path}?key=${API_KEY}&${mask}`,{method:'PATCH',headers:authHeaders({'Content-Type':'application/json'}),body:JSON.stringify({fields})}); return await r.json(); }
-  async function fs_delete(path) { await fetch(`${BASE}/${path}?key=${API_KEY}`,{method:'DELETE',headers:authHeaders()}); }
+  async function fs_get(col) { const r=await fetch(`${BASE}/${col}?key=${API_KEY}&pageSize=100`,{headers:await authHeaders()}); return await r.json(); }
+  async function fs_get_doc(path) { const r=await fetch(`${BASE}/${path}?key=${API_KEY}`,{headers:await authHeaders()}); return await r.json(); }
+  async function fs_post(col,fields) { const r=await fetch(`${BASE}/${col}?key=${API_KEY}`,{method:'POST',headers:await authHeaders({'Content-Type':'application/json'}),body:JSON.stringify({fields})}); return await r.json(); }
+  async function fs_patch(path,fields) { const mask=Object.keys(fields).map(f=>`updateMask.fieldPaths=${f}`).join('&'); const r=await fetch(`${BASE}/${path}?key=${API_KEY}&${mask}`,{method:'PATCH',headers:await authHeaders({'Content-Type':'application/json'}),body:JSON.stringify({fields})}); return await r.json(); }
+  async function fs_delete(path) { await fetch(`${BASE}/${path}?key=${API_KEY}`,{method:'DELETE',headers:await authHeaders()}); }
   function gf(doc,key) { const f=doc.fields?.[key]; if(!f) return ''; if(f.booleanValue!==undefined) return f.booleanValue; return f.stringValue??f.integerValue??''; }
   // Safely embed user-entered text inside a single-quoted JS string AND a double-quoted HTML attribute (e.g. onclick="fn('${escAttr(name)}')").
   // Fixes names/titles containing a double quote (e.g. Robert "Bob" Smith) breaking the onclick attribute and crashing the button.
