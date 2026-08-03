@@ -937,19 +937,24 @@
       </div>
       <div class="page" id="page-gallery">
         <div class="card">
+          <div class="card-title">👁️ Live Preview</div>
+          <div class="info-box">This mirrors how the section looks on the homepage right now, including anything you haven't saved yet.</div>
+          <div id="gallery-preview" style="background:#3D0F1E;padding:40px;border-radius:8px;"></div>
+        </div>
+        <div class="card">
           <div class="card-title">🖼️ Homepage Gallery</div>
-          <div class="info-box">This section's text and photos appear on the website homepage. Leave any field blank to keep the site's current default.</div>
+          <div class="info-box">This section's text and photos appear on the website homepage.</div>
           <div class="form-group">
             <label class="form-label">Eyebrow (small text above heading)</label>
-            <input type="text" class="form-input" id="gallery-text-eyebrow" placeholder="e.g. OUR PERMANENT HOME" />
+            <input type="text" class="form-input" id="gallery-text-eyebrow" placeholder="e.g. OUR PERMANENT HOME" oninput="renderGalleryPreview()" />
           </div>
           <div class="form-group">
             <label class="form-label">Heading</label>
-            <textarea class="form-input" id="gallery-text-title" rows="2" placeholder="e.g. The New Church of Saint Rose Philippine Duchesne"></textarea>
+            <textarea class="form-input" id="gallery-text-title" rows="2" placeholder="e.g. The New Church of Saint Rose Philippine Duchesne" oninput="renderGalleryPreview()"></textarea>
           </div>
           <div class="form-group">
             <label class="form-label">Body paragraph</label>
-            <textarea class="form-input" id="gallery-text-body" rows="4" placeholder="Paste the section's paragraph text here..."></textarea>
+            <textarea class="form-input" id="gallery-text-body" rows="4" placeholder="Paste the section's paragraph text here..." oninput="renderGalleryPreview()"></textarea>
           </div>
           <div class="btn-row">
             <button class="btn btn-primary" onclick="saveGalleryText()">Save Text</button>
@@ -3604,7 +3609,39 @@
     { key: 'slot4', label: 'Bottom Left' },
     { key: 'slot5', label: 'Bottom Right' },
   ];
+  const GALLERY_DEFAULT_TEXT = {
+    eyebrow: 'OUR PERMANENT HOME',
+    title: 'The New Church of\nSaint Rose Philippine Duchesne',
+    body: 'Dedicated on May 13, 2026, our new church building is the culmination of years of prayer, sacrifice, and generosity. Bishop Dolan blessed this sacred space as our permanent home — a place where generations will come to worship, celebrate the sacraments, and encounter the living God.',
+  };
+  const GALLERY_DEFAULT_IMAGES = {
+    slot1: 'https://mixinbeatz.github.io/strose-website/images/hero-exterior.jpeg',
+    slot2: 'https://mixinbeatz.github.io/strose-website/images/retablo-full.jpeg',
+    slot3: 'https://mixinbeatz.github.io/strose-website/images/crucifix-detail.jpeg',
+    slot4: 'https://mixinbeatz.github.io/strose-website/images/crucifix.jpg',
+    slot5: 'https://mixinbeatz.github.io/strose-website/images/Roseicon.jpg',
+  };
   let galleryData = {};
+  function renderGalleryPreview() {
+    const el = document.getElementById('gallery-preview');
+    if (!el) return;
+    const eyebrow = document.getElementById('gallery-text-eyebrow')?.value || GALLERY_DEFAULT_TEXT.eyebrow;
+    const title = document.getElementById('gallery-text-title')?.value || GALLERY_DEFAULT_TEXT.title;
+    const body = document.getElementById('gallery-text-body')?.value || GALLERY_DEFAULT_TEXT.body;
+    const imgs = GALLERY_SLOTS.map(s => (galleryData[s.key] && galleryData[s.key].url) || GALLERY_DEFAULT_IMAGES[s.key]);
+    el.innerHTML = `
+      <div style="font-family:'Cinzel',serif;font-size:10px;letter-spacing:4px;color:var(--dusty-rose);margin-bottom:12px;">${escHtml(eyebrow)}</div>
+      <div style="font-family:'Cinzel',serif;font-size:26px;color:var(--gold);line-height:1.25;margin-bottom:16px;">${escHtml(title).replace(/\n/g,'<br>')}</div>
+      <div style="font-size:14px;line-height:1.7;color:rgba(232,221,208,0.8);max-width:480px;margin-bottom:24px;">${escHtml(body)}</div>
+      <div style="display:grid;grid-template-columns:2fr 1fr 1fr;grid-template-rows:110px 110px;gap:8px;">
+        <div style="grid-row:span 2;border-radius:4px;overflow:hidden;"><img src="${imgs[0]}" style="width:100%;height:100%;object-fit:cover;" /></div>
+        <div style="border-radius:4px;overflow:hidden;"><img src="${imgs[1]}" style="width:100%;height:100%;object-fit:cover;" /></div>
+        <div style="border-radius:4px;overflow:hidden;"><img src="${imgs[2]}" style="width:100%;height:100%;object-fit:cover;" /></div>
+        <div style="border-radius:4px;overflow:hidden;"><img src="${imgs[3]}" style="width:100%;height:100%;object-fit:cover;" /></div>
+        <div style="border-radius:4px;overflow:hidden;"><img src="${imgs[4]}" style="width:100%;height:100%;object-fit:cover;" /></div>
+      </div>
+    `;
+  }
   async function loadGallery() {
     try {
       const res = await fs_get('siteContent/gallery');
@@ -3615,12 +3652,15 @@
           alt: res.fields?.[s.key + 'Alt']?.stringValue || '',
         };
       });
-      document.getElementById('gallery-text-eyebrow').value = res.fields?.textEyebrow?.stringValue || '';
-      document.getElementById('gallery-text-title').value = res.fields?.textTitle?.stringValue || '';
-      document.getElementById('gallery-text-body').value = res.fields?.textBody?.stringValue || '';
+      document.getElementById('gallery-text-eyebrow').value = res.fields?.textEyebrow?.stringValue || GALLERY_DEFAULT_TEXT.eyebrow;
+      document.getElementById('gallery-text-title').value = res.fields?.textTitle?.stringValue || GALLERY_DEFAULT_TEXT.title;
+      document.getElementById('gallery-text-body').value = res.fields?.textBody?.stringValue || GALLERY_DEFAULT_TEXT.body;
     } catch(e) {
       galleryData = {};
       GALLERY_SLOTS.forEach(s => { galleryData[s.key] = { url: '', alt: '' }; });
+      document.getElementById('gallery-text-eyebrow').value = GALLERY_DEFAULT_TEXT.eyebrow;
+      document.getElementById('gallery-text-title').value = GALLERY_DEFAULT_TEXT.title;
+      document.getElementById('gallery-text-body').value = GALLERY_DEFAULT_TEXT.body;
     }
     renderGallerySlots();
   }
@@ -3656,6 +3696,7 @@
         </div>
       </div>`;
     }).join('');
+    renderGalleryPreview();
   }
   async function handleGalleryUpload(slotKey, input) {
     const file = input.files[0];
