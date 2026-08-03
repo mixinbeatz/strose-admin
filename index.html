@@ -337,6 +337,7 @@
       <div class="nav-section-toggle collapsed staff-only" onclick="toggleNavSection(this)"><span>Media</span><span class="nav-chevron">▾</span></div>
       <div class="nav-group collapsed">
         <div class="nav-item staff-only" onclick="showPage('gallery',this);loadGallery()"><span class="nav-icon">🖼️</span> Homepage Gallery</div>
+        <div class="nav-item staff-only" onclick="showPage('around-parish',this);loadAroundParish()"><span class="nav-icon">📸</span> Around the Parish</div>
       </div>
     </nav>
     <div class="sidebar-footer">
@@ -935,6 +936,37 @@
           <div class="post-success" id="welcome-success">✓ Welcome message saved.</div>
         </div>
       </div>
+      <div class="page" id="page-around-parish">
+        <div class="card">
+          <div class="card-title">👁️ Live Preview</div>
+          <div class="info-box">This mirrors how the section looks on the homepage right now, including anything you haven't saved yet.</div>
+          <div id="around-parish-preview" style="background:var(--linen);padding:40px;border-radius:8px;"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">📸 Around the Parish</div>
+          <div class="info-box">This section appears on the website homepage, after Dedication Day. Change the photos and text anytime — perfect for keeping the site fresh with recent parish life (Bingo Night now, Christmas later, etc).</div>
+          <div class="form-group">
+            <label class="form-label">Eyebrow (small text above heading)</label>
+            <input type="text" class="form-input" id="around-parish-text-eyebrow" placeholder="e.g. COMMUNITY LIFE" oninput="renderAroundParishPreview()" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Heading</label>
+            <textarea class="form-input" id="around-parish-text-title" rows="2" placeholder="e.g. Around the Parish" oninput="renderAroundParishPreview()"></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Body paragraph</label>
+            <textarea class="form-input" id="around-parish-text-body" rows="4" placeholder="What's this set of photos about?" oninput="renderAroundParishPreview()"></textarea>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-primary" onclick="saveAroundParishText()">Save Text</button>
+          </div>
+          <div class="post-success" id="around-parish-text-success">✓ Text saved.</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Photos</div>
+          <div id="around-parish-slots"></div>
+        </div>
+      </div>
       <div class="page" id="page-gallery">
         <div class="card">
           <div class="card-title">👁️ Live Preview</div>
@@ -1456,7 +1488,7 @@
     if(el) el.classList.add('active');
     window.scrollTo(0,0);
     closeSidebar();
-    const titles = {dashboard:'Dashboard',events:'Events',announcement:'Post Announcement',fastblast:'Fast Blast',reflection:'Weekly Reflection','parish-development':'Parish Development',daily:'Daily Reflection',songsheet:'Mass Songsheet',welcome:'Welcome Message',gallery:'Homepage Gallery','music-ministry':'Music Ministry','music-members':'Music Ministry Members',approvals:'Parish Family Approvals',partners:'Partner Requests',directory:'Parish Family Directory','ministry-post':'Post to Members','cda-members':'My Members','prayer-chain':'Prayer Chain','prayer-submissions':'Prayer Submissions','submit-event':'Submit Event','event-requests':'Event Requests',intention:'Mass Intentions','my-ministry':'My Ministry'};
+    const titles = {dashboard:'Dashboard',events:'Events',announcement:'Post Announcement',fastblast:'Fast Blast',reflection:'Weekly Reflection','parish-development':'Parish Development',daily:'Daily Reflection',songsheet:'Mass Songsheet',welcome:'Welcome Message',gallery:'Homepage Gallery','around-parish':'Around the Parish','music-ministry':'Music Ministry','music-members':'Music Ministry Members',approvals:'Parish Family Approvals',partners:'Partner Requests',directory:'Parish Family Directory','ministry-post':'Post to Members','cda-members':'My Members','prayer-chain':'Prayer Chain','prayer-submissions':'Prayer Submissions','submit-event':'Submit Event','event-requests':'Event Requests',intention:'Mass Intentions','my-ministry':'My Ministry'};
     document.getElementById('page-title').textContent = titles[id]||id;
     var mpt = document.getElementById('mobile-page-title'); if(mpt) mpt.textContent = titles[id]||id;
     if(id==='approvals') loadApprovals();
@@ -3733,6 +3765,140 @@
       renderGallerySlots();
       showToast('Reset to default.', 'success');
     } catch(e) { showToast('Error.', 'error'); }
+  }
+  // ── AROUND THE PARISH ── (same pattern as Homepage Gallery, own Firestore doc)
+  const AROUND_PARISH_SLOTS = [
+    { key: 'slot1', label: 'Main' },
+    { key: 'slot2', label: 'Top Left' },
+    { key: 'slot3', label: 'Top Right' },
+    { key: 'slot4', label: 'Bottom Left' },
+    { key: 'slot5', label: 'Bottom Right' },
+  ];
+  const AROUND_PARISH_DEFAULT_TEXT = {
+    eyebrow: 'COMMUNITY LIFE',
+    title: 'Around the Parish',
+    body: "A look at what's happening in our community — updated throughout the year.",
+  };
+  const AROUND_PARISH_DEFAULT_IMAGES = {
+    slot1: 'https://mixinbeatz.github.io/strose-website/images/Roseicon.jpg',
+    slot2: 'https://mixinbeatz.github.io/strose-website/images/Roseicon.jpg',
+    slot3: 'https://mixinbeatz.github.io/strose-website/images/Roseicon.jpg',
+    slot4: 'https://mixinbeatz.github.io/strose-website/images/Roseicon.jpg',
+    slot5: 'https://mixinbeatz.github.io/strose-website/images/Roseicon.jpg',
+  };
+  let aroundParishData = {};
+  function renderAroundParishPreview() {
+    const el = document.getElementById('around-parish-preview');
+    if (!el) return;
+    const eyebrow = document.getElementById('around-parish-text-eyebrow')?.value || AROUND_PARISH_DEFAULT_TEXT.eyebrow;
+    const title = document.getElementById('around-parish-text-title')?.value || AROUND_PARISH_DEFAULT_TEXT.title;
+    const body = document.getElementById('around-parish-text-body')?.value || AROUND_PARISH_DEFAULT_TEXT.body;
+    const imgs = AROUND_PARISH_SLOTS.map(s => (aroundParishData[s.key] && aroundParishData[s.key].url) || AROUND_PARISH_DEFAULT_IMAGES[s.key]);
+    el.innerHTML = `
+      <div style="font-family:'Cinzel',serif;font-size:10px;letter-spacing:4px;color:var(--dusty-rose);margin-bottom:12px;">${escHtml(eyebrow)}</div>
+      <div style="font-family:'Cinzel',serif;font-size:26px;color:var(--burgundy);line-height:1.25;margin-bottom:16px;">${escHtml(title).replace(/\n/g,'<br>')}</div>
+      <div style="font-size:14px;line-height:1.7;color:var(--soil);opacity:0.85;max-width:480px;margin-bottom:24px;">${escHtml(body)}</div>
+      <div style="display:grid;grid-template-columns:3fr 1fr 1fr;grid-template-rows:140px 80px;gap:8px;">
+        <div style="grid-row:span 2;border-radius:4px;overflow:hidden;"><img src="${imgs[0]}" style="width:100%;height:100%;object-fit:cover;" /></div>
+        <div style="border-radius:4px;overflow:hidden;"><img src="${imgs[1]}" style="width:100%;height:100%;object-fit:cover;" /></div>
+        <div style="border-radius:4px;overflow:hidden;"><img src="${imgs[2]}" style="width:100%;height:100%;object-fit:cover;" /></div>
+        <div style="border-radius:4px;overflow:hidden;"><img src="${imgs[3]}" style="width:100%;height:100%;object-fit:cover;" /></div>
+        <div style="border-radius:4px;overflow:hidden;"><img src="${imgs[4]}" style="width:100%;height:100%;object-fit:cover;" /></div>
+      </div>
+    `;
+  }
+  async function loadAroundParish() {
+    try {
+      const res = await fs_get('siteContent/aroundParish');
+      aroundParishData = {};
+      AROUND_PARISH_SLOTS.forEach(s => {
+        aroundParishData[s.key] = {
+          url: res.fields?.[s.key + 'Url']?.stringValue || '',
+          alt: res.fields?.[s.key + 'Alt']?.stringValue || '',
+        };
+      });
+      document.getElementById('around-parish-text-eyebrow').value = res.fields?.textEyebrow?.stringValue || AROUND_PARISH_DEFAULT_TEXT.eyebrow;
+      document.getElementById('around-parish-text-title').value = res.fields?.textTitle?.stringValue || AROUND_PARISH_DEFAULT_TEXT.title;
+      document.getElementById('around-parish-text-body').value = res.fields?.textBody?.stringValue || AROUND_PARISH_DEFAULT_TEXT.body;
+    } catch(e) {
+      aroundParishData = {};
+      AROUND_PARISH_SLOTS.forEach(s => { aroundParishData[s.key] = { url: '', alt: '' }; });
+      document.getElementById('around-parish-text-eyebrow').value = AROUND_PARISH_DEFAULT_TEXT.eyebrow;
+      document.getElementById('around-parish-text-title').value = AROUND_PARISH_DEFAULT_TEXT.title;
+      document.getElementById('around-parish-text-body').value = AROUND_PARISH_DEFAULT_TEXT.body;
+    }
+    renderAroundParishSlots();
+  }
+  function renderAroundParishSlots() {
+    const el = document.getElementById('around-parish-slots');
+    if (!el) return;
+    el.innerHTML = AROUND_PARISH_SLOTS.map(s => {
+      const data = aroundParishData[s.key] || { url: '', alt: '' };
+      const displayUrl = data.url || AROUND_PARISH_DEFAULT_IMAGES[s.key];
+      return `<div style="border:1px solid var(--linen);border-radius:10px;padding:16px;margin-bottom:14px;display:flex;gap:16px;align-items:center;">
+        <div style="width:100px;height:70px;border-radius:6px;background:var(--linen);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;">
+          <img src="${displayUrl}" style="width:100%;height:100%;object-fit:cover;" onclick="openLightbox('${displayUrl}')" />
+        </div>
+        <div style="flex:1;">
+          <div style="font-family:'Cinzel',serif;font-size:13px;color:var(--burgundy);margin-bottom:6px;">${s.label}${!data.url ? ' <span style=\"color:var(--dusty-rose);font-weight:400;\">(placeholder)</span>' : ''}</div>
+          <input type="text" class="form-input" placeholder="Alt text (optional)" value="${data.alt.replace(/"/g,'&quot;')}" onchange="saveAroundParishAlt('${s.key}',this.value)" style="margin-bottom:8px;font-size:13px;" />
+          <label class="btn btn-outline btn-sm" style="cursor:pointer;">
+            Replace Photo
+            <input type="file" accept="image/*" style="display:none;" onchange="handleAroundParishUpload('${s.key}',this)" />
+          </label>
+          ${data.url ? `<button class="btn btn-outline btn-sm" onclick="clearAroundParishSlot('${s.key}')" style="margin-left:8px;">Clear</button>` : ''}
+        </div>
+      </div>`;
+    }).join('');
+    renderAroundParishPreview();
+  }
+  async function handleAroundParishUpload(slotKey, input) {
+    const file = input.files[0];
+    if (!file) return;
+    try {
+      const base64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = e => resolve(e.target.result.split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      const url = await uploadDevFile(base64, file.name, 'around-parish', file.type);
+      await fs_patch('siteContent/aroundParish', { [slotKey + 'Url']: { stringValue: url } });
+      aroundParishData[slotKey] = aroundParishData[slotKey] || { url: '', alt: '' };
+      aroundParishData[slotKey].url = url;
+      renderAroundParishSlots();
+      showToast('Photo updated!', 'success');
+    } catch(e) { showToast('Upload failed.', 'error'); }
+  }
+  async function saveAroundParishAlt(slotKey, value) {
+    try {
+      await fs_patch('siteContent/aroundParish', { [slotKey + 'Alt']: { stringValue: value } });
+      aroundParishData[slotKey] = aroundParishData[slotKey] || { url: '', alt: '' };
+      aroundParishData[slotKey].alt = value;
+      showToast('Alt text saved.', 'success');
+    } catch(e) { showToast('Error saving.', 'error'); }
+  }
+  async function clearAroundParishSlot(slotKey) {
+    if (!confirm('Clear this photo and go back to the placeholder?')) return;
+    try {
+      await fs_patch('siteContent/aroundParish', { [slotKey + 'Url']: { stringValue: '' } });
+      aroundParishData[slotKey] = aroundParishData[slotKey] || { url: '', alt: '' };
+      aroundParishData[slotKey].url = '';
+      renderAroundParishSlots();
+      showToast('Cleared.', 'success');
+    } catch(e) { showToast('Error.', 'error'); }
+  }
+  async function saveAroundParishText() {
+    try {
+      await fs_patch('siteContent/aroundParish', {
+        textEyebrow: { stringValue: document.getElementById('around-parish-text-eyebrow').value.trim() },
+        textTitle: { stringValue: document.getElementById('around-parish-text-title').value.trim() },
+        textBody: { stringValue: document.getElementById('around-parish-text-body').value.trim() },
+      });
+      document.getElementById('around-parish-text-success').style.display = 'block';
+      setTimeout(() => document.getElementById('around-parish-text-success').style.display = 'none', 3000);
+      showToast('Text saved!', 'success');
+    } catch(e) { showToast('Error saving.', 'error'); }
   }
 
 
