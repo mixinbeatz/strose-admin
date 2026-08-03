@@ -113,6 +113,18 @@
   .lightbox img { max-width: 80vw; max-height: 80vh; border-radius: 16px; box-shadow: 0 24px 80px rgba(0,0,0,0.5); }
   .lightbox-close { position: absolute; top: 24px; right: 32px; color: white; font-size: 36px; cursor: pointer; opacity: 0.7; }
   .lightbox-close:hover { opacity: 1; }
+  .profile-modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 9999; align-items: center; justify-content: center; padding: 20px; }
+  .profile-modal.show { display: flex; }
+  .profile-modal-card { background: var(--white); border-radius: 12px; max-width: 480px; width: 100%; max-height: 85vh; overflow-y: auto; padding: 32px; position: relative; }
+  .profile-modal-close { position: absolute; top: 16px; right: 20px; font-size: 28px; cursor: pointer; color: var(--dusty-rose); line-height: 1; }
+  .profile-modal-close:hover { color: var(--burgundy); }
+  .profile-modal-avatar { width: 80px; height: 80px; border-radius: 40px; margin: 0 auto 16px; display: block; object-fit: cover; }
+  .profile-modal-name { font-family: 'Cinzel', serif; font-size: 20px; color: var(--burgundy); text-align: center; margin-bottom: 4px; }
+  .profile-modal-email { font-size: 13px; color: var(--dusty-rose); text-align: center; margin-bottom: 20px; }
+  .profile-modal-row { padding: 10px 0; border-bottom: 1px solid var(--linen); font-size: 13px; }
+  .profile-modal-row:last-child { border-bottom: none; }
+  .profile-modal-label { color: var(--dusty-rose); font-size: 10px; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 3px; }
+  .profile-modal-value { color: var(--soil); line-height: 1.5; }
   .approval-info { flex: 1; }
   .approval-name { font-family: 'Cinzel', serif; font-size: 16px; color: var(--burgundy); margin-bottom: 3px; }
   .approval-meta { font-size: 13px; color: var(--dusty-rose); margin-bottom: 4px; }
@@ -1214,6 +1226,12 @@
 <div class="lightbox" id="lightbox" onclick="closeLightbox()">
   <div class="lightbox-close">✕</div>
   <img id="lightbox-img" src="" />
+</div>
+<div class="profile-modal" id="profile-modal" onclick="closeProfileModal()">
+  <div class="profile-modal-card" onclick="event.stopPropagation()">
+    <span class="profile-modal-close" onclick="closeProfileModal()">&times;</span>
+    <div id="profile-modal-body"></div>
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -2321,7 +2339,11 @@
       html += `<div class="approval-card" id="dir-${id}">
           <div class="approval-avatar">${photo?`<img src="${photo}" onclick="openLightbox('${photo}')"/>`:(name.charAt(0)||'?')}</div>
           <div class="approval-info"><div class="approval-name">${escHtml(name)}</div><div class="approval-meta">${escHtml(email)}${ministries?' · '+escHtml(ministries):''}</div></div>
-          <div class="approval-actions"><button class="btn btn-danger btn-sm" onclick="removeMember('${id}','${escAttr(name)}')">Remove</button></div>
+          <div class="approval-actions">
+            <button class="btn btn-outline btn-sm" onclick="showMemberProfile('${id}')">View Profile</button>
+            <button class="btn btn-outline btn-sm" onclick="emailMember('${escAttr(email)}')">Email</button>
+            <button class="btn btn-danger btn-sm" onclick="removeMember('${id}','${escAttr(name)}')">Remove</button>
+          </div>
         </div>`;
     });
     list.innerHTML = html;
@@ -2337,6 +2359,30 @@
     try{await fs_delete(`parishFamily/${id}`);document.getElementById(`dir-${id}`)?.remove();allMembers=allMembers.filter(d=>docId(d)!==id);showToast(`${name} removed.`,'success');loadDashboard();}
     catch(e){showToast('Error.','error');}
   }
+  function emailMember(email){
+    if(!email){showToast('No email on file.','error');return;}
+    window.open('https://mail.google.com/mail/?view=cm&fs=1&to='+encodeURIComponent(email),'_blank');
+  }
+  function showMemberProfile(id){
+    const doc = allMembers.find(d=>docId(d)===id);
+    if(!doc){showToast('Member not found.','error');return;}
+    const name=gf(doc,'name'),email=gf(doc,'email'),bio=gf(doc,'bio'),ministries=gf(doc,'ministries'),badges=gf(doc,'badges'),photo=gf(doc,'photoUrl'),showEmail=gf(doc,'showEmail'),createdAt=gf(doc,'createdAt'),conductAt=gf(doc,'conductAgreedAt'),conductVer=gf(doc,'conductPolicyVersion');
+    const fmt = d => d ? new Date(d).toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'}) : '';
+    let html = `
+      ${photo?`<img class="profile-modal-avatar" src="${photo}" onclick="openLightbox('${photo}')"/>`:''}
+      <div class="profile-modal-name">${escHtml(name)}</div>
+      <div class="profile-modal-email">${escHtml(email)}</div>
+      <div class="profile-modal-row"><div class="profile-modal-label">Bio</div><div class="profile-modal-value">${bio?escHtml(bio):'<em style="opacity:0.5">None provided</em>'}</div></div>
+      <div class="profile-modal-row"><div class="profile-modal-label">Ministries</div><div class="profile-modal-value">${ministries?escHtml(ministries):'<em style="opacity:0.5">None selected</em>'}</div></div>
+      ${badges?`<div class="profile-modal-row"><div class="profile-modal-label">Badges</div><div class="profile-modal-value">${escHtml(badges)}</div></div>`:''}
+      <div class="profile-modal-row"><div class="profile-modal-label">Email visible in public directory</div><div class="profile-modal-value">${showEmail===true?'Yes':'No'}</div></div>
+      <div class="profile-modal-row"><div class="profile-modal-label">Member since</div><div class="profile-modal-value">${fmt(createdAt)||'<em style="opacity:0.5">Unknown</em>'}</div></div>
+      ${conductAt?`<div class="profile-modal-row"><div class="profile-modal-label">Conduct policy agreed</div><div class="profile-modal-value">${fmt(conductAt)}${conductVer?' (v'+escHtml(conductVer)+')':''}</div></div>`:''}
+    `;
+    document.getElementById('profile-modal-body').innerHTML = html;
+    document.getElementById('profile-modal').classList.add('show');
+  }
+  function closeProfileModal(){ document.getElementById('profile-modal').classList.remove('show'); }
 
   function copyEmails() {
     const emails = allMembers.filter(d=>gf(d,'email')).map(d=>gf(d,'email')).join(', ');
