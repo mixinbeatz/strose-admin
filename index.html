@@ -333,6 +333,11 @@
         <div class="nav-item staff-only cheyanne-only" onclick="showPage('intention',this)"><span class="nav-icon">🕯️</span> Mass Intentions</div>
         <div class="nav-item staff-only cheyanne-only" onclick="showPage('welcome',this)"><span class="nav-icon">🌹</span> Welcome Message</div>
       </div>
+
+      <div class="nav-section-toggle collapsed staff-only" onclick="toggleNavSection(this)"><span>Media</span><span class="nav-chevron">▾</span></div>
+      <div class="nav-group collapsed">
+        <div class="nav-item staff-only" onclick="showPage('gallery',this);loadGallery()"><span class="nav-icon">🖼️</span> Homepage Gallery</div>
+      </div>
     </nav>
     <div class="sidebar-footer">
       <button class="signout-btn" onclick="signOut()">Sign Out</button>
@@ -930,6 +935,13 @@
           <div class="post-success" id="welcome-success">✓ Welcome message saved.</div>
         </div>
       </div>
+      <div class="page" id="page-gallery">
+        <div class="card">
+          <div class="card-title">🖼️ Homepage Gallery</div>
+          <div class="info-box">These 5 photos appear in the "New Church" gallery on the website homepage. Upload a replacement for any slot below — it goes live immediately. Slots without a custom photo keep using the site's current default image.</div>
+          <div id="gallery-slots"></div>
+        </div>
+      </div>
 
       <!-- MUSIC MINISTRY -->
       <div class="page" id="page-music-ministry">
@@ -1420,7 +1432,7 @@
     if(el) el.classList.add('active');
     window.scrollTo(0,0);
     closeSidebar();
-    const titles = {dashboard:'Dashboard',events:'Events',announcement:'Post Announcement',fastblast:'Fast Blast',reflection:'Weekly Reflection','parish-development':'Parish Development',daily:'Daily Reflection',songsheet:'Mass Songsheet',welcome:'Welcome Message','music-ministry':'Music Ministry','music-members':'Music Ministry Members',approvals:'Parish Family Approvals',partners:'Partner Requests',directory:'Parish Family Directory','ministry-post':'Post to Members','cda-members':'My Members','prayer-chain':'Prayer Chain','prayer-submissions':'Prayer Submissions','submit-event':'Submit Event','event-requests':'Event Requests',intention:'Mass Intentions','my-ministry':'My Ministry'};
+    const titles = {dashboard:'Dashboard',events:'Events',announcement:'Post Announcement',fastblast:'Fast Blast',reflection:'Weekly Reflection','parish-development':'Parish Development',daily:'Daily Reflection',songsheet:'Mass Songsheet',welcome:'Welcome Message',gallery:'Homepage Gallery','music-ministry':'Music Ministry','music-members':'Music Ministry Members',approvals:'Parish Family Approvals',partners:'Partner Requests',directory:'Parish Family Directory','ministry-post':'Post to Members','cda-members':'My Members','prayer-chain':'Prayer Chain','prayer-submissions':'Prayer Submissions','submit-event':'Submit Event','event-requests':'Event Requests',intention:'Mass Intentions','my-ministry':'My Ministry'};
     document.getElementById('page-title').textContent = titles[id]||id;
     var mpt = document.getElementById('mobile-page-title'); if(mpt) mpt.textContent = titles[id]||id;
     if(id==='approvals') loadApprovals();
@@ -3564,6 +3576,88 @@
         showToast('Current message loaded.', 'success');
       } else { showToast('No welcome message saved yet.', 'error'); }
     } catch(e) { showToast('No welcome message saved yet.', 'error'); }
+  }
+  // ── HOMEPAGE GALLERY ──
+  const GALLERY_SLOTS = [
+    { key: 'slot1', label: 'Church Exterior' },
+    { key: 'slot2', label: 'Retablo' },
+    { key: 'slot3', label: 'Crucifix Detail' },
+    { key: 'slot4', label: 'Crucifix' },
+    { key: 'slot5', label: 'Rose Icon' },
+  ];
+  let galleryData = {};
+  async function loadGallery() {
+    try {
+      const res = await fs_get('siteContent/gallery');
+      galleryData = {};
+      GALLERY_SLOTS.forEach(s => {
+        galleryData[s.key] = {
+          url: res.fields?.[s.key + 'Url']?.stringValue || '',
+          alt: res.fields?.[s.key + 'Alt']?.stringValue || '',
+        };
+      });
+    } catch(e) {
+      galleryData = {};
+      GALLERY_SLOTS.forEach(s => { galleryData[s.key] = { url: '', alt: '' }; });
+    }
+    renderGallerySlots();
+  }
+  function renderGallerySlots() {
+    const el = document.getElementById('gallery-slots');
+    if (!el) return;
+    el.innerHTML = GALLERY_SLOTS.map(s => {
+      const data = galleryData[s.key] || { url: '', alt: '' };
+      return `<div style="border:1px solid var(--linen);border-radius:10px;padding:16px;margin-bottom:14px;display:flex;gap:16px;align-items:center;">
+        <div style="width:100px;height:70px;border-radius:6px;background:var(--linen);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;">
+          ${data.url ? `<img src="${data.url}" style="width:100%;height:100%;object-fit:cover;" onclick="openLightbox('${data.url}')" />` : `<span style="font-size:11px;color:var(--dusty-rose);text-align:center;padding:4px;">Using default</span>`}
+        </div>
+        <div style="flex:1;">
+          <div style="font-family:'Cinzel',serif;font-size:13px;color:var(--burgundy);margin-bottom:6px;">${s.label}</div>
+          <input type="text" class="form-input" placeholder="Alt text (optional)" value="${data.alt.replace(/"/g,'&quot;')}" onchange="saveGalleryAlt('${s.key}',this.value)" style="margin-bottom:8px;font-size:13px;" />
+          <label class="btn btn-outline btn-sm" style="cursor:pointer;">
+            Replace Photo
+            <input type="file" accept="image/*" style="display:none;" onchange="handleGalleryUpload('${s.key}',this)" />
+          </label>
+          ${data.url ? `<button class="btn btn-outline btn-sm" onclick="clearGallerySlot('${s.key}')" style="margin-left:8px;">Reset to Default</button>` : ''}
+        </div>
+      </div>`;
+    }).join('');
+  }
+  async function handleGalleryUpload(slotKey, input) {
+    const file = input.files[0];
+    if (!file) return;
+    try {
+      const base64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = e => resolve(e.target.result.split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      const url = await uploadDevFile(base64, file.name, 'gallery', file.type);
+      await fs_patch('siteContent/gallery', { [slotKey + 'Url']: { stringValue: url } });
+      galleryData[slotKey] = galleryData[slotKey] || { url: '', alt: '' };
+      galleryData[slotKey].url = url;
+      renderGallerySlots();
+      showToast('Photo updated!', 'success');
+    } catch(e) { showToast('Upload failed.', 'error'); }
+  }
+  async function saveGalleryAlt(slotKey, value) {
+    try {
+      await fs_patch('siteContent/gallery', { [slotKey + 'Alt']: { stringValue: value } });
+      galleryData[slotKey] = galleryData[slotKey] || { url: '', alt: '' };
+      galleryData[slotKey].alt = value;
+      showToast('Alt text saved.', 'success');
+    } catch(e) { showToast('Error saving.', 'error'); }
+  }
+  async function clearGallerySlot(slotKey) {
+    if (!confirm('Reset this slot back to the site default photo?')) return;
+    try {
+      await fs_patch('siteContent/gallery', { [slotKey + 'Url']: { stringValue: '' } });
+      galleryData[slotKey] = galleryData[slotKey] || { url: '', alt: '' };
+      galleryData[slotKey].url = '';
+      renderGallerySlots();
+      showToast('Reset to default.', 'success');
+    } catch(e) { showToast('Error.', 'error'); }
   }
 
 
