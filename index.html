@@ -938,7 +938,26 @@
       <div class="page" id="page-gallery">
         <div class="card">
           <div class="card-title">🖼️ Homepage Gallery</div>
-          <div class="info-box">These 5 photos appear in the "New Church" gallery on the website homepage. Upload a replacement for any slot below — it goes live immediately. Slots without a custom photo keep using the site's current default image.</div>
+          <div class="info-box">This section's text and photos appear on the website homepage. Leave any field blank to keep the site's current default.</div>
+          <div class="form-group">
+            <label class="form-label">Eyebrow (small text above heading)</label>
+            <input type="text" class="form-input" id="gallery-text-eyebrow" placeholder="e.g. OUR PERMANENT HOME" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Heading</label>
+            <textarea class="form-input" id="gallery-text-title" rows="2" placeholder="e.g. The New Church of Saint Rose Philippine Duchesne"></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Body paragraph</label>
+            <textarea class="form-input" id="gallery-text-body" rows="4" placeholder="Paste the section's paragraph text here..."></textarea>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-primary" onclick="saveGalleryText()">Save Text</button>
+          </div>
+          <div class="post-success" id="gallery-text-success">✓ Text saved.</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Photos</div>
           <div id="gallery-slots"></div>
         </div>
       </div>
@@ -3579,11 +3598,11 @@
   }
   // ── HOMEPAGE GALLERY ──
   const GALLERY_SLOTS = [
-    { key: 'slot1', label: 'Church Exterior' },
-    { key: 'slot2', label: 'Retablo' },
-    { key: 'slot3', label: 'Crucifix Detail' },
-    { key: 'slot4', label: 'Crucifix' },
-    { key: 'slot5', label: 'Rose Icon' },
+    { key: 'slot1', label: 'Main' },
+    { key: 'slot2', label: 'Top Left' },
+    { key: 'slot3', label: 'Top Right' },
+    { key: 'slot4', label: 'Bottom Left' },
+    { key: 'slot5', label: 'Bottom Right' },
   ];
   let galleryData = {};
   async function loadGallery() {
@@ -3596,11 +3615,26 @@
           alt: res.fields?.[s.key + 'Alt']?.stringValue || '',
         };
       });
+      document.getElementById('gallery-text-eyebrow').value = res.fields?.textEyebrow?.stringValue || '';
+      document.getElementById('gallery-text-title').value = res.fields?.textTitle?.stringValue || '';
+      document.getElementById('gallery-text-body').value = res.fields?.textBody?.stringValue || '';
     } catch(e) {
       galleryData = {};
       GALLERY_SLOTS.forEach(s => { galleryData[s.key] = { url: '', alt: '' }; });
     }
     renderGallerySlots();
+  }
+  async function saveGalleryText() {
+    try {
+      await fs_patch('siteContent/gallery', {
+        textEyebrow: { stringValue: document.getElementById('gallery-text-eyebrow').value.trim() },
+        textTitle: { stringValue: document.getElementById('gallery-text-title').value.trim() },
+        textBody: { stringValue: document.getElementById('gallery-text-body').value.trim() },
+      });
+      document.getElementById('gallery-text-success').style.display = 'block';
+      setTimeout(() => document.getElementById('gallery-text-success').style.display = 'none', 3000);
+      showToast('Text saved!', 'success');
+    } catch(e) { showToast('Error saving.', 'error'); }
   }
   function renderGallerySlots() {
     const el = document.getElementById('gallery-slots');
