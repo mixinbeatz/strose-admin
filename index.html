@@ -338,6 +338,7 @@
       <div class="nav-group collapsed">
         <div class="nav-item staff-only" onclick="showPage('gallery',this);loadGallery()"><span class="nav-icon">🖼️</span> Homepage Gallery</div>
         <div class="nav-item staff-only" onclick="showPage('around-parish',this);loadAroundParish()"><span class="nav-icon">📸</span> Around the Parish</div>
+        <div class="nav-item staff-only" onclick="showPage('parish-dev-media',this);loadParishDevMedia()"><span class="nav-icon">🏗️</span> Parish Development</div>
       </div>
     </nav>
     <div class="sidebar-footer">
@@ -967,6 +968,62 @@
           <div id="around-parish-slots"></div>
         </div>
       </div>
+      <div class="page" id="page-parish-dev-media">
+        <div class="card">
+          <div class="card-title">👁️ Live Preview</div>
+          <div class="info-box">This mirrors how the section looks on the homepage right now, including anything you haven't saved yet. Click a thumbnail to preview the swap.</div>
+          <div id="parish-dev-media-preview" style="background:var(--linen);padding:40px;border-radius:8px;"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">🏗️ Parish Development</div>
+          <div class="info-box">This section appears on the website homepage, after Around the Parish. Add as many or as few photos as you need — the mockup usually works best as the first one, since that's the main image visitors see first.</div>
+          <div class="form-group">
+            <label class="form-label">Section Status</label>
+            <select class="form-select" id="parish-dev-status" onchange="renderParishDevMediaPreview()">
+              <option value="active">Active — show the gallery</option>
+              <option value="funded">Funded — show thank-you message instead</option>
+              <option value="hidden">Hidden — don't show this section at all</option>
+            </select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Eyebrow (small text above heading)</label>
+            <input type="text" class="form-input" id="parish-dev-text-eyebrow" placeholder="e.g. GIVING OPPORTUNITIES" oninput="renderParishDevMediaPreview()" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Heading</label>
+            <textarea class="form-input" id="parish-dev-text-title" rows="2" placeholder="e.g. Parish Development" oninput="renderParishDevMediaPreview()"></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Body paragraph</label>
+            <textarea class="form-input" id="parish-dev-text-body" rows="3" placeholder="What is this project?" oninput="renderParishDevMediaPreview()"></textarea>
+          </div>
+          <div id="parish-dev-funded-fields" style="display:none;">
+            <div class="form-group">
+              <label class="form-label">Funded Title</label>
+              <input type="text" class="form-input" id="parish-dev-funded-title" placeholder="e.g. Funded! Thank You." oninput="renderParishDevMediaPreview()" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Funded Body</label>
+              <textarea class="form-input" id="parish-dev-funded-body" rows="3" placeholder="e.g. This project has been fully funded thanks to..." oninput="renderParishDevMediaPreview()"></textarea>
+            </div>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-primary" onclick="saveParishDevMediaText()">Save Text</button>
+          </div>
+          <div class="post-success" id="parish-dev-media-text-success">✓ Text saved.</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Photos</div>
+          <div class="info-box">Photos save immediately. Reorder with the arrows — the first photo is the main image.</div>
+          <div id="parish-dev-media-photos"></div>
+          <div class="btn-row" style="margin-top:12px;">
+            <label class="btn btn-primary" style="cursor:pointer;">
+              Add Photo
+              <input type="file" accept="image/*" style="display:none;" onchange="handleParishDevMediaAddPhoto(this)" />
+            </label>
+          </div>
+        </div>
+      </div>
       <div class="page" id="page-gallery">
         <div class="card">
           <div class="card-title">👁️ Live Preview</div>
@@ -1488,7 +1545,7 @@
     if(el) el.classList.add('active');
     window.scrollTo(0,0);
     closeSidebar();
-    const titles = {dashboard:'Dashboard',events:'Events',announcement:'Post Announcement',fastblast:'Fast Blast',reflection:'Weekly Reflection','parish-development':'Parish Development',daily:'Daily Reflection',songsheet:'Mass Songsheet',welcome:'Welcome Message',gallery:'Homepage Gallery','around-parish':'Around the Parish','music-ministry':'Music Ministry','music-members':'Music Ministry Members',approvals:'Parish Family Approvals',partners:'Partner Requests',directory:'Parish Family Directory','ministry-post':'Post to Members','cda-members':'My Members','prayer-chain':'Prayer Chain','prayer-submissions':'Prayer Submissions','submit-event':'Submit Event','event-requests':'Event Requests',intention:'Mass Intentions','my-ministry':'My Ministry'};
+    const titles = {dashboard:'Dashboard',events:'Events',announcement:'Post Announcement',fastblast:'Fast Blast',reflection:'Weekly Reflection','parish-development':'Parish Development',daily:'Daily Reflection',songsheet:'Mass Songsheet',welcome:'Welcome Message',gallery:'Homepage Gallery','around-parish':'Around the Parish','parish-dev-media':'Parish Development','music-ministry':'Music Ministry','music-members':'Music Ministry Members',approvals:'Parish Family Approvals',partners:'Partner Requests',directory:'Parish Family Directory','ministry-post':'Post to Members','cda-members':'My Members','prayer-chain':'Prayer Chain','prayer-submissions':'Prayer Submissions','submit-event':'Submit Event','event-requests':'Event Requests',intention:'Mass Intentions','my-ministry':'My Ministry'};
     document.getElementById('page-title').textContent = titles[id]||id;
     var mpt = document.getElementById('mobile-page-title'); if(mpt) mpt.textContent = titles[id]||id;
     if(id==='approvals') loadApprovals();
@@ -3899,6 +3956,161 @@
       });
       document.getElementById('around-parish-text-success').style.display = 'block';
       setTimeout(() => document.getElementById('around-parish-text-success').style.display = 'none', 3000);
+      showToast('Text saved!', 'success');
+    } catch(e) { showToast('Error saving.', 'error'); }
+  }
+  // ── PARISH DEVELOPMENT MEDIA ── (fluid photo array, not fixed slots)
+  let parishDevMediaData = { photos: [] };
+  let parishDevPreviewIdx = 0;
+  async function loadParishDevMedia() {
+    try {
+      const res = await fs_get('siteContent/parishDevelopment');
+      document.getElementById('parish-dev-status').value = res.fields?.status?.stringValue || 'active';
+      document.getElementById('parish-dev-text-eyebrow').value = res.fields?.textEyebrow?.stringValue || '';
+      document.getElementById('parish-dev-text-title').value = res.fields?.textTitle?.stringValue || '';
+      document.getElementById('parish-dev-text-body').value = res.fields?.textBody?.stringValue || '';
+      document.getElementById('parish-dev-funded-title').value = res.fields?.fundedTitle?.stringValue || '';
+      document.getElementById('parish-dev-funded-body').value = res.fields?.fundedBody?.stringValue || '';
+      try { parishDevMediaData.photos = JSON.parse(res.fields?.photosJson?.stringValue || '[]'); }
+      catch(e) { parishDevMediaData.photos = []; }
+    } catch(e) {
+      document.getElementById('parish-dev-status').value = 'active';
+      parishDevMediaData.photos = [];
+    }
+    parishDevPreviewIdx = 0;
+    renderParishDevMediaPhotos();
+  }
+  async function saveParishDevPhotosArray() {
+    try {
+      await fs_patch('siteContent/parishDevelopment', { photosJson: { stringValue: JSON.stringify(parishDevMediaData.photos) } });
+    } catch(e) { showToast('Error saving photo order.', 'error'); }
+  }
+  function renderParishDevMediaPhotos() {
+    const el = document.getElementById('parish-dev-media-photos');
+    if (!el) return;
+    if (parishDevMediaData.photos.length === 0) {
+      el.innerHTML = '<div class="empty-state" style="padding:20px 0;color:var(--dusty-rose);font-size:13px;">No photos yet. Add one below.</div>';
+    } else {
+      el.innerHTML = parishDevMediaData.photos.map((p, i) => `
+        <div style="border:1px solid var(--linen);border-radius:10px;padding:16px;margin-bottom:14px;display:flex;gap:16px;align-items:center;">
+          <div style="width:100px;height:70px;border-radius:6px;background:var(--linen);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;">
+            <img src="${p.url}" style="max-width:100%;max-height:100%;object-fit:contain;" onclick="openLightbox('${p.url}')" />
+          </div>
+          <div style="flex:1;">
+            <div style="font-family:'Cinzel',serif;font-size:13px;color:var(--burgundy);margin-bottom:6px;">${i===0?'Main photo':'Photo '+(i+1)}</div>
+            <input type="text" class="form-input" placeholder="Alt text (optional)" value="${(p.alt||'').replace(/"/g,'&quot;')}" onchange="saveParishDevMediaAlt(${i},this.value)" style="margin-bottom:8px;font-size:13px;" />
+            <button class="btn btn-outline btn-sm" onclick="moveParishDevMediaPhoto(${i},-1)" ${i===0?'disabled':''}>↑ Move Up</button>
+            <button class="btn btn-outline btn-sm" onclick="moveParishDevMediaPhoto(${i},1)" ${i===parishDevMediaData.photos.length-1?'disabled':''}>↓ Move Down</button>
+            <button class="btn btn-danger btn-sm" onclick="removeParishDevMediaPhoto(${i})">Remove</button>
+          </div>
+        </div>
+      `).join('');
+    }
+    renderParishDevMediaPreview();
+  }
+  async function handleParishDevMediaAddPhoto(input) {
+    const file = input.files[0];
+    if (!file) return;
+    try {
+      const base64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = e => resolve(e.target.result.split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      const url = await uploadDevFile(base64, file.name, 'parishDevelopment', file.type);
+      parishDevMediaData.photos.push({ url, alt: '' });
+      await saveParishDevPhotosArray();
+      renderParishDevMediaPhotos();
+      showToast('Photo added!', 'success');
+    } catch(e) { showToast('Upload failed.', 'error'); }
+  }
+  async function removeParishDevMediaPhoto(idx) {
+    if (!confirm('Remove this photo?')) return;
+    parishDevMediaData.photos.splice(idx, 1);
+    await saveParishDevPhotosArray();
+    if (parishDevPreviewIdx >= parishDevMediaData.photos.length) parishDevPreviewIdx = 0;
+    renderParishDevMediaPhotos();
+    showToast('Removed.', 'success');
+  }
+  async function moveParishDevMediaPhoto(idx, dir) {
+    const newIdx = idx + dir;
+    if (newIdx < 0 || newIdx >= parishDevMediaData.photos.length) return;
+    const tmp = parishDevMediaData.photos[idx];
+    parishDevMediaData.photos[idx] = parishDevMediaData.photos[newIdx];
+    parishDevMediaData.photos[newIdx] = tmp;
+    await saveParishDevPhotosArray();
+    renderParishDevMediaPhotos();
+  }
+  async function saveParishDevMediaAlt(idx, value) {
+    parishDevMediaData.photos[idx].alt = value;
+    await saveParishDevPhotosArray();
+    showToast('Alt text saved.', 'success');
+  }
+  function selectParishDevPreviewPhoto(idx) {
+    parishDevPreviewIdx = idx;
+    renderParishDevMediaPreview();
+  }
+  function renderParishDevMediaPreview() {
+    const el = document.getElementById('parish-dev-media-preview');
+    if (!el) return;
+    const status = document.getElementById('parish-dev-status').value;
+    document.getElementById('parish-dev-funded-fields').style.display = status === 'funded' ? 'block' : 'none';
+    const eyebrow = document.getElementById('parish-dev-text-eyebrow').value || 'GIVING OPPORTUNITIES';
+    const title = document.getElementById('parish-dev-text-title').value || 'Parish Development';
+    const body = document.getElementById('parish-dev-text-body').value || 'Help us grow our parish community.';
+    const headerHtml = `
+      <div style="font-family:'Cinzel',serif;font-size:10px;letter-spacing:4px;color:var(--dusty-rose);margin-bottom:12px;">${escHtml(eyebrow)}</div>
+      <div style="font-family:'Cinzel',serif;font-size:26px;color:var(--burgundy);line-height:1.25;margin-bottom:16px;">${escHtml(title).replace(/\n/g,'<br>')}</div>
+      <div style="font-size:14px;line-height:1.7;color:var(--soil);opacity:0.85;max-width:480px;margin-bottom:24px;">${escHtml(body)}</div>
+    `;
+    if (status === 'hidden') {
+      el.innerHTML = headerHtml + '<div style="padding:20px;text-align:center;color:var(--dusty-rose);font-style:italic;">This section is hidden — it will not appear on the homepage.</div>';
+      return;
+    }
+    if (status === 'funded') {
+      const fTitle = document.getElementById('parish-dev-funded-title').value || 'Funded! Thank You.';
+      const fBody = document.getElementById('parish-dev-funded-body').value || 'This project has been fully funded.';
+      el.innerHTML = headerHtml + `<div style="background:var(--white);border:1px solid var(--linen);border-radius:8px;padding:28px;text-align:center;">
+        <div style="font-family:'Cinzel',serif;font-size:18px;color:var(--burgundy);margin-bottom:8px;">${escHtml(fTitle)}</div>
+        <div style="font-size:14px;color:var(--soil);opacity:0.85;line-height:1.6;">${escHtml(fBody)}</div>
+      </div>`;
+      return;
+    }
+    if (parishDevMediaData.photos.length === 0) {
+      el.innerHTML = headerHtml + '<div style="padding:20px;text-align:center;color:var(--dusty-rose);font-style:italic;">No photos yet — the section will stay hidden on the homepage until you add at least one.</div>';
+      return;
+    }
+    if (parishDevPreviewIdx >= parishDevMediaData.photos.length) parishDevPreviewIdx = 0;
+    const main = parishDevMediaData.photos[parishDevPreviewIdx];
+    const thumbsHtml = parishDevMediaData.photos.length > 1 ? `
+      <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;">
+        ${parishDevMediaData.photos.map((p, i) => `
+          <div onclick="selectParishDevPreviewPhoto(${i})" style="width:60px;height:60px;border-radius:4px;overflow:hidden;cursor:pointer;background:var(--white);border:2px solid ${i===parishDevPreviewIdx?'var(--gold)':'transparent'};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+            <img src="${p.url}" style="max-width:100%;max-height:100%;object-fit:contain;" />
+          </div>
+        `).join('')}
+      </div>
+    ` : '';
+    el.innerHTML = headerHtml + `
+      <div style="width:100%;max-height:340px;aspect-ratio:16/10;background:var(--white);border-radius:6px;display:flex;align-items:center;justify-content:center;overflow:hidden;">
+        <img src="${main.url}" style="max-width:100%;max-height:100%;object-fit:contain;" />
+      </div>
+      ${thumbsHtml}
+    `;
+  }
+  async function saveParishDevMediaText() {
+    try {
+      await fs_patch('siteContent/parishDevelopment', {
+        status: { stringValue: document.getElementById('parish-dev-status').value },
+        textEyebrow: { stringValue: document.getElementById('parish-dev-text-eyebrow').value.trim() },
+        textTitle: { stringValue: document.getElementById('parish-dev-text-title').value.trim() },
+        textBody: { stringValue: document.getElementById('parish-dev-text-body').value.trim() },
+        fundedTitle: { stringValue: document.getElementById('parish-dev-funded-title').value.trim() },
+        fundedBody: { stringValue: document.getElementById('parish-dev-funded-body').value.trim() },
+      });
+      document.getElementById('parish-dev-media-text-success').style.display = 'block';
+      setTimeout(() => document.getElementById('parish-dev-media-text-success').style.display = 'none', 3000);
       showToast('Text saved!', 'success');
     } catch(e) { showToast('Error saving.', 'error'); }
   }
