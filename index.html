@@ -336,6 +336,8 @@
 
       <div class="nav-section-toggle collapsed staff-only" onclick="toggleNavSection(this)"><span>Media</span><span class="nav-chevron">▾</span></div>
       <div class="nav-group collapsed">
+        <div class="nav-item staff-only" onclick="showPage('hero-media',this);loadHeroMedia()"><span class="nav-icon">🌅</span> Hero</div>
+        <div class="nav-item staff-only" onclick="showPage('welcome-media',this);loadWelcomeMedia()"><span class="nav-icon">👋</span> Welcome</div>
         <div class="nav-item staff-only" onclick="showPage('gallery',this);loadGallery()"><span class="nav-icon">🖼️</span> Homepage Gallery</div>
         <div class="nav-item staff-only" onclick="showPage('around-parish',this);loadAroundParish()"><span class="nav-icon">📸</span> Around the Parish</div>
         <div class="nav-item staff-only" onclick="showPage('parish-dev-media',this);loadParishDevMedia()"><span class="nav-icon">🏗️</span> Parish Development</div>
@@ -1024,6 +1026,64 @@
           </div>
         </div>
       </div>
+      <div class="page" id="page-hero-media">
+        <div class="card">
+          <div class="card-title">👁️ Live Preview</div>
+          <div class="info-box">This mirrors how the top of the homepage looks right now, including anything you haven't saved yet.</div>
+          <div id="hero-media-preview" style="background:#3D0F1E;padding:50px 40px;border-radius:8px;text-align:center;background-size:cover;background-position:center;position:relative;"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">🌅 Hero</div>
+          <div class="info-box">This is the very first thing visitors see — the full-width banner at the top of the homepage.</div>
+          <div class="form-group">
+            <label class="form-label">Heading</label>
+            <textarea class="form-input" id="hero-media-title" rows="2" placeholder="e.g. A Welcoming and Joyful Community" oninput="renderHeroMediaPreview()"></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Tagline</label>
+            <textarea class="form-input" id="hero-media-tagline" rows="2" placeholder="e.g. Rooted in faith, growing in love..." oninput="renderHeroMediaPreview()"></textarea>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-primary" onclick="saveHeroMediaText()">Save Text</button>
+          </div>
+          <div class="post-success" id="hero-media-text-success">✓ Text saved.</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Background Photo</div>
+          <div id="hero-media-photo"></div>
+        </div>
+      </div>
+      <div class="page" id="page-welcome-media">
+        <div class="card">
+          <div class="card-title">👁️ Live Preview</div>
+          <div class="info-box">This mirrors how the section looks on the homepage right now, including anything you haven't saved yet.</div>
+          <div id="welcome-media-preview" style="background:var(--sand);padding:40px;border-radius:8px;"></div>
+        </div>
+        <div class="card">
+          <div class="card-title">👋 Welcome</div>
+          <div class="info-box">This section appears near the top of the homepage, right after the hero banner.</div>
+          <div class="form-group">
+            <label class="form-label">Eyebrow (small text above heading)</label>
+            <input type="text" class="form-input" id="welcome-media-eyebrow" placeholder="e.g. WELCOME" oninput="renderWelcomeMediaPreview()" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Heading</label>
+            <textarea class="form-input" id="welcome-media-title" rows="2" placeholder="e.g. A Home for Every Soul" oninput="renderWelcomeMediaPreview()"></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Body (leave a blank line between paragraphs)</label>
+            <textarea class="form-input" id="welcome-media-body" rows="6" placeholder="Paste the welcome text here..." oninput="renderWelcomeMediaPreview()"></textarea>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-primary" onclick="saveWelcomeMediaText()">Save Text</button>
+          </div>
+          <div class="post-success" id="welcome-media-text-success">✓ Text saved.</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Photo</div>
+          <div id="welcome-media-photo"></div>
+        </div>
+      </div>
       <div class="page" id="page-gallery">
         <div class="card">
           <div class="card-title">👁️ Live Preview</div>
@@ -1545,7 +1605,7 @@
     if(el) el.classList.add('active');
     window.scrollTo(0,0);
     closeSidebar();
-    const titles = {dashboard:'Dashboard',events:'Events',announcement:'Post Announcement',fastblast:'Fast Blast',reflection:'Weekly Reflection','parish-development':'Parish Development',daily:'Daily Reflection',songsheet:'Mass Songsheet',welcome:'Welcome Message',gallery:'Homepage Gallery','around-parish':'Around the Parish','parish-dev-media':'Parish Development','music-ministry':'Music Ministry','music-members':'Music Ministry Members',approvals:'Parish Family Approvals',partners:'Partner Requests',directory:'Parish Family Directory','ministry-post':'Post to Members','cda-members':'My Members','prayer-chain':'Prayer Chain','prayer-submissions':'Prayer Submissions','submit-event':'Submit Event','event-requests':'Event Requests',intention:'Mass Intentions','my-ministry':'My Ministry'};
+    const titles = {dashboard:'Dashboard',events:'Events',announcement:'Post Announcement',fastblast:'Fast Blast',reflection:'Weekly Reflection','parish-development':'Parish Development',daily:'Daily Reflection',songsheet:'Mass Songsheet',welcome:'Welcome Message','hero-media':'Hero Section','welcome-media':'Welcome Section',gallery:'Homepage Gallery','around-parish':'Around the Parish','parish-dev-media':'Parish Development','music-ministry':'Music Ministry','music-members':'Music Ministry Members',approvals:'Parish Family Approvals',partners:'Partner Requests',directory:'Parish Family Directory','ministry-post':'Post to Members','cda-members':'My Members','prayer-chain':'Prayer Chain','prayer-submissions':'Prayer Submissions','submit-event':'Submit Event','event-requests':'Event Requests',intention:'Mass Intentions','my-ministry':'My Ministry'};
     document.getElementById('page-title').textContent = titles[id]||id;
     var mpt = document.getElementById('mobile-page-title'); if(mpt) mpt.textContent = titles[id]||id;
     if(id==='approvals') loadApprovals();
@@ -4111,6 +4171,153 @@
       });
       document.getElementById('parish-dev-media-text-success').style.display = 'block';
       setTimeout(() => document.getElementById('parish-dev-media-text-success').style.display = 'none', 3000);
+      showToast('Text saved!', 'success');
+    } catch(e) { showToast('Error saving.', 'error'); }
+  }
+  // ── HERO ── (single background photo)
+  let heroMediaImageUrl = '';
+  async function loadHeroMedia() {
+    try {
+      const res = await fs_get('siteContent/hero');
+      document.getElementById('hero-media-title').value = res.fields?.title?.stringValue || 'A Welcoming and\nJoyful Community';
+      document.getElementById('hero-media-tagline').value = res.fields?.tagline?.stringValue || 'Rooted in faith, growing in love, and bearing fruit for generations to come.';
+      heroMediaImageUrl = res.fields?.imageUrl?.stringValue || 'https://mixinbeatz.github.io/strose-website/images/hero-exterior.jpeg';
+    } catch(e) {
+      document.getElementById('hero-media-title').value = 'A Welcoming and\nJoyful Community';
+      document.getElementById('hero-media-tagline').value = 'Rooted in faith, growing in love, and bearing fruit for generations to come.';
+      heroMediaImageUrl = 'https://mixinbeatz.github.io/strose-website/images/hero-exterior.jpeg';
+    }
+    renderHeroMediaPhoto();
+  }
+  function renderHeroMediaPhoto() {
+    const el = document.getElementById('hero-media-photo');
+    if (!el) return;
+    el.innerHTML = `<div style="border:1px solid var(--linen);border-radius:10px;padding:16px;display:flex;gap:16px;align-items:center;">
+      <div style="width:120px;height:80px;border-radius:6px;background:var(--linen);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;">
+        <img src="${heroMediaImageUrl}" style="width:100%;height:100%;object-fit:cover;" onclick="openLightbox('${heroMediaImageUrl}')" />
+      </div>
+      <label class="btn btn-outline btn-sm" style="cursor:pointer;">
+        Replace Photo
+        <input type="file" accept="image/*" style="display:none;" onchange="handleHeroMediaUpload(this)" />
+      </label>
+    </div>`;
+    renderHeroMediaPreview();
+  }
+  async function handleHeroMediaUpload(input) {
+    const file = input.files[0];
+    if (!file) return;
+    try {
+      const base64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = e => resolve(e.target.result.split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      const url = await uploadDevFile(base64, file.name, 'hero', file.type);
+      heroMediaImageUrl = url;
+      await fs_patch('siteContent/hero', { imageUrl: { stringValue: url } });
+      renderHeroMediaPhoto();
+      showToast('Photo updated!', 'success');
+    } catch(e) { showToast('Upload failed.', 'error'); }
+  }
+  function renderHeroMediaPreview() {
+    const el = document.getElementById('hero-media-preview');
+    if (!el) return;
+    const title = document.getElementById('hero-media-title').value || 'A Welcoming and\nJoyful Community';
+    const tagline = document.getElementById('hero-media-tagline').value || '';
+    el.style.backgroundImage = `linear-gradient(rgba(20,8,8,0.55),rgba(20,8,8,0.55)), url('${heroMediaImageUrl}')`;
+    el.innerHTML = `
+      <div style="font-family:'Cinzel',serif;font-size:26px;color:white;line-height:1.3;margin-bottom:10px;">${escHtml(title).replace(/\n/g,'<br>')}</div>
+      <div style="font-size:14px;color:rgba(255,255,255,0.85);max-width:420px;margin:0 auto;">${escHtml(tagline)}</div>
+    `;
+  }
+  async function saveHeroMediaText() {
+    try {
+      await fs_patch('siteContent/hero', {
+        title: { stringValue: document.getElementById('hero-media-title').value.trim() },
+        tagline: { stringValue: document.getElementById('hero-media-tagline').value.trim() },
+      });
+      document.getElementById('hero-media-text-success').style.display = 'block';
+      setTimeout(() => document.getElementById('hero-media-text-success').style.display = 'none', 3000);
+      showToast('Text saved!', 'success');
+    } catch(e) { showToast('Error saving.', 'error'); }
+  }
+  // ── WELCOME SECTION ── (single photo, siteContent/homeWelcome to avoid
+  // colliding with siteContent/welcome, which is the app's Welcome Message)
+  let welcomeMediaImageUrl = '';
+  async function loadWelcomeMedia() {
+    try {
+      const res = await fs_get('siteContent/homeWelcome');
+      document.getElementById('welcome-media-eyebrow').value = res.fields?.textEyebrow?.stringValue || 'WELCOME';
+      document.getElementById('welcome-media-title').value = res.fields?.textTitle?.stringValue || 'A Home for\nEvery Soul';
+      document.getElementById('welcome-media-body').value = res.fields?.textBody?.stringValue || 'Saint Rose Philippine Duchesne Parish is a vibrant Catholic community in Anthem, Arizona. Named after the first American to be canonized west of the Mississippi, our parish carries forward her legacy of faith, perseverance, and devotion to the Sacred Heart.\n\nWhether you are a lifelong Catholic, exploring the faith, or returning home — you are welcome here.';
+      welcomeMediaImageUrl = res.fields?.imageUrl?.stringValue || 'https://mixinbeatz.github.io/strose-website/images/retablo-full.jpeg';
+    } catch(e) {
+      document.getElementById('welcome-media-eyebrow').value = 'WELCOME';
+      document.getElementById('welcome-media-title').value = 'A Home for\nEvery Soul';
+      document.getElementById('welcome-media-body').value = 'Saint Rose Philippine Duchesne Parish is a vibrant Catholic community in Anthem, Arizona. Named after the first American to be canonized west of the Mississippi, our parish carries forward her legacy of faith, perseverance, and devotion to the Sacred Heart.\n\nWhether you are a lifelong Catholic, exploring the faith, or returning home — you are welcome here.';
+      welcomeMediaImageUrl = 'https://mixinbeatz.github.io/strose-website/images/retablo-full.jpeg';
+    }
+    renderWelcomeMediaPhoto();
+  }
+  function renderWelcomeMediaPhoto() {
+    const el = document.getElementById('welcome-media-photo');
+    if (!el) return;
+    el.innerHTML = `<div style="border:1px solid var(--linen);border-radius:10px;padding:16px;display:flex;gap:16px;align-items:center;">
+      <div style="width:120px;height:80px;border-radius:6px;background:var(--linen);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;">
+        <img src="${welcomeMediaImageUrl}" style="width:100%;height:100%;object-fit:cover;" onclick="openLightbox('${welcomeMediaImageUrl}')" />
+      </div>
+      <label class="btn btn-outline btn-sm" style="cursor:pointer;">
+        Replace Photo
+        <input type="file" accept="image/*" style="display:none;" onchange="handleWelcomeMediaUpload(this)" />
+      </label>
+    </div>`;
+    renderWelcomeMediaPreview();
+  }
+  async function handleWelcomeMediaUpload(input) {
+    const file = input.files[0];
+    if (!file) return;
+    try {
+      const base64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = e => resolve(e.target.result.split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      const url = await uploadDevFile(base64, file.name, 'homeWelcome', file.type);
+      welcomeMediaImageUrl = url;
+      await fs_patch('siteContent/homeWelcome', { imageUrl: { stringValue: url } });
+      renderWelcomeMediaPhoto();
+      showToast('Photo updated!', 'success');
+    } catch(e) { showToast('Upload failed.', 'error'); }
+  }
+  function renderWelcomeMediaPreview() {
+    const el = document.getElementById('welcome-media-preview');
+    if (!el) return;
+    const eyebrow = document.getElementById('welcome-media-eyebrow').value || 'WELCOME';
+    const title = document.getElementById('welcome-media-title').value || 'A Home for\nEvery Soul';
+    const body = document.getElementById('welcome-media-body').value || '';
+    const paras = body.split(/\n\n+/).filter(p => p.trim());
+    el.innerHTML = `
+      <div style="display:grid;grid-template-columns:1.3fr 1fr;gap:24px;align-items:center;">
+        <div>
+          <div style="font-family:'Cinzel',serif;font-size:10px;letter-spacing:4px;color:var(--dusty-rose);margin-bottom:12px;">${escHtml(eyebrow)}</div>
+          <div style="font-family:'Cinzel',serif;font-size:24px;color:var(--burgundy);line-height:1.25;margin-bottom:14px;">${escHtml(title).replace(/\n/g,'<br>')}</div>
+          ${paras.map((p,i) => `<div style="font-size:13px;line-height:1.7;color:var(--soil);opacity:0.85;${i>0?'margin-top:10px;':''}">${escHtml(p)}</div>`).join('')}
+        </div>
+        <div style="border-radius:6px;overflow:hidden;height:180px;"><img src="${welcomeMediaImageUrl}" style="width:100%;height:100%;object-fit:cover;" /></div>
+      </div>
+    `;
+  }
+  async function saveWelcomeMediaText() {
+    try {
+      await fs_patch('siteContent/homeWelcome', {
+        textEyebrow: { stringValue: document.getElementById('welcome-media-eyebrow').value.trim() },
+        textTitle: { stringValue: document.getElementById('welcome-media-title').value.trim() },
+        textBody: { stringValue: document.getElementById('welcome-media-body').value.trim() },
+      });
+      document.getElementById('welcome-media-text-success').style.display = 'block';
+      setTimeout(() => document.getElementById('welcome-media-text-success').style.display = 'none', 3000);
       showToast('Text saved!', 'success');
     } catch(e) { showToast('Error saving.', 'error'); }
   }
