@@ -2556,7 +2556,8 @@
     const bytes = new Uint8Array(binary.length);
     for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
     const uploadUrl = 'https://firebasestorage.googleapis.com/v0/b/' + BUCKET + '/o/' + encodeURIComponent(path) + '?uploadType=media&key=' + API_KEY;
-    const uploadRes = await fetch(uploadUrl, { method: 'POST', headers: { 'Content-Type': contentType }, body: bytes.buffer });
+    const token = await getValidIdToken();
+    const uploadRes = await fetch(uploadUrl, { method: 'POST', headers: { 'Content-Type': contentType, 'Authorization': 'Bearer ' + token }, body: bytes.buffer });
     const uploadData = await uploadRes.json();
     if (!uploadData.name) throw new Error('Upload failed');
     return 'https://firebasestorage.googleapis.com/v0/b/' + BUCKET + '/o/' + encodeURIComponent(uploadData.name) + '?alt=media';
@@ -2986,7 +2987,8 @@
       const bytes = new Uint8Array(binary.length);
       for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
       const uploadUrl = 'https://firebasestorage.googleapis.com/v0/b/' + BUCKET + '/o/' + encodeURIComponent(fileName) + '?uploadType=media&key=' + API_KEY;
-      const uploadRes = await fetch(uploadUrl, { method: 'POST', headers: { 'Content-Type': 'application/pdf' }, body: bytes.buffer });
+      const songsheetToken = await getValidIdToken();
+      const uploadRes = await fetch(uploadUrl, { method: 'POST', headers: { 'Content-Type': 'application/pdf', 'Authorization': 'Bearer ' + songsheetToken }, body: bytes.buffer });
       const uploadData = await uploadRes.json();
       if (!uploadData.name) throw new Error('Upload failed');
       const url = 'https://firebasestorage.googleapis.com/v0/b/' + BUCKET + '/o/' + encodeURIComponent(uploadData.name) + '?alt=media';
