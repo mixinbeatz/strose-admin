@@ -125,6 +125,8 @@
   .profile-modal-row:last-child { border-bottom: none; }
   .profile-modal-label { color: var(--dusty-rose); font-size: 10px; letter-spacing: 1px; text-transform: uppercase; margin-bottom: 3px; }
   .profile-modal-value { color: var(--soil); line-height: 1.5; }
+  .drop-zone { transition: border-color 0.15s, background 0.15s; }
+  .drop-zone.drag-over { border: 2px dashed var(--gold) !important; background: rgba(201,168,76,0.08) !important; }
   .approval-info { flex: 1; }
   .approval-name { font-family: 'Cinzel', serif; font-size: 16px; color: var(--burgundy); margin-bottom: 3px; }
   .approval-meta { font-size: 13px; color: var(--dusty-rose); margin-bottom: 4px; }
@@ -1018,7 +1020,8 @@
           <div class="card-title">Photos</div>
           <div class="info-box">Photos save immediately. Reorder with the arrows — the first photo is the main image.</div>
           <div id="parish-dev-media-photos"></div>
-          <div class="btn-row" style="margin-top:12px;">
+          <div class="drop-zone" style="margin-top:12px;padding:20px;border:2px dashed var(--linen);border-radius:10px;text-align:center;" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDropUpload(event, handleParishDevMediaAddPhoto)">
+            <div style="font-size:13px;color:var(--dusty-rose);margin-bottom:10px;">Drag &amp; drop an image here, or</div>
             <label class="btn btn-primary" style="cursor:pointer;">
               Add Photo
               <input type="file" accept="image/*" style="display:none;" onchange="handleParishDevMediaAddPhoto(this)" />
@@ -2679,6 +2682,24 @@
     if (!uploadData.name) throw new Error('Upload failed');
     return 'https://firebasestorage.googleapis.com/v0/b/' + BUCKET + '/o/' + encodeURIComponent(uploadData.name) + '?alt=media';
   }
+  // Shared drag-and-drop helpers. Wraps a dropped file into a { files: [file] }
+  // object so it can be passed straight into the existing onchange handlers,
+  // which only ever read input.files[0] — no changes needed to those handlers.
+  function handleDragOver(event) {
+    event.preventDefault();
+    event.currentTarget.classList.add('drag-over');
+  }
+  function handleDragLeave(event) {
+    event.currentTarget.classList.remove('drag-over');
+  }
+  function handleDropUpload(event, callback) {
+    event.preventDefault();
+    event.currentTarget.classList.remove('drag-over');
+    const file = event.dataTransfer.files && event.dataTransfer.files[0];
+    if (!file) return;
+    if (!file.type.startsWith('image/')) { showToast('Please drop an image file.', 'error'); return; }
+    callback({ files: [file] });
+  }
 
   function renderExistingPhotos() {
     const el = document.getElementById('dev-existing-photos');
@@ -3833,14 +3854,14 @@
     el.innerHTML = GALLERY_SLOTS.map(s => {
       const data = galleryData[s.key] || { url: '', alt: '' };
       return `<div style="border:1px solid var(--linen);border-radius:10px;padding:16px;margin-bottom:14px;display:flex;gap:16px;align-items:center;">
-        <div style="width:100px;height:70px;border-radius:6px;background:var(--linen);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;">
+        <div class="drop-zone" style="width:100px;height:70px;border-radius:6px;background:var(--linen);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDropUpload(event, (f) => handleGalleryUpload('${s.key}', f))">
           ${data.url ? `<img src="${data.url}" style="width:100%;height:100%;object-fit:cover;" onclick="openLightbox('${data.url}')" />` : `<span style="font-size:11px;color:var(--dusty-rose);text-align:center;padding:4px;">Using default</span>`}
         </div>
         <div style="flex:1;">
           <div style="font-family:'Cinzel',serif;font-size:13px;color:var(--burgundy);margin-bottom:6px;">${s.label}</div>
           <input type="text" class="form-input" placeholder="Alt text (optional)" value="${data.alt.replace(/"/g,'&quot;')}" onchange="saveGalleryAlt('${s.key}',this.value)" style="margin-bottom:8px;font-size:13px;" />
           <label class="btn btn-outline btn-sm" style="cursor:pointer;">
-            Replace Photo
+            Replace Photo (or drag &amp; drop onto thumbnail)
             <input type="file" accept="image/*" style="display:none;" onchange="handleGalleryUpload('${s.key}',this)" />
           </label>
           ${data.url ? `<button class="btn btn-outline btn-sm" onclick="clearGallerySlot('${s.key}')" style="margin-left:8px;">Reset to Default</button>` : ''}
@@ -3955,14 +3976,14 @@
       const data = aroundParishData[s.key] || { url: '', alt: '' };
       const displayUrl = data.url || AROUND_PARISH_DEFAULT_IMAGES[s.key];
       return `<div style="border:1px solid var(--linen);border-radius:10px;padding:16px;margin-bottom:14px;display:flex;gap:16px;align-items:center;">
-        <div style="width:100px;height:70px;border-radius:6px;background:var(--linen);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;">
+        <div class="drop-zone" style="width:100px;height:70px;border-radius:6px;background:var(--linen);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDropUpload(event, (f) => handleAroundParishUpload('${s.key}', f))">
           <img src="${displayUrl}" style="width:100%;height:100%;object-fit:cover;" onclick="openLightbox('${displayUrl}')" />
         </div>
         <div style="flex:1;">
           <div style="font-family:'Cinzel',serif;font-size:13px;color:var(--burgundy);margin-bottom:6px;">${s.label}${!data.url ? ' <span style=\"color:var(--dusty-rose);font-weight:400;\">(placeholder)</span>' : ''}</div>
           <input type="text" class="form-input" placeholder="Alt text (optional)" value="${data.alt.replace(/"/g,'&quot;')}" onchange="saveAroundParishAlt('${s.key}',this.value)" style="margin-bottom:8px;font-size:13px;" />
           <label class="btn btn-outline btn-sm" style="cursor:pointer;">
-            Replace Photo
+            Replace Photo (or drag &amp; drop onto thumbnail)
             <input type="file" accept="image/*" style="display:none;" onchange="handleAroundParishUpload('${s.key}',this)" />
           </label>
           ${data.url ? `<button class="btn btn-outline btn-sm" onclick="clearAroundParishSlot('${s.key}')" style="margin-left:8px;">Clear</button>` : ''}
@@ -4193,11 +4214,11 @@
     const el = document.getElementById('hero-media-photo');
     if (!el) return;
     el.innerHTML = `<div style="border:1px solid var(--linen);border-radius:10px;padding:16px;display:flex;gap:16px;align-items:center;">
-      <div style="width:120px;height:80px;border-radius:6px;background:var(--linen);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;">
+      <div class="drop-zone" style="width:120px;height:80px;border-radius:6px;background:var(--linen);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDropUpload(event, handleHeroMediaUpload)">
         <img src="${heroMediaImageUrl}" style="width:100%;height:100%;object-fit:cover;" onclick="openLightbox('${heroMediaImageUrl}')" />
       </div>
       <label class="btn btn-outline btn-sm" style="cursor:pointer;">
-        Replace Photo
+        Replace Photo (or drag &amp; drop onto thumbnail)
         <input type="file" accept="image/*" style="display:none;" onchange="handleHeroMediaUpload(this)" />
       </label>
     </div>`;
@@ -4264,11 +4285,11 @@
     const el = document.getElementById('welcome-media-photo');
     if (!el) return;
     el.innerHTML = `<div style="border:1px solid var(--linen);border-radius:10px;padding:16px;display:flex;gap:16px;align-items:center;">
-      <div style="width:120px;height:80px;border-radius:6px;background:var(--linen);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;">
+      <div class="drop-zone" style="width:120px;height:80px;border-radius:6px;background:var(--linen);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDropUpload(event, handleWelcomeMediaUpload)">
         <img src="${welcomeMediaImageUrl}" style="width:100%;height:100%;object-fit:cover;" onclick="openLightbox('${welcomeMediaImageUrl}')" />
       </div>
       <label class="btn btn-outline btn-sm" style="cursor:pointer;">
-        Replace Photo
+        Replace Photo (or drag &amp; drop onto thumbnail)
         <input type="file" accept="image/*" style="display:none;" onchange="handleWelcomeMediaUpload(this)" />
       </label>
     </div>`;
