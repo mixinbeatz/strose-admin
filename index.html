@@ -756,6 +756,7 @@
         <div class="inner-tabs">
           <div class="inner-tab active" onclick="switchInnerTab('intention-single',this)">Single Entry</div>
           <div class="inner-tab" onclick="switchInnerTab('intention-bulk',this)">Bulk Import</div>
+          <div class="inner-tab" onclick="switchInnerTab('intention-bulletin-paste',this)">Paste from Bulletin</div>
           <div class="inner-tab" onclick="switchInnerTab('intention-list-tab',this);loadIntentions()">Upcoming Intentions</div>
         </div>
         <div class="inner-panel active" id="panel-intention-single">
@@ -782,6 +783,21 @@
               <input type="text" class="form-input" id="intention-text" placeholder="e.g. For the repose of the soul of John Smith" />
             </div>
             <button class="btn btn-primary" onclick="postIntention()">Post Intention</button>
+          </div>
+        </div>
+        <div class="inner-panel" id="panel-intention-bulletin-paste">
+          <div class="card">
+            <div class="card-title">📄 Paste from Bulletin</div>
+            <div class="info-box">Paste the raw text you'd copy from a screenshot (e.g. via Preview's text-recognition) — day headers like "Sunday, August 2nd" followed by lines of time + intention. This converts it automatically and hands it off to Bulk Import for you to review before posting.</div>
+            <div class="form-group">
+              <label class="form-label">Year</label>
+              <input type="number" class="form-input" id="bulletin-paste-year" style="max-width:120px;" placeholder="2026" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Paste Bulletin Text</label>
+              <textarea class="form-textarea large" id="bulletin-paste-text" placeholder="Sunday, August 2nd&#10;8:00 am  &#8224; Eulogio Sr. &amp; Lucia Domingo&#10;9:00 am G  &#8224; Mary Caffarella&#10;11:00 am  &#8224; Rosa Perez&#10;&#10;Monday, August 3rd&#10;7:30 am  Michael Augone (Healing)&#10;12:15 pm  &#8224; Bob Balutowski"></textarea>
+            </div>
+            <button class="btn btn-primary" onclick="convertBulletinPaste()">Convert &amp; Preview</button>
           </div>
         </div>
         <div class="inner-panel" id="panel-intention-bulk">
@@ -2965,6 +2981,42 @@
           '</div>';
       }).join('');
     } catch(e) { list.innerHTML = '<div style="color:var(--danger);">Error loading.</div>'; }
+  }
+  function convertBulletinPaste() {
+    const raw = document.getElementById('bulletin-paste-text').value;
+    const year = parseInt(document.getElementById('bulletin-paste-year').value) || new Date().getFullYear();
+    const months = {january:0,february:1,march:2,april:3,may:4,june:5,july:6,august:7,september:8,october:9,november:10,december:11};
+    const dayHeaderRe = /^(?:Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday),?\s+([A-Za-z]+)\s+(\d{1,2})(?:st|nd|rd|th)?,?\s*(\d{4})?$/i;
+    const timeLineRe = /^(\d{1,2}:\d{2}\s*[APap][Mm])\s*[A-Za-z]?\s*(.*)$/;
+    const lines = raw.split('\n').map(l => l.trim());
+    let currentDate = null;
+    const csvLines = [];
+    for (const line of lines) {
+      if (!line) continue;
+      const dayMatch = line.match(dayHeaderRe);
+      if (dayMatch) {
+        const monthIdx = months[dayMatch[1].toLowerCase()];
+        const day = parseInt(dayMatch[2]);
+        const y = dayMatch[3] ? parseInt(dayMatch[3]) : year;
+        if (monthIdx !== undefined && day) {
+          const d = new Date(y, monthIdx, day);
+          currentDate = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+        }
+        continue;
+      }
+      const timeMatch = line.match(timeLineRe);
+      if (timeMatch && currentDate) {
+        const mass = timeMatch[1].replace(/\s+/g,' ').trim().toUpperCase();
+        const intention = timeMatch[2].trim();
+        if (!intention || /^no mass$/i.test(intention)) continue;
+        csvLines.push(currentDate + ', ' + mass + ', ' + intention);
+      }
+    }
+    if (csvLines.length === 0) { showToast('No entries found — check the pasted text format.', 'error'); return; }
+    document.getElementById('bulk-intention-text').value = csvLines.join('\n');
+    showToast(csvLines.length + ' entries converted.', 'success');
+    switchInnerTab('intention-bulk', document.querySelector('.inner-tab[onclick*="intention-bulk"]'));
+    previewBulkIntentions();
   }
   function previewBulkIntentions() {
     const raw = document.getElementById('bulk-intention-text').value.trim();
