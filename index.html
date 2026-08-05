@@ -2986,13 +2986,45 @@
     const raw = document.getElementById('bulletin-paste-text').value;
     const year = parseInt(document.getElementById('bulletin-paste-year').value) || new Date().getFullYear();
     const months = {january:0,february:1,march:2,april:3,may:4,june:5,july:6,august:7,september:8,october:9,november:10,december:11};
-    const dayHeaderRe = /^(?:Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday),?\s+([A-Za-z]+)\s+(\d{1,2})(?:st|nd|rd|th)?,?\s*(\d{4})?$/i;
+    // Day headers are NOT end-anchored, because text extraction sometimes merges
+    // the header and its first time onto one line (e.g. "Sunday, August 2nd 8:00 am")
+    // and sometimes doesn't. We match just the header portion and keep processing
+    // whatever's left on that same line as if it were its own line.
+    const dayHeaderRe = /^(?:Sunday|Monday|Tuesday|Wednesday|Thursday|Friday|Saturday),?\s+([A-Za-z]+)\s+(\d{1,2})(?:st|nd|rd|th)?,?\s*(\d{4})?\s*/i;
     const timeLineRe = /^(\d{1,2}:\d{2}\s*[APap][Mm])\s*(.*)$/;
-    const lines = raw.split('\n').map(l => l.trim());
+    const lines = raw.split('\n').map(l => l.trim()).filter(l => l);
     let currentDate = null;
+    let pendingTime = null; // a time seen with no intention text yet (it's on the next line)
     const csvLines = [];
+
+    function emit(mass, intention) {
+      intention = intention.trim();
+      if (!intention || !currentDate || /^no mass$/i.test(intention)) return;
+      csvLines.push(currentDate + ', ' + mass.toUpperCase() + ', ' + intention);
+    }
+    // Handles one line's worth of content once any day-header prefix has been
+    // stripped off. A time with no text after it (or just a single stray letter,
+    // which we've seen as a typo/artifact) means the real intention is on the
+    // next line, so we hold onto it as "pending" instead of emitting yet.
+    function processContent(text) {
+      if (!text) return;
+      const timeMatch = text.match(timeLineRe);
+      if (timeMatch) {
+        const mass = timeMatch[1].replace(/\s+/g, ' ').trim();
+        const rest = timeMatch[2].trim();
+        if (rest && !/^[A-Za-z]$/.test(rest)) {
+          emit(mass, rest);
+          pendingTime = null;
+        } else {
+          pendingTime = mass;
+        }
+      } else if (pendingTime) {
+        emit(pendingTime, text);
+        pendingTime = null;
+      }
+    }
+
     for (const line of lines) {
-      if (!line) continue;
       const dayMatch = line.match(dayHeaderRe);
       if (dayMatch) {
         const monthIdx = months[dayMatch[1].toLowerCase()];
@@ -3002,15 +3034,11 @@
           const d = new Date(y, monthIdx, day);
           currentDate = d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
         }
+        pendingTime = null;
+        processContent(line.slice(dayMatch[0].length).trim());
         continue;
       }
-      const timeMatch = line.match(timeLineRe);
-      if (timeMatch && currentDate) {
-        const mass = timeMatch[1].replace(/\s+/g,' ').trim().toUpperCase();
-        const intention = timeMatch[2].trim();
-        if (!intention || /^no mass$/i.test(intention)) continue;
-        csvLines.push(currentDate + ', ' + mass + ', ' + intention);
-      }
+      processContent(line);
     }
     if (csvLines.length === 0) { showToast('No entries found — check the pasted text format.', 'error'); return; }
     document.getElementById('bulk-intention-text').value = csvLines.join('\n');
