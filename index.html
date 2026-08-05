@@ -2963,9 +2963,19 @@
     try {
       const res = await fs_get('massIntentions');
       const now = new Date().toLocaleDateString('en-CA', {timeZone: 'America/Phoenix'});
+      const timeToMinutes = (t) => {
+        const m = (t || '').match(/(\d{1,2}):(\d{2})\s*([AP]M)/i);
+        if (!m) return 0;
+        let h = parseInt(m[1], 10);
+        const min = parseInt(m[2], 10);
+        const ap = m[3].toUpperCase();
+        if (ap === 'PM' && h !== 12) h += 12;
+        if (ap === 'AM' && h === 12) h = 0;
+        return h * 60 + min;
+      };
       const items = (res.documents||[])
         .filter(d => gf(d,'date') >= now)
-        .sort((a,b) => gf(a,'date').localeCompare(gf(b,'date')));
+        .sort((a,b) => gf(a,'date').localeCompare(gf(b,'date')) || timeToMinutes(gf(a,'mass')) - timeToMinutes(gf(b,'mass')));
       if(items.length === 0) { list.innerHTML = '<div style="color:var(--dusty-rose);font-size:14px;">No upcoming intentions posted.</div>'; return; }
       list.innerHTML = items.map(doc => {
         const id = docId(doc);
