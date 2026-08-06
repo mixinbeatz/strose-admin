@@ -343,6 +343,7 @@
         <div class="nav-item staff-only" onclick="showPage('gallery',this);loadGallery()"><span class="nav-icon">🖼️</span> Homepage Gallery</div>
         <div class="nav-item staff-only" onclick="showPage('around-parish',this);loadAroundParish()"><span class="nav-icon">📸</span> Around the Parish</div>
         <div class="nav-item staff-only" onclick="showPage('parish-dev-media',this);loadParishDevMedia()"><span class="nav-icon">🏗️</span> Parish Development</div>
+        <div class="nav-item staff-only" onclick="showPage('mass-schedule',this);loadMassSchedule()"><span class="nav-icon">⏰</span> Mass Schedule</div>
       </div>
     </nav>
     <div class="sidebar-footer">
@@ -1046,6 +1047,64 @@
           </div>
         </div>
       </div>
+      <div class="page" id="page-mass-schedule">
+        <div class="card">
+          <div class="card-title">⏰ Mass Schedule</div>
+          <div class="info-box">This is the standing weekly schedule — Daily/Weekend Mass times, Reconciliation, Rosary, Office Hours, and Good Shepherd Mission. It's separate from Mass Intentions (which change day to day). Edits here update the app and website everywhere this schedule is shown.</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Daily Mass Times</div>
+          <div class="form-group"><label class="form-label">Days (row 1)</label><input type="text" class="form-input" id="ms-daily-row1-days" /></div>
+          <div class="form-group"><label class="form-label">Time (row 1)</label><input type="text" class="form-input" id="ms-daily-row1-time" /></div>
+          <div class="form-group"><label class="form-label">Days (row 2)</label><input type="text" class="form-input" id="ms-daily-row2-days" /></div>
+          <div class="form-group"><label class="form-label">Time (row 2)</label><input type="text" class="form-input" id="ms-daily-row2-time" /></div>
+          <div class="form-group"><label class="form-label">Label (row 3, e.g. "Wednesday Evenings")</label><input type="text" class="form-input" id="ms-daily-row3-label" /></div>
+          <div class="form-group"><label class="form-label">Time (row 3)</label><input type="text" class="form-input" id="ms-daily-row3-time" /></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Weekend Mass Times</div>
+          <div class="form-group"><label class="form-label">Saturday (Vigil)</label><input type="text" class="form-input" id="ms-sat-time" /></div>
+          <div class="form-group"><label class="form-label">Sunday</label><input type="text" class="form-input" id="ms-sun-time" /></div>
+          <div class="form-group"><label class="form-label">Last Saturday of the month (Spanish Mass)</label><input type="text" class="form-input" id="ms-spanish-time" /></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Reconciliation</div>
+          <div class="form-group"><label class="form-label">Days (row 1)</label><input type="text" class="form-input" id="ms-recon-row1-days" /></div>
+          <div class="form-group"><label class="form-label">Time (row 1)</label><input type="text" class="form-input" id="ms-recon-row1-time" /></div>
+          <div class="form-group"><label class="form-label">Days (row 2)</label><input type="text" class="form-input" id="ms-recon-row2-days" /></div>
+          <div class="form-group"><label class="form-label">Time (row 2)</label><input type="text" class="form-input" id="ms-recon-row2-time" /></div>
+          <div class="form-group"><label class="form-label">Days (row 3)</label><input type="text" class="form-input" id="ms-recon-row3-days" /></div>
+          <div class="form-group"><label class="form-label">Time (row 3)</label><input type="text" class="form-input" id="ms-recon-row3-time" /></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Recitation of the Rosary</div>
+          <div class="form-group"><label class="form-label">Days (row 1)</label><input type="text" class="form-input" id="ms-rosary-row1-days" /></div>
+          <div class="form-group"><label class="form-label">Time (row 1)</label><input type="text" class="form-input" id="ms-rosary-row1-time" /></div>
+          <div class="form-group"><label class="form-label">Days (row 2)</label><input type="text" class="form-input" id="ms-rosary-row2-days" /></div>
+          <div class="form-group"><label class="form-label">Time (row 2)</label><input type="text" class="form-input" id="ms-rosary-row2-time" /></div>
+          <div class="form-group"><label class="form-label">Days (row 3)</label><input type="text" class="form-input" id="ms-rosary-row3-days" /></div>
+          <div class="form-group"><label class="form-label">Time (row 3)</label><input type="text" class="form-input" id="ms-rosary-row3-time" /></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Parish Office Hours</div>
+          <div class="form-group"><label class="form-label">Days (row 1)</label><input type="text" class="form-input" id="ms-office-row1-days" /></div>
+          <div class="form-group"><label class="form-label">Time (row 1)</label><input type="text" class="form-input" id="ms-office-row1-time" /></div>
+          <div class="form-group"><label class="form-label">Days (row 2)</label><input type="text" class="form-input" id="ms-office-row2-days" /></div>
+          <div class="form-group"><label class="form-label">Time (row 2)</label><input type="text" class="form-input" id="ms-office-row2-time" /></div>
+          <div class="form-group"><label class="form-label">Note</label><input type="text" class="form-input" id="ms-office-note" /></div>
+        </div>
+        <div class="card">
+          <div class="card-title">Good Shepherd Mission</div>
+          <div class="form-group"><label class="form-label">Sunday Mass</label><input type="text" class="form-input" id="ms-gs-sunday-mass" /></div>
+          <div class="form-group"><label class="form-label">Recitation of the Rosary (Sunday)</label><input type="text" class="form-input" id="ms-gs-rosary" /></div>
+          <div class="form-group"><label class="form-label">Adoration</label><input type="text" class="form-input" id="ms-gs-adoration" /></div>
+        </div>
+        <div class="card">
+          <button class="btn btn-primary" onclick="saveMassSchedule()">Save Mass Schedule</button>
+          <button class="btn btn-outline" onclick="loadMassSchedule()" style="margin-left:8px;">Reload Current</button>
+          <span id="mass-schedule-success" style="display:none;color:var(--success);margin-left:12px;">Saved!</span>
+        </div>
+      </div>
       <div class="page" id="page-hero-media">
         <div class="card">
           <div class="card-title">👁️ Live Preview</div>
@@ -1625,7 +1684,7 @@
     if(el) el.classList.add('active');
     window.scrollTo(0,0);
     closeSidebar();
-    const titles = {dashboard:'Dashboard',events:'Events',announcement:'Post Announcement',fastblast:'Fast Blast',reflection:'Weekly Reflection','parish-development':'Parish Development',daily:'Daily Reflection',songsheet:'Mass Songsheet',welcome:'Welcome Message','hero-media':'Hero Section','welcome-media':'Welcome Section',gallery:'Homepage Gallery','around-parish':'Around the Parish','parish-dev-media':'Parish Development','music-ministry':'Music Ministry','music-members':'Music Ministry Members',approvals:'Parish Family Approvals',partners:'Partner Requests',directory:'Parish Family Directory','ministry-post':'Post to Members','cda-members':'My Members','prayer-chain':'Prayer Chain','prayer-submissions':'Prayer Submissions','submit-event':'Submit Event','event-requests':'Event Requests',intention:'Mass Intentions','my-ministry':'My Ministry'};
+    const titles = {dashboard:'Dashboard',events:'Events',announcement:'Post Announcement',fastblast:'Fast Blast',reflection:'Weekly Reflection','parish-development':'Parish Development',daily:'Daily Reflection',songsheet:'Mass Songsheet',welcome:'Welcome Message','hero-media':'Hero Section','welcome-media':'Welcome Section',gallery:'Homepage Gallery','around-parish':'Around the Parish','parish-dev-media':'Parish Development','mass-schedule':'Mass Schedule','music-ministry':'Music Ministry','music-members':'Music Ministry Members',approvals:'Parish Family Approvals',partners:'Partner Requests',directory:'Parish Family Directory','ministry-post':'Post to Members','cda-members':'My Members','prayer-chain':'Prayer Chain','prayer-submissions':'Prayer Submissions','submit-event':'Submit Event','event-requests':'Event Requests',intention:'Mass Intentions','my-ministry':'My Ministry'};
     document.getElementById('page-title').textContent = titles[id]||id;
     var mpt = document.getElementById('mobile-page-title'); if(mpt) mpt.textContent = titles[id]||id;
     if(id==='approvals') loadApprovals();
@@ -2992,6 +3051,85 @@
           '</div>';
       }).join('');
     } catch(e) { list.innerHTML = '<div style="color:var(--danger);">Error loading.</div>'; }
+  }
+  // ── MASS SCHEDULE ──
+  const MASS_SCHEDULE_DEFAULTS = {
+    dailyRow1Days: 'Monday, Tuesday, Wednesday, Thursday, Friday',
+    dailyRow1Time: '7:30 AM',
+    dailyRow2Days: 'Monday, Tuesday, Thursday, Friday',
+    dailyRow2Time: '12:15 PM',
+    dailyRow3Label: 'Wednesday Evenings',
+    dailyRow3Time: '6:00 PM',
+    satTime: '4:00 PM',
+    sunTime: '8:00 AM, 11:00 AM',
+    spanishTime: 'Last Saturday of the month, 7:30 AM',
+    reconRow1Days: 'Monday - Friday',
+    reconRow1Time: '7:00 - 7:25 AM',
+    reconRow2Days: 'Wednesday',
+    reconRow2Time: '5:15 - 5:45 PM',
+    reconRow3Days: 'Saturday',
+    reconRow3Time: '2:30 - 3:30 PM',
+    rosaryRow1Days: 'Monday - Saturday',
+    rosaryRow1Time: '6:55 AM, 3:25 PM',
+    rosaryRow2Days: 'Sunday',
+    rosaryRow2Time: '7:25 AM, 10:25 AM',
+    rosaryRow3Days: 'Last Saturday of the Month',
+    rosaryRow3Time: '7:00 - 7:25 AM',
+    officeRow1Days: 'Monday - Thursday',
+    officeRow1Time: '8:00 AM - 4:00 PM',
+    officeRow2Days: 'Friday',
+    officeRow2Time: '8:00 AM - 12:00 PM',
+    officeNote: 'Closed every Wednesday, 1-3 PM for Staff Meetings',
+    gsSundayMass: '9:00 AM',
+    gsRosary: '8:30 AM',
+    gsAdoration: 'Thursdays 7:00 AM',
+  };
+  const MASS_SCHEDULE_FIELD_IDS = {
+    dailyRow1Days: 'ms-daily-row1-days', dailyRow1Time: 'ms-daily-row1-time',
+    dailyRow2Days: 'ms-daily-row2-days', dailyRow2Time: 'ms-daily-row2-time',
+    dailyRow3Label: 'ms-daily-row3-label', dailyRow3Time: 'ms-daily-row3-time',
+    satTime: 'ms-sat-time', sunTime: 'ms-sun-time', spanishTime: 'ms-spanish-time',
+    reconRow1Days: 'ms-recon-row1-days', reconRow1Time: 'ms-recon-row1-time',
+    reconRow2Days: 'ms-recon-row2-days', reconRow2Time: 'ms-recon-row2-time',
+    reconRow3Days: 'ms-recon-row3-days', reconRow3Time: 'ms-recon-row3-time',
+    rosaryRow1Days: 'ms-rosary-row1-days', rosaryRow1Time: 'ms-rosary-row1-time',
+    rosaryRow2Days: 'ms-rosary-row2-days', rosaryRow2Time: 'ms-rosary-row2-time',
+    rosaryRow3Days: 'ms-rosary-row3-days', rosaryRow3Time: 'ms-rosary-row3-time',
+    officeRow1Days: 'ms-office-row1-days', officeRow1Time: 'ms-office-row1-time',
+    officeRow2Days: 'ms-office-row2-days', officeRow2Time: 'ms-office-row2-time',
+    officeNote: 'ms-office-note',
+    gsSundayMass: 'ms-gs-sunday-mass', gsRosary: 'ms-gs-rosary', gsAdoration: 'ms-gs-adoration',
+  };
+  async function loadMassSchedule() {
+    try {
+      const res = await fs_get('siteContent/massSchedule');
+      const fields = res.fields || {};
+      Object.keys(MASS_SCHEDULE_FIELD_IDS).forEach(key => {
+        const el = document.getElementById(MASS_SCHEDULE_FIELD_IDS[key]);
+        if (!el) return;
+        el.value = fields[key]?.stringValue ?? MASS_SCHEDULE_DEFAULTS[key];
+      });
+    } catch(e) {
+      Object.keys(MASS_SCHEDULE_FIELD_IDS).forEach(key => {
+        const el = document.getElementById(MASS_SCHEDULE_FIELD_IDS[key]);
+        if (el) el.value = MASS_SCHEDULE_DEFAULTS[key];
+      });
+      showToast('No saved schedule yet — showing defaults.', 'success');
+    }
+  }
+  async function saveMassSchedule() {
+    const fieldsPayload = {};
+    Object.keys(MASS_SCHEDULE_FIELD_IDS).forEach(key => {
+      const el = document.getElementById(MASS_SCHEDULE_FIELD_IDS[key]);
+      fieldsPayload[key] = { stringValue: (el?.value || '').trim() };
+    });
+    fieldsPayload.updatedAt = { stringValue: new Date().toISOString() };
+    try {
+      await fs_patch('siteContent/massSchedule', fieldsPayload);
+      document.getElementById('mass-schedule-success').style.display = 'inline';
+      setTimeout(() => document.getElementById('mass-schedule-success').style.display = 'none', 3000);
+      showToast('Mass schedule saved!', 'success');
+    } catch(e) { showToast('Error saving.', 'error'); }
   }
   function clearBulletinPaste() {
     document.getElementById('bulletin-paste-text').value = '';
