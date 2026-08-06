@@ -3238,7 +3238,19 @@
     const btn = document.getElementById('bulk-import-btn');
     btn.disabled = true; btn.textContent = 'Importing...';
     let success = 0;
+    let skipped = 0;
+    let existingKeys = new Set();
+    try {
+      const existing = await fs_get('massIntentions');
+      (existing.documents || []).forEach(doc => {
+        const f = doc.fields || {};
+        const key = (f.date?.stringValue||'') + '|' + (f.mass?.stringValue||'') + '|' + (f.intention?.stringValue||'');
+        existingKeys.add(key);
+      });
+    } catch(e) {}
     for(const item of parsed) {
+      const key = item.date + '|' + item.mass + '|' + item.intention;
+      if (existingKeys.has(key)) { skipped++; continue; }
       try {
         await fs_post('massIntentions', {
           date: {stringValue: item.date},
@@ -3247,11 +3259,12 @@
           postedBy: {stringValue: 'Parish Staff'},
           createdAt: {stringValue: new Date().toISOString()}
         });
+        existingKeys.add(key);
         success++;
       } catch(e) {}
     }
     btn.disabled = false; btn.textContent = 'Import All';
-    showToast(success + ' intention' + (success>1?'s':'') + ' imported!', 'success');
+    showToast(success + ' intention' + (success!==1?'s':'') + ' imported' + (skipped>0 ? ', ' + skipped + ' duplicate' + (skipped!==1?'s':'') + ' skipped' : '') + '!', 'success');
     document.getElementById('bulk-intention-text').value = '';
     document.getElementById('bulk-intention-preview').innerHTML = '';
     document.getElementById('bulk-import-btn').style.display = 'none';
