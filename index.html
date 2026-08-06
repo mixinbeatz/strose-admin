@@ -798,6 +798,7 @@
               <textarea class="form-textarea large" id="bulletin-paste-text" placeholder="Sunday, August 2nd&#10;8:00 am  &#8224; Eulogio Sr. &amp; Lucia Domingo&#10;9:00 am G  &#8224; Mary Caffarella&#10;11:00 am  &#8224; Rosa Perez&#10;&#10;Monday, August 3rd&#10;7:30 am  Michael Augone (Healing)&#10;12:15 pm  &#8224; Bob Balutowski"></textarea>
             </div>
             <button class="btn btn-primary" onclick="convertBulletinPaste()">Convert &amp; Preview</button>
+            <button class="btn btn-outline" onclick="clearBulletinPaste()" style="margin-left:8px;">Clear</button>
           </div>
         </div>
         <div class="inner-panel" id="panel-intention-bulk">
@@ -2991,6 +2992,10 @@
           '</div>';
       }).join('');
     } catch(e) { list.innerHTML = '<div style="color:var(--danger);">Error loading.</div>'; }
+  }
+  function clearBulletinPaste() {
+    document.getElementById('bulletin-paste-text').value = '';
+    document.getElementById('bulletin-paste-year').value = '';
   }
   function convertBulletinPaste() {
     const raw = document.getElementById('bulletin-paste-text').value;
