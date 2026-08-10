@@ -313,6 +313,9 @@
         <div class="nav-item staff-only" onclick="showPage('music-ministry',this)"><span class="nav-icon">🎵</span> Post to Music Ministry</div>
         <div class="nav-item staff-only" onclick="showPage('songsheet',this)"><span class="nav-icon">🎵</span> Mass Songsheet</div>
         <div class="nav-item staff-only" onclick="showPage('music-members',this)"><span class="nav-icon">👥</span> Music Members</div>
+        <div class="nav-subsection staff-only">Men's Ministry</div>
+        <div class="nav-item staff-only" onclick="showPage('mens-ministry',this);loadMensMinistry();loadMensCurrentPost()"><span class="nav-icon">⛪</span> Men's Ministry</div>
+        <div class="nav-item staff-only" onclick="showPage('mens-members',this)"><span class="nav-icon">👥</span> Men's Ministry Members</div>
 
         <div class="nav-subsection ministry-only" style="display:none">Catholic Daughters</div>
         <div class="nav-item ministry-only" style="display:none" onclick="showPage('my-ministry',this);loadMyMinistry()"><span class="nav-icon">⛪</span> My Ministry</div>
@@ -1251,6 +1254,110 @@
             <div style="color:var(--dusty-rose);font-size:13px;padding:8px;">Click Load Members to see your Music Ministry team.</div>
           </div>
           <div style="margin-top:10px;font-size:12px;color:var(--dusty-rose);" id="music-member-count"></div>
+        </div>
+      </div>
+
+      <!-- MEN'S MINISTRY -->
+      <div class="page" id="page-mens-ministry">
+        <div class="card">
+          <div class="card-title">⛪ Men's Ministry Info</div>
+          <div class="info-box">Edit Men's Ministry's information below. Changes appear on the website and in the app immediately.</div>
+          <div id="mens-loading" style="color:var(--dusty-rose);font-size:14px;">Loading...</div>
+          <div id="mens-form" style="display:none;">
+            <div class="form-group">
+              <label class="form-label">Schedule</label>
+              <input type="text" class="form-input" id="mens-schedule" placeholder="e.g. Every Friday, 5:30 AM" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Location</label>
+              <input type="text" class="form-input" id="mens-location" placeholder="e.g. Parish Hall" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Description</label>
+              <textarea class="form-textarea" id="mens-description" style="min-height:120px;"></textarea>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Contact Name</label>
+              <input type="text" class="form-input" id="mens-contact" placeholder="e.g. John Smith" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Phone</label>
+              <input type="text" class="form-input" id="mens-phone" placeholder="e.g. 8478775020" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Email</label>
+              <input type="text" class="form-input" id="mens-email" placeholder="e.g. mensministry@stroseanthem.com" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Link (optional)</label>
+              <input type="text" class="form-input" id="mens-link" placeholder="https://..." />
+            </div>
+            <button class="btn btn-primary" onclick="saveMensMinistry()">Save Changes</button>
+          </div>
+        </div>
+        <div class="card" style="margin-top:16px;">
+          <div class="card-title">✝️ Post to Men's Ministry</div>
+          <div class="info-box">Post a message to Men's Ministry members in the app. Members who have opted in will receive a push notification.</div>
+          <div class="form-group">
+            <label class="form-label">Posted By <span style="color:#8B2635">*</span></label>
+            <input type="text" class="form-input" id="mens-postedby" placeholder="Your name" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Message <span style="color:#8B2635">*</span></label>
+            <textarea class="form-input" id="mens-body" rows="5" placeholder="Your message to Men's Ministry members..."></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Expires</label>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <button class="btn btn-outline btn-sm mens-expiry active-expiry" onclick="setMensExpiry(this,'3d')">3 Days</button>
+              <button class="btn btn-outline btn-sm mens-expiry" onclick="setMensExpiry(this,'7d')">7 Days</button>
+              <button class="btn btn-outline btn-sm mens-expiry" onclick="setMensExpiry(this,'30d')">30 Days</button>
+            </div>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-primary" onclick="postMensMinistry()">Post to App</button>
+            <button class="btn btn-outline" onclick="emailMensMinistry()">📧 Email Members</button>
+          </div>
+          <div class="post-success" id="mens-success">✓ Message posted.</div>
+        </div>
+        <div class="card" style="margin-top:16px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+            <div class="card-title" style="margin:0;">Current Post</div>
+            <button class="btn btn-outline btn-sm" onclick="loadMensCurrentPost()">Refresh</button>
+          </div>
+          <div id="mens-current-post"><div style="color:var(--dusty-rose);font-size:14px;">Loading...</div></div>
+        </div>
+        <div class="card" style="margin-top:16px;">
+          <div class="card-title">📬 Email Men's Ministry</div>
+          <div class="info-box">Opens Gmail with your members in BCC. Review and send — replies come back to you only.</div>
+          <div class="form-group">
+            <label class="form-label">Subject</label>
+            <input type="text" class="form-input" id="mens-subject" placeholder="e.g. Meeting This Friday" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Message</label>
+            <textarea class="form-input" id="mens-email-body" rows="5" placeholder="Your message..."></textarea>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-outline" onclick="emailMensMinistry()">📧 Open in Gmail</button>
+          </div>
+        </div>
+      </div>
+      <!-- MEN'S MINISTRY MEMBERS -->
+      <div class="page" id="page-mens-members">
+        <div class="card">
+          <div class="card-title">👥 Men's Ministry Members</div>
+          <div class="info-box">Men's Ministry members who have joined the app. Select members to include in your email BCC.</div>
+          <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+            <button class="btn btn-primary btn-sm" onclick="loadMensMembers()">🔄 Load Members</button>
+            <button class="btn btn-outline btn-sm" onclick="selectAllMens()">Select All</button>
+            <button class="btn btn-outline btn-sm" onclick="deselectAllMens()">Deselect All</button>
+            <button class="btn btn-outline btn-sm" onclick="emailSelectedMens()">📧 Email Selected</button>
+          </div>
+          <div id="mens-members-list" style="max-height:500px;overflow-y:auto;border:1px solid var(--linen);border-radius:8px;padding:8px;">
+            <div style="color:var(--dusty-rose);font-size:13px;padding:8px;">Click Load Members to see your Men's Ministry team.</div>
+          </div>
+          <div style="margin-top:10px;font-size:12px;color:var(--dusty-rose);" id="mens-member-count"></div>
         </div>
       </div>
 
@@ -3689,23 +3796,17 @@
     const body = document.getElementById('mm-body').value.trim();
     if (!body) { showToast('Please enter a message.', 'error'); return; }
     try {
-      const res = await fetch(BASE + '/ministryPosts?key=' + API_KEY, {
-        method: 'POST', headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ fields: {
-          message: {stringValue: body},
-          ministry: {stringValue: 'Music Ministry'},
-          postedBy: {stringValue: 'Matt Ficarra'},
-          expiresAt: {stringValue: getExpiryDate(mmExpiry)},
-          createdAt: {stringValue: new Date().toISOString()}
-        }})
+      await fs_patch('currentPosts/music', {
+        message: {stringValue: body},
+        ministry: {stringValue: 'Music Ministry'},
+        postedBy: {stringValue: 'Matt Ficarra'},
+        expiresAt: {stringValue: getExpiryDate(mmExpiry)},
+        createdAt: {stringValue: new Date().toISOString()}
       });
-      const data = await res.json();
-      if (data.name) {
-        document.getElementById('mm-success').style.display = 'block';
-        setTimeout(()=>document.getElementById('mm-success').style.display='none',3000);
-        document.getElementById('mm-body').value = '';
-        showToast('Message posted!', 'success');
-      } else { showToast('Error posting.', 'error'); }
+      document.getElementById('mm-success').style.display = 'block';
+      setTimeout(()=>document.getElementById('mm-success').style.display='none',3000);
+      document.getElementById('mm-body').value = '';
+      showToast('Message posted!', 'success');
     } catch(e) { showToast('Error posting.', 'error'); }
   }
 
@@ -3718,6 +3819,151 @@
   }
 
   var musicMembers = [];
+
+  // --- MEN'S MINISTRY (owner-managed page, not gated behind a leader claim) ---
+  async function loadMensMinistry() {
+    try {
+      const res = await fs_get_doc('ministries/mens');
+      document.getElementById('mens-schedule').value = gf(res, 'schedule') || '';
+      document.getElementById('mens-location').value = gf(res, 'location') || '';
+      document.getElementById('mens-description').value = gf(res, 'description') || '';
+      document.getElementById('mens-contact').value = gf(res, 'contact') || '';
+      document.getElementById('mens-phone').value = gf(res, 'phone') || '';
+      document.getElementById('mens-email').value = gf(res, 'email') || '';
+      document.getElementById('mens-link').value = gf(res, 'link') || '';
+      document.getElementById('mens-loading').style.display = 'none';
+      document.getElementById('mens-form').style.display = 'block';
+    } catch(e) {
+      document.getElementById('mens-loading').textContent = 'Error loading ministry data.';
+    }
+  }
+  async function saveMensMinistry() {
+    const fields = {
+      schedule: {stringValue: document.getElementById('mens-schedule').value.trim()},
+      location: {stringValue: document.getElementById('mens-location').value.trim()},
+      description: {stringValue: document.getElementById('mens-description').value.trim()},
+      contact: {stringValue: document.getElementById('mens-contact').value.trim()},
+      phone: {stringValue: document.getElementById('mens-phone').value.trim()},
+      email: {stringValue: document.getElementById('mens-email').value.trim()},
+      link: {stringValue: document.getElementById('mens-link').value.trim()},
+    };
+    try {
+      await fs_patch('ministries/mens', fields);
+      showToast('Ministry info updated!', 'success');
+    } catch(e) {
+      showToast('Error saving changes.', 'error');
+    }
+  }
+  let mensExpiry = '3d';
+  function setMensExpiry(el, val) { mensExpiry = val; document.querySelectorAll('.mens-expiry').forEach(b=>b.classList.remove('active-expiry')); el.classList.add('active-expiry'); }
+  async function postMensMinistry() {
+    const postedBy = document.getElementById('mens-postedby').value.trim();
+    const body = document.getElementById('mens-body').value.trim();
+    if (!postedBy) { showToast('Please enter your name.', 'error'); return; }
+    if (!body) { showToast('Please enter a message.', 'error'); return; }
+    try {
+      await fs_patch('currentPosts/mens', {
+        message: {stringValue: body},
+        ministry: {stringValue: "Men's Ministry"},
+        postedBy: {stringValue: postedBy},
+        expiresAt: {stringValue: getExpiryDate(mensExpiry)},
+        createdAt: {stringValue: new Date().toISOString()}
+      });
+      document.getElementById('mens-success').style.display = 'block';
+      setTimeout(()=>document.getElementById('mens-success').style.display='none',3000);
+      document.getElementById('mens-body').value = '';
+      showToast('Message posted!', 'success');
+      loadMensCurrentPost();
+    } catch(e) { showToast('Error posting.', 'error'); }
+  }
+  async function loadMensCurrentPost() {
+    const el = document.getElementById('mens-current-post');
+    if (!el) return;
+    el.innerHTML = '<div style="color:var(--dusty-rose);font-size:14px;">Loading...</div>';
+    try {
+      const res = await fs_get_doc('currentPosts/mens');
+      if (!res.fields) {
+        el.innerHTML = '<div style="color:var(--dusty-rose);font-size:14px;">No active post.</div>';
+        return;
+      }
+      const now = new Date();
+      const message = gf(res,'message');
+      const postedBy = gf(res,'postedBy');
+      const expiresAt = gf(res,'expiresAt');
+      const createdAt = gf(res,'createdAt');
+      const expired = expiresAt && new Date(expiresAt) < now;
+      const dateLabel = createdAt ? new Date(createdAt).toLocaleDateString('en-US',{month:'short',day:'numeric'}) : '';
+      const expiryLabel = expired ? 'Expired' : (expiresAt ? 'Expires ' + new Date(expiresAt).toLocaleDateString('en-US',{month:'short',day:'numeric'}) : '');
+      el.innerHTML = '<div style="padding:12px 0;border-bottom:1px solid var(--linen);">' +
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">' +
+        '<div style="flex:1;">' +
+        '<div style="font-size:14px;color:var(--soil);margin-bottom:4px;">' + message + '</div>' +
+        '<div style="font-size:12px;color:var(--dusty-rose);">' + postedBy + (dateLabel ? ' \u00b7 ' + dateLabel : '') + (expiryLabel ? ' \u00b7 ' + expiryLabel : '') + (expired ? ' (hidden from app)' : '') + '</div>' +
+        '</div>' +
+        '<button class="btn btn-danger btn-sm" onclick="clearMensCurrentPost()">Clear</button>' +
+        '</div></div>';
+    } catch(e) { el.innerHTML = '<div style="color:var(--danger);">Error loading.</div>'; }
+  }
+  async function clearMensCurrentPost() {
+    if (!confirm('Clear this post? It will no longer show in the app.')) return;
+    try {
+      await fs_delete('currentPosts/mens');
+      showToast('Post cleared.', 'success');
+      loadMensCurrentPost();
+    } catch(e) { showToast('Error clearing post.', 'error'); }
+  }
+  function emailMensMinistry() {
+    const myEmail = (currentClaims && currentClaims.email) || '';
+    const subject = document.getElementById('mens-subject')?.value.trim() || document.getElementById('mens-body')?.value.trim().substring(0,50) || "Men's Ministry";
+    const body = document.getElementById('mens-email-body')?.value.trim() || document.getElementById('mens-body')?.value.trim() || '';
+    const checked = Array.from(document.querySelectorAll('.mens-check:checked')).map(c => c.dataset.email).filter(Boolean);
+    const bcc = checked.length > 0 ? checked.join(',') : myEmail;
+    const url = 'https://mail.google.com/mail/?view=cm&fs=1&to=' + encodeURIComponent(myEmail) + '&bcc=' + encodeURIComponent(bcc) + '&su=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+    window.open(url, '_blank');
+  }
+
+  let mensMembers = [];
+  async function loadMensMembers() {
+    document.getElementById('mens-members-list').innerHTML = '<div style="color:var(--dusty-rose);font-size:13px;padding:8px;">Loading...</div>';
+    try {
+      const res = await fs_get('parishFamily');
+      mensMembers = (res.documents||[]).filter(d => {
+        const approved = d.fields?.approved?.booleanValue === true;
+        const ministries = d.fields?.ministries?.stringValue || '';
+        return approved && ministries.includes("Men's Ministry");
+      }).sort((a,b) => (a.fields?.name?.stringValue||'').localeCompare(b.fields?.name?.stringValue||''));
+      renderMensMembers();
+      document.getElementById('mens-member-count').textContent = mensMembers.length + ' members found';
+    } catch(e) { showToast('Error loading members.', 'error'); }
+  }
+  function renderMensMembers() {
+    const list = document.getElementById('mens-members-list');
+    if (mensMembers.length === 0) { list.innerHTML = '<div style="color:var(--dusty-rose);font-size:13px;padding:8px;">No members found in app directory.</div>'; return; }
+    list.innerHTML = mensMembers.map((d,i) => {
+      const name = d.fields?.name?.stringValue || '';
+      const email = d.fields?.email?.stringValue || '';
+      const showEmail = d.fields?.showEmail?.booleanValue === true;
+      return `<label style="display:flex;align-items:center;gap:10px;padding:8px;border-bottom:1px solid var(--linen);cursor:pointer;">
+        <input type="checkbox" class="mens-check" data-email="${email}" data-show="${showEmail}" ${showEmail && email ? '' : 'disabled'} style="width:16px;height:16px;accent-color:var(--burgundy);">
+        <span style="flex:1;font-size:14px;color:var(--soil);">${name}</span>
+        <span style="font-size:12px;color:var(--dusty-rose);">${showEmail && email ? email : '(no email shared)'}</span>
+      </label>`;
+    }).join('');
+  }
+  function selectAllMens() {
+    document.querySelectorAll('.mens-check:not(:disabled)').forEach(c => c.checked = true);
+  }
+  function deselectAllMens() {
+    document.querySelectorAll('.mens-check').forEach(c => c.checked = false);
+  }
+  function emailSelectedMens() {
+    const myEmail = (currentClaims && currentClaims.email) || '';
+    const checked = Array.from(document.querySelectorAll('.mens-check:checked')).map(c => c.dataset.email).filter(Boolean);
+    if (checked.length === 0) { showToast('No members selected.', 'error'); return; }
+    const url = 'https://mail.google.com/mail/?view=cm&fs=1&to=' + encodeURIComponent(myEmail) + '&bcc=' + encodeURIComponent(checked.join(','));
+    window.open(url, '_blank');
+  }
+
 
   async function loadMusicMembers() {
     document.getElementById('music-members-list').innerHTML = '<div style="color:var(--dusty-rose);font-size:13px;padding:8px;">Loading...</div>';
