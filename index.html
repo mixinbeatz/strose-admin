@@ -1300,11 +1300,15 @@
       <!-- MINISTRY POST -->
       <div class="page" id="page-ministry-post">
         <div class="card">
-          <div class="card-title">✝️ Post to Catholic Daughters</div>
-          <div class="info-box">Post a message to Catholic Daughters members in the app. Members who have opted in will receive a push notification.</div>
+          <div class="card-title" id="mp-title">✝️ Post to Ministry Members</div>
+          <div class="info-box">Post a message to your ministry's members in the app. Members who have opted in will receive a push notification.</div>
+          <div class="form-group">
+            <label class="form-label">Posted By <span style="color:#8B2635">*</span></label>
+            <input type="text" class="form-input" id="mp-postedby" placeholder="Your name" />
+          </div>
           <div class="form-group">
             <label class="form-label">Message <span style="color:#8B2635">*</span></label>
-            <textarea class="form-input" id="mp-body" rows="5" placeholder="Your message to Catholic Daughters members..."></textarea>
+            <textarea class="form-input" id="mp-body" rows="5" placeholder="Your message to ministry members..."></textarea>
           </div>
           <div class="form-group">
             <label class="form-label">Expires</label>
@@ -1316,19 +1320,19 @@
           </div>
           <div class="btn-row">
             <button class="btn btn-primary" onclick="postMinistryMessage()">Post to App</button>
-            <button class="btn btn-outline" onclick="emailCDA()">📧 Email Members</button>
+            <button class="btn btn-outline" id="mp-email-btn" onclick="emailMinistryMembers()">📧 Email Members</button>
           </div>
-          <div class="post-success" id="mp-success">✓ Message posted to Catholic Daughters.</div>
+          <div class="post-success" id="mp-success">✓ Message posted.</div>
         </div>
         <div class="card" style="margin-top:16px;">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
-            <div class="card-title" style="margin:0;">Recent Posts</div>
+            <div class="card-title" style="margin:0;">Current Post</div>
             <button class="btn btn-outline btn-sm" onclick="loadMinistryPosts()">Refresh</button>
           </div>
           <div id="ministry-posts-list"><div style="color:var(--dusty-rose);font-size:14px;">Loading...</div></div>
         </div>
-        <div class="card" style="margin-top:16px;">
-          <div class="card-title">📬 Email Catholic Daughters</div>
+        <div class="card" style="margin-top:16px;" id="mp-email-card">
+          <div class="card-title">📬 Email Ministry Members</div>
           <div class="info-box">Opens Gmail with your members in BCC. Review and send — replies come back to you only.</div>
           <div class="form-group">
             <label class="form-label">Subject</label>
@@ -1339,7 +1343,7 @@
             <textarea class="form-input" id="cda-body" rows="5" placeholder="Your message..."></textarea>
           </div>
           <div class="btn-row">
-            <button class="btn btn-outline" onclick="emailCDA()">📧 Open in Gmail</button>
+            <button class="btn btn-outline" onclick="emailMinistryMembers()">📧 Open in Gmail</button>
           </div>
         </div>
       </div>
@@ -1348,15 +1352,15 @@
       <div class="page" id="page-cda-members">
         <div class="card">
           <div class="card-title">👥 My Members</div>
-          <div class="info-box">Catholic Daughters members who have joined the app. Select members to include in your email BCC.</div>
+          <div class="info-box">Ministry members who have joined the app. Select members to include in your email BCC.</div>
           <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
-            <button class="btn btn-primary btn-sm" onclick="loadCDAMembers()">🔄 Load Members</button>
-            <button class="btn btn-outline btn-sm" onclick="selectAllCDA()">Select All</button>
-            <button class="btn btn-outline btn-sm" onclick="deselectAllCDA()">Deselect All</button>
-            <button class="btn btn-outline btn-sm" onclick="emailSelectedCDA()">📧 Email Selected</button>
+            <button class="btn btn-primary btn-sm" onclick="loadMinistryMembers()">🔄 Load Members</button>
+            <button class="btn btn-outline btn-sm" onclick="selectAllMinistryMembers()">Select All</button>
+            <button class="btn btn-outline btn-sm" onclick="deselectAllMinistryMembers()">Deselect All</button>
+            <button class="btn btn-outline btn-sm" onclick="emailSelectedMinistryMembers()">📧 Email Selected</button>
           </div>
           <div id="cda-members-list" style="max-height:500px;overflow-y:auto;border:1px solid var(--linen);border-radius:8px;padding:8px;">
-            <div style="color:var(--dusty-rose);font-size:13px;padding:8px;">Click Load Members to see your Catholic Daughters.</div>
+            <div style="color:var(--dusty-rose);font-size:13px;padding:8px;">Click Load Members to see your ministry's members.</div>
           </div>
           <div style="margin-top:10px;font-size:12px;color:var(--dusty-rose);" id="cda-member-count"></div>
         </div>
@@ -1505,7 +1509,7 @@
   const API_KEY = 'AIzaSyBKjyHaRNkIjTV87zrhhvg6pBxarm3lcQ8';
   const PROJECT_ID = 'saint-rose-anthem';
   const BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/parishes/saint-rose-anthem`;
-  const MINISTRY_NAME_MAP = { cda: 'Catholic Daughters' }; // ministry id (custom claim) -> display name
+  const MINISTRY_NAME_MAP = { cda: 'Catholic Daughters', mens: "Men's Ministry" }; // ministry id (custom claim) -> display name. Add an entry here + assign the custom claim to onboard each new ministry leader.
   const STAFF_NAME_MAP = {
     'markramski@gmail.com': 'Mark Ramotowski',
     'mficarra@stroseanthem.com': 'Matthew Ficarra',
@@ -3322,43 +3326,41 @@
     const list = document.getElementById('ministry-posts-list');
     if (!list) return;
     list.innerHTML = '<div style="color:var(--dusty-rose);font-size:14px;">Loading...</div>';
+    const ministryId = currentClaims && currentClaims.ministry;
+    if (!ministryId) { list.innerHTML = '<div style="color:var(--dusty-rose);font-size:14px;">No ministry assigned to this account.</div>'; return; }
     try {
-      const ministryName = MINISTRY_NAME_MAP[currentClaims && currentClaims.ministry] || 'Catholic Daughters';
-      const res = await fs_get('ministryPosts');
-      const now = new Date();
-      const docs = (res.documents || [])
-        .filter(d => gf(d,'ministry') === ministryName)
-        .sort((a,b) => new Date(gf(b,'createdAt')) - new Date(gf(a,'createdAt')));
-      if (docs.length === 0) {
-        list.innerHTML = '<div style="color:var(--dusty-rose);font-size:14px;">No posts yet.</div>';
+      const res = await fs_get_doc('currentPosts/' + ministryId);
+      if (!res.fields) {
+        list.innerHTML = '<div style="color:var(--dusty-rose);font-size:14px;">No active post.</div>';
         return;
       }
-      list.innerHTML = docs.map(doc => {
-        const id = docId(doc);
-        const message = gf(doc,'message');
-        const expiresAt = gf(doc,'expiresAt');
-        const createdAt = gf(doc,'createdAt');
-        const expired = expiresAt && new Date(expiresAt) < now;
-        const dateLabel = createdAt ? new Date(createdAt).toLocaleDateString('en-US',{month:'short',day:'numeric'}) : '';
-        const expiryLabel = expired ? 'Expired' : (expiresAt ? 'Expires ' + new Date(expiresAt).toLocaleDateString('en-US',{month:'short',day:'numeric'}) : '');
-        return '<div style="padding:12px 0;border-bottom:1px solid var(--linen);">' +
-          '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">' +
-          '<div style="flex:1;">' +
-          '<div style="font-size:14px;color:var(--soil);margin-bottom:4px;">' + message + '</div>' +
-          '<div style="font-size:12px;color:var(--dusty-rose);">' + dateLabel + (expiryLabel ? ' \u00b7 ' + expiryLabel : '') + (expired ? ' (hidden from app)' : '') + '</div>' +
-          '</div>' +
-          '<button class="btn btn-danger btn-sm" onclick="deleteMinistryPost(\'' + id + '\')">Delete</button>' +
-          '</div></div>';
-      }).join('');
+      const now = new Date();
+      const message = gf(res,'message');
+      const postedBy = gf(res,'postedBy');
+      const expiresAt = gf(res,'expiresAt');
+      const createdAt = gf(res,'createdAt');
+      const expired = expiresAt && new Date(expiresAt) < now;
+      const dateLabel = createdAt ? new Date(createdAt).toLocaleDateString('en-US',{month:'short',day:'numeric'}) : '';
+      const expiryLabel = expired ? 'Expired' : (expiresAt ? 'Expires ' + new Date(expiresAt).toLocaleDateString('en-US',{month:'short',day:'numeric'}) : '');
+      list.innerHTML = '<div style="padding:12px 0;border-bottom:1px solid var(--linen);">' +
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">' +
+        '<div style="flex:1;">' +
+        '<div style="font-size:14px;color:var(--soil);margin-bottom:4px;">' + message + '</div>' +
+        '<div style="font-size:12px;color:var(--dusty-rose);">' + postedBy + (dateLabel ? ' \u00b7 ' + dateLabel : '') + (expiryLabel ? ' \u00b7 ' + expiryLabel : '') + (expired ? ' (hidden from app)' : '') + '</div>' +
+        '</div>' +
+        '<button class="btn btn-danger btn-sm" onclick="clearCurrentPost()">Clear</button>' +
+        '</div></div>';
     } catch(e) { list.innerHTML = '<div style="color:var(--danger);">Error loading.</div>'; }
   }
-  async function deleteMinistryPost(id) {
-    if (!confirm('Delete this post?')) return;
+  async function clearCurrentPost() {
+    if (!confirm('Clear this post? It will no longer show in the app.')) return;
+    const ministryId = currentClaims && currentClaims.ministry;
+    if (!ministryId) return;
     try {
-      await fs_delete('ministryPosts/' + id);
-      showToast('Post deleted.', 'success');
+      await fs_delete('currentPosts/' + ministryId);
+      showToast('Post cleared.', 'success');
       loadMinistryPosts();
-    } catch(e) { showToast('Error deleting.', 'error'); }
+    } catch(e) { showToast('Error clearing post.', 'error'); }
   }
   async function postSongsheet() {
     const title = document.getElementById('ss-title').value.trim();
@@ -3631,27 +3633,26 @@
   }
 
   async function postMinistryMessage() {
+    const ministryId = currentClaims && currentClaims.ministry;
+    if (!ministryId) { showToast('No ministry assigned to this account.', 'error'); return; }
+    const postedBy = document.getElementById('mp-postedby').value.trim();
     const body = document.getElementById('mp-body').value.trim();
+    if (!postedBy) { showToast('Please enter your name.', 'error'); return; }
     if (!body) { showToast('Please enter a message.', 'error'); return; }
+    const ministryName = MINISTRY_NAME_MAP[ministryId] || ministryId;
     try {
-      const res = await fetch(BASE + '/ministryPosts?key=' + API_KEY, {
-        method: 'POST', headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ fields: {
-          message: {stringValue: body},
-          ministry: {stringValue: 'Catholic Daughters'},
-          postedBy: {stringValue: 'Nancy Poniatowski'},
-          expiresAt: {stringValue: getExpiryDate(mpExpiry)},
-          createdAt: {stringValue: new Date().toISOString()}
-        }})
+      await fs_patch('currentPosts/' + ministryId, {
+        message: {stringValue: body},
+        ministry: {stringValue: ministryName},
+        postedBy: {stringValue: postedBy},
+        expiresAt: {stringValue: getExpiryDate(mpExpiry)},
+        createdAt: {stringValue: new Date().toISOString()}
       });
-      const data = await res.json();
-      if (data.name) {
-        document.getElementById('mp-success').style.display = 'block';
-        setTimeout(()=>document.getElementById('mp-success').style.display='none',3000);
-        document.getElementById('mp-body').value = '';
-        showToast('Message posted!', 'success');
-        loadMinistryPosts();
-      } else { showToast('Error posting.', 'error'); }
+      document.getElementById('mp-success').style.display = 'block';
+      setTimeout(()=>document.getElementById('mp-success').style.display='none',3000);
+      document.getElementById('mp-body').value = '';
+      showToast('Message posted!', 'success');
+      loadMinistryPosts();
     } catch(e) { showToast('Error posting.', 'error'); }
   }
 
@@ -3759,14 +3760,15 @@
 
   let cdaMembers = [];
 
-  async function loadCDAMembers() {
+  async function loadMinistryMembers() {
     document.getElementById('cda-members-list').innerHTML = '<div style="color:var(--dusty-rose);font-size:13px;padding:8px;">Loading...</div>';
+    const ministryName = MINISTRY_NAME_MAP[currentClaims && currentClaims.ministry] || (currentClaims && currentClaims.ministry) || '';
     try {
       const res = await fs_get('parishFamily');
       cdaMembers = (res.documents||[]).filter(d => {
         const approved = d.fields?.approved?.booleanValue === true;
         const ministries = d.fields?.ministries?.stringValue || '';
-        return approved && ministries.includes('Catholic Daughters');
+        return approved && ministryName && ministries.includes(ministryName);
       }).sort((a,b) => (a.fields?.name?.stringValue||'').localeCompare(b.fields?.name?.stringValue||''));
       renderCDAMembers();
       document.getElementById('cda-member-count').textContent = cdaMembers.length + ' members found';
@@ -3775,7 +3777,7 @@
 
   function renderCDAMembers() {
     const list = document.getElementById('cda-members-list');
-    if (cdaMembers.length === 0) { list.innerHTML = '<div style="color:var(--dusty-rose);font-size:13px;padding:8px;">No Catholic Daughters members found in app directory.</div>'; return; }
+    if (cdaMembers.length === 0) { list.innerHTML = '<div style="color:var(--dusty-rose);font-size:13px;padding:8px;">No members found in app directory.</div>'; return; }
     list.innerHTML = cdaMembers.map((d,i) => {
       const name = d.fields?.name?.stringValue || '';
       const email = d.fields?.email?.stringValue || '';
@@ -3788,27 +3790,29 @@
     }).join('');
   }
 
-  function selectAllCDA() {
+  function selectAllMinistryMembers() {
     document.querySelectorAll('.cda-check:not(:disabled)').forEach(c => c.checked = true);
   }
 
-  function deselectAllCDA() {
+  function deselectAllMinistryMembers() {
     document.querySelectorAll('.cda-check').forEach(c => c.checked = false);
   }
 
-  function emailSelectedCDA() {
+  function emailSelectedMinistryMembers() {
+    const myEmail = (currentClaims && currentClaims.email) || '';
     const checked = Array.from(document.querySelectorAll('.cda-check:checked')).map(c => c.dataset.email).filter(Boolean);
     if (checked.length === 0) { showToast('No members selected.', 'error'); return; }
-    const url = 'https://mail.google.com/mail/?view=cm&fs=1&to=nponiato@gmail.com&bcc=' + encodeURIComponent(checked.join(','));
+    const url = 'https://mail.google.com/mail/?view=cm&fs=1&to=' + encodeURIComponent(myEmail) + '&bcc=' + encodeURIComponent(checked.join(','));
     window.open(url, '_blank');
   }
 
-  function emailCDA() {
-    const subject = document.getElementById('cda-subject')?.value.trim() || document.getElementById('mp-body')?.value.trim().substring(0,50) || 'Catholic Daughters Message';
+  function emailMinistryMembers() {
+    const myEmail = (currentClaims && currentClaims.email) || '';
+    const subject = document.getElementById('cda-subject')?.value.trim() || document.getElementById('mp-body')?.value.trim().substring(0,50) || 'Ministry Message';
     const body = document.getElementById('cda-body')?.value.trim() || document.getElementById('mp-body')?.value.trim() || '';
     const checked = Array.from(document.querySelectorAll('.cda-check:checked')).map(c => c.dataset.email).filter(Boolean);
-    const bcc = checked.length > 0 ? checked.join(',') : 'nponiato@gmail.com';
-    const url = 'https://mail.google.com/mail/?view=cm&fs=1&to=nponiato@gmail.com&bcc=' + encodeURIComponent(bcc) + '&su=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+    const bcc = checked.length > 0 ? checked.join(',') : myEmail;
+    const url = 'https://mail.google.com/mail/?view=cm&fs=1&to=' + encodeURIComponent(myEmail) + '&bcc=' + encodeURIComponent(bcc) + '&su=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
     window.open(url, '_blank');
   }
 
