@@ -581,13 +581,13 @@
                 <label class="form-label">Start From *</label>
                 <input type="date" class="form-input" id="rec-start">
               </div>
-              <div class="form-group">
-                <label class="form-label">Generate how many months?</label>
-                <select class="form-select" id="rec-months">
-                  <option value="3">3 months</option>
-                  <option value="6" selected>6 months</option>
-                  <option value="12">12 months</option>
-                </select>
+              <div class="form-group" id="rec-months-group">
+                <label class="form-label">Generate how many months? (max 12)</label>
+                <input type="number" class="form-input" id="rec-months" min="1" max="12" value="6" onchange="clampRecMonths()">
+              </div>
+              <div class="form-group" id="rec-weeks-group" style="display:none">
+                <label class="form-label">Generate how many weeks? (max 52)</label>
+                <input type="number" class="form-input" id="rec-weeks" min="1" max="52" value="8" onchange="clampRecWeeks()">
               </div>
               <div class="form-group form-full">
                 <label class="form-label">Description (optional)</label>
@@ -1907,6 +1907,20 @@
   function updateRecurringPreview() {
     var pattern = document.getElementById('rec-pattern').value;
     document.getElementById('rec-nth-group').style.display = pattern === 'monthly-nth' ? 'block' : 'none';
+    document.getElementById('rec-weeks-group').style.display = pattern === 'weekly' ? 'block' : 'none';
+    document.getElementById('rec-months-group').style.display = pattern === 'weekly' ? 'none' : 'block';
+  }
+  function clampRecMonths() {
+    var el = document.getElementById('rec-months');
+    var v = parseInt(el.value) || 1;
+    if (v < 1) v = 1; if (v > 12) v = 12;
+    el.value = v;
+  }
+  function clampRecWeeks() {
+    var el = document.getElementById('rec-weeks');
+    var v = parseInt(el.value) || 1;
+    if (v < 1) v = 1; if (v > 52) v = 52;
+    el.value = v;
   }
 
   function getNthWeekday(year, month, nth, weekday) {
@@ -1928,11 +1942,16 @@
   function generateRecurringDates() {
     var pattern = document.getElementById('rec-pattern').value;
     var startVal = document.getElementById('rec-start').value;
-    var months = parseInt(document.getElementById('rec-months').value);
     if (!startVal) return [];
     var start = new Date(startVal + 'T00:00:00');
     var end = new Date(start);
-    end.setMonth(end.getMonth() + months);
+    var months = Math.min(12, Math.max(1, parseInt(document.getElementById('rec-months').value) || 1));
+    if (pattern === 'weekly') {
+      var weeks = Math.min(52, Math.max(1, parseInt(document.getElementById('rec-weeks').value) || 1));
+      end.setDate(end.getDate() + weeks * 7);
+    } else {
+      end.setMonth(end.getMonth() + months);
+    }
     var dates = [];
     var cur = new Date(start);
     if (pattern === 'weekly') {
