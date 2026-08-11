@@ -1980,22 +1980,18 @@
     var desc = document.getElementById('rec-desc').value.trim();
     if (!title) { alert('Please enter a title.'); return; }
     var dates = generateRecurringDates();
-    var API_KEY = 'AIzaSyBKjyHaRNkIjTV87zrhhvg6pBxarm3lcQ8';
-    var PROJECT_ID = 'saint-rose-anthem';
     var timeStr = timeVal ? new Date('1970-01-01T' + timeVal).toLocaleTimeString('en-US', {hour:'numeric',minute:'2-digit'}) : '';
     for (var i = 0; i < dates.length; i++) {
       var d = dates[i];
       var startAt = new Date(d);
       if (timeVal) { var parts = timeVal.split(':'); startAt.setHours(parseInt(parts[0]), parseInt(parts[1])); }
       var expiresAt = new Date(startAt); expiresAt.setHours(23, 59, 59);
-      var body = {fields:{
+      await fs_post('events', {
         title:{stringValue:title}, time:{stringValue:timeStr}, location:{stringValue:location},
         category:{stringValue:category}, description:{stringValue:desc}, source:{stringValue:'ministry'},
         startAt:{stringValue:startAt.toISOString()}, expiresAt:{stringValue:expiresAt.toISOString()},
         createdAt:{stringValue:new Date().toISOString()}
-      }};
-      await fetch('https://firestore.googleapis.com/v1/projects/' + PROJECT_ID + '/databases/(default)/documents/parishes/saint-rose-anthem/events?key=' + API_KEY,
-        {method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body)});
+      });
     }
     document.getElementById('rec-success').style.display = 'block';
     setTimeout(function(){ document.getElementById('rec-success').style.display = 'none'; }, 3000);
