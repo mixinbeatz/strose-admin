@@ -2077,13 +2077,13 @@
 
   async function deleteCalEvent(id) {
     if (!confirm('Delete this event?')) return;
-    var API_KEY = 'AIzaSyBKjyHaRNkIjTV87zrhhvg6pBxarm3lcQ8';
-    var PROJECT_ID = 'saint-rose-anthem';
-    await fetch('https://firestore.googleapis.com/v1/projects/' + PROJECT_ID + '/databases/(default)/documents/parishes/saint-rose-anthem/events/' + id + '?key=' + API_KEY, {method:'DELETE'});
-    calEvents = calEvents.filter(function(e){ return e.id !== id; });
-    renderCal();
-    var day = parseInt(document.getElementById('cal-events-list').querySelector('div')?.textContent?.split('-')[2]);
-    if (day) showCalDay(day);
+    try {
+      await fs_delete('events/' + id);
+      calEvents = calEvents.filter(function(e){ return e.id !== id; });
+      renderCal();
+      var day = parseInt(document.getElementById('cal-events-list').querySelector('div')?.textContent?.split('-')[2]);
+      if (day) showCalDay(day);
+    } catch(e){showToast('Error deleting.','error');}
   }
 
   function calPrev() { calMonth--; if (calMonth < 0) { calMonth = 11; calYear--; } renderCal(); }
