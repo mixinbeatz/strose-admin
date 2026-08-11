@@ -2816,6 +2816,7 @@
   let devMockupBase64 = '';
   let devMockupFileName = '';
   let devExistingImages = [];
+  let devEditingStatus = 'open';
   let devExistingMockup = '';
   let devEditingId = null;
 
@@ -2892,12 +2893,19 @@
   function renderExistingPhotos() {
     const el = document.getElementById('dev-existing-photos');
     if (!el) return;
-    el.innerHTML = devExistingImages.map((url, idx) =>
-      '<div style="position:relative;width:70px;height:70px;">' +
-        '<img src="' + url + '" style="width:70px;height:70px;object-fit:cover;border-radius:8px;border:1px solid var(--linen);" />' +
-        '<button onclick="removeExistingDevPhoto(' + idx + ')" style="position:absolute;top:-6px;right:-6px;background:#CC3333;color:#fff;border:none;border-radius:50%;width:20px;height:20px;font-size:12px;cursor:pointer;line-height:1;">✕</button>' +
+    el.innerHTML = devExistingImages.map((img, idx) =>
+      '<div style="width:70px;">' +
+        '<div style="position:relative;width:70px;height:70px;">' +
+          '<img src="' + img.url + '" style="width:70px;height:70px;object-fit:cover;border-radius:8px;border:1px solid var(--linen);opacity:' + (img.funded ? '0.5' : '1') + ';" />' +
+          '<button onclick="removeExistingDevPhoto(' + idx + ')" style="position:absolute;top:-6px;right:-6px;background:#CC3333;color:#fff;border:none;border-radius:50%;width:20px;height:20px;font-size:12px;cursor:pointer;line-height:1;">✕</button>' +
+        '</div>' +
+        '<button onclick="toggleDevPhotoFunded(' + idx + ')" style="width:70px;margin-top:4px;background:none;border:1px solid ' + (img.funded ? '#2E7D32' : 'var(--linen)') + ';border-radius:6px;padding:2px 4px;font-size:10px;cursor:pointer;color:' + (img.funded ? '#2E7D32' : 'var(--soil)') + ';">' + (img.funded ? '✓ Funded' : 'Mark Funded') + '</button>' +
       '</div>'
     ).join('');
+  }
+  function toggleDevPhotoFunded(idx) {
+    devExistingImages[idx].funded = !devExistingImages[idx].funded;
+    renderExistingPhotos();
   }
 
   function removeExistingDevPhoto(idx) {
@@ -2922,6 +2930,7 @@
 
   function resetDevForm() {
     devEditingId = null;
+    devEditingStatus = 'open';
     devPhotosBase64 = [];
     devPhotosFileNames = [];
     devMockupBase64 = '';
@@ -2961,7 +2970,7 @@
       if (devPhotosBase64.length > 0) {
         for (let i = 0; i < devPhotosBase64.length; i++) {
           const url = await uploadDevFile(devPhotosBase64[i], devPhotosFileNames[i], 'parishDevelopment', 'image/jpeg');
-          newImageUrls.push(url);
+          newImageUrls.push({ url, funded: false });
         }
       }
       let mockupUrl = devExistingMockup;
@@ -2969,6 +2978,8 @@
         mockupUrl = await uploadDevFile(devMockupBase64, devMockupFileName, 'parishDevelopment', 'image/jpeg');
       }
       const finalImages = devExistingImages.concat(newImageUrls);
+      const allPhotosFunded = finalImages.length > 0 && finalImages.every(img => img.funded);
+      const finalStatus = allPhotosFunded ? 'funded' : (devEditingId ? devEditingStatus : 'open');
       const fields = {
         title: { stringValue: title },
         category: { stringValue: category },
@@ -2978,8 +2989,8 @@
         contactName: { stringValue: contactName },
         contactPhone: { stringValue: contactPhone },
         contactEmail: { stringValue: contactEmail },
-        status: { stringValue: 'open' },
-        images: { arrayValue: { values: finalImages.map(u => ({ stringValue: u })) } },
+        status: { stringValue: finalStatus },
+        images: { arrayValue: { values: finalImages.map(img => ({ mapValue: { fields: { url: { stringValue: img.url }, funded: { booleanValue: img.funded } } } })) } },
         mockupImageUrl: { stringValue: mockupUrl },
         updatedAt: { stringValue: new Date().toISOString() }
       };
@@ -3002,6 +3013,7 @@
 
   function loadDevIntoForm(id, item) {
     devEditingId = id;
+    devEditingStatus = item.status || 'open';
     devExistingImages = item.images || [];
     devExistingMockup = item.mockupImageUrl || '';
     devPhotosBase64 = [];
@@ -3072,7 +3084,10 @@
       }
       const items = docs.map(d => {
         const id = d.name.split('/').pop();
-        const images = d.fields.images?.arrayValue?.values?.map(v => v.stringValue) || [];
+        const images = (d.fields.images?.arrayValue?.values || []).map(v => {
+          if (v.mapValue) return { url: v.mapValue.fields?.url?.stringValue || '', funded: v.mapValue.fields?.funded?.booleanValue === true };
+          return { url: v.stringValue || '', funded: false };
+        });
         const item = {
           title: gf(d,'title'), category: gf(d,'category'), description: gf(d,'description'),
           cost: gf(d,'cost'), order: gf(d,'order'), status: gf(d,'status') || 'open',
