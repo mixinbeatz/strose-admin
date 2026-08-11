@@ -53,8 +53,12 @@
   .nav-group { overflow: hidden; max-height: 2000px; transition: max-height 0.2s ease; }
   .nav-group.collapsed { max-height: 0; }
   .nav-group.collapsed + .nav-section-toggle .nav-chevron,
-  .nav-section-toggle.collapsed .nav-chevron { transform: rotate(-90deg); }
+  .nav-section-toggle.collapsed .nav-chevron,
+  .nav-subsection-toggle.collapsed .nav-chevron { transform: rotate(-90deg); }
   .nav-subsection { padding: 10px 24px 2px; font-size: 11px; letter-spacing: 0.5px; color: rgba(255,255,255,0.35); font-family: inherit; }
+  .nav-subsection-toggle { display: flex; align-items: center; justify-content: space-between; padding: 10px 24px 2px; font-size: 11px; letter-spacing: 0.5px; color: rgba(255,255,255,0.35); font-family: inherit; cursor: pointer; user-select: none; }
+  .nav-subsection-toggle:hover { color: rgba(255,255,255,0.6); }
+  .nav-subsection-toggle .nav-chevron { font-size: 10px; }
   .nav-icon { font-size: 18px; width: 20px; text-align: center; }
   .nav-badge { position: absolute; right: 20px; background: var(--gold); color: var(--burgundy); font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 20px; }
   .sidebar-footer { padding: 16px 24px; border-top: 1px solid rgba(255,255,255,0.1); }
@@ -306,24 +310,32 @@
       <!-- MINISTRIES -->
       <div class="nav-section-toggle collapsed staff-only" onclick="toggleNavSection(this)"><span>Ministries</span><span class="nav-chevron">▾</span></div>
       <div class="nav-group collapsed">
-        <div class="nav-subsection staff-only">Parish Development</div>
+        <div class="nav-subsection-toggle staff-only collapsed" onclick="toggleNavSection(this)"><span>Parish Development</span><span class="nav-chevron">▾</span></div>
+        <div class="nav-group collapsed">
         <div class="nav-item staff-only" onclick="showPage('parish-development',this);loadDevelopmentItems()"><span class="nav-icon">🖼️</span> Manage</div>
 
-        <div class="nav-subsection staff-only">Music Ministry</div>
+        </div>
+        <div class="nav-subsection-toggle staff-only collapsed" onclick="toggleNavSection(this)"><span>Music Ministry</span><span class="nav-chevron">▾</span></div>
+        <div class="nav-group collapsed">
         <div class="nav-item staff-only" onclick="showPage('music-ministry',this)"><span class="nav-icon">🎵</span> Post to Music Ministry</div>
         <div class="nav-item staff-only" onclick="showPage('songsheet',this)"><span class="nav-icon">🎵</span> Mass Songsheet</div>
         <div class="nav-item staff-only" onclick="showPage('music-members',this)"><span class="nav-icon">👥</span> Music Members</div>
-        <div class="nav-subsection staff-only">Men's Ministry</div>
+        </div>
+        <div class="nav-subsection-toggle staff-only collapsed" onclick="toggleNavSection(this)"><span>Men's Ministry</span><span class="nav-chevron">▾</span></div>
+        <div class="nav-group collapsed">
         <div class="nav-item staff-only" onclick="showPage('mens-ministry',this);loadMensMinistry();loadMensCurrentPost()"><span class="nav-icon">⛪</span> Men's Ministry</div>
         <div class="nav-item staff-only" onclick="showPage('mens-members',this)"><span class="nav-icon">👥</span> Men's Ministry Members</div>
 
-        <div class="nav-subsection ministry-only" style="display:none">Catholic Daughters</div>
+        </div>
+        <div class="nav-subsection-toggle ministry-only collapsed" style="display:none" onclick="toggleNavSection(this)"><span>Catholic Daughters</span><span class="nav-chevron">▾</span></div>
+        <div class="nav-group collapsed">
         <div class="nav-item ministry-only" style="display:none" onclick="showPage('my-ministry',this);loadMyMinistry()"><span class="nav-icon">⛪</span> My Ministry</div>
         <div class="nav-item ministry-only" style="display:none" onclick="showPage('ministry-post',this);loadMinistryPosts()"><span class="nav-icon">✝️</span> Post to Members</div>
         <div class="nav-item ministry-only" style="display:none" onclick="showPage('cda-members',this)"><span class="nav-icon">👥</span> My Members</div>
         <div class="nav-item ministry-only" style="display:none" onclick="showPage('prayer-chain',this)"><span class="nav-icon">🙏</span> Prayer Chain</div>
         <div class="nav-item ministry-only" style="display:none" onclick="showPage('prayer-submissions',this)"><span class="nav-icon">📬</span> Submissions <span class="nav-badge" id="prayer-sub-count" style="display:none">0</span></div>
         <div class="nav-item ministry-only" style="display:none" onclick="showPage('submit-event',this)"><span class="nav-icon">📅</span> Submit Event</div>
+        </div>
       </div>
 
       <!-- CONTENT — Matt sees everything; Cheyanne sees her specific set in her order -->
