@@ -2053,6 +2053,247 @@
     document.getElementById('rec-preview').style.display = 'none';
     updateRecurringPreview();
   }
+  // ICS IMPORT (CalendarWiz)
+  let icsParsedEvents = [];
+
+  function icsUnfoldLines(text) {
+    const rawLines = text.split(/\r\n|\n|\r/);
+    const lines = [];
+    for (const line of rawLines) {
+      if ((line.startsWith(' ') || line.startsWith('\t')) && lines.length > 0) {
+        lines[lines.length - 1] += line.slice(1);
+      } else {
+        lines.push(line);
+      }
+    }
+    return lines;
+  }
+
+  function icsUnescapeText(value) {
+    return value.replace(/\\n/gi, ' ').replace(/\\,/g, ',').replace(/\\;/g, ';').replace(/\\\\/g, '\\');
+  }
+
+  function icsParseDate(value, params) {
+    const isDateOnly = /^\d{8}$/.test(value) || (params && params.indexOf('VALUE=DATE') !== -1);
+    if (isDateOnly) {
+      const y = value.slice(0,4), mo = value.slice(4,6), d = value.slice(6,8);
+      return { date: new Date(parseInt(y), parseInt(mo)-1, parseInt(d)), allDay: true };
+    }
+    const m = value.match(/^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})(Z?)$/);
+    if (!m) return { date: null, allDay: false };
+    const y = m[1], mo = m[2], d = m[3], h = m[4], mi = m[5], s = m[6], z = m[7];
+    let date;
+    if (z === 'Z') {
+      date = new Date(Date.UTC(parseInt(y), parseInt(mo)-1, parseInt(d), parseInt(h), parseInt(mi), parseInt(s)));
+    } else {
+      date = new Date(parseInt(y), parseInt(mo)-1, parseInt(d), parseInt(h), parseInt(mi), parseInt(s));
+    }
+    return { date, allDay: false };
+  }
+
+  function parseIcsText(text) {
+    const lines = icsUnfoldLines(text);
+    const events = [];
+    let cur = null;
+    for (const rawLine of lines) {
+      if (!rawLine) continue;
+      if (rawLine === 'BEGIN:VEVENT') { cur = {}; continue; }
+      if (rawLine === 'END:VEVENT') { if (cur) events.push(cur); cur = null; continue; }
+      if (!cur) continue;
+      const colonIdx = rawLine.indexOf(':');
+      if (colonIdx === -1) continue;
+      const propPart = rawLine.slice(0, colonIdx);
+      const value = rawLine.slice(colonIdx + 1);
+      const propBits = propPart.split(';');
+      const propName = propBits[0];
+      const params = propBits.slice(1).join(';');
+      if (propName === 'UID') cur.uid = value.trim();
+      else if (propName === 'SUMMARY') cur.title = icsUnescapeText(value.trim());
+      else if (propName === 'LOCATION') cur.location = icsUnescapeText(value.trim());
+      else if (propName === 'DESCRIPTION') cur.description = icsUnescapeText(value.trim());
+      else if (propName === 'CATEGORIES') cur.category = icsUnescapeText(value.trim());
+      else if (propName === 'DTSTART') { const r = icsParseDate(value.trim(), params); cur.startDate = r.date; cur.allDay = r.allDay; }
+      else if (propName === 'DTEND') { const r = icsParseDate(value.trim(), params); cur.endDate = r.date; }
+    }
+    return events.filter(e => e.title && e.startDate);
+  }
+
+  function icsMapCategory(cat) {
+    if (!cat) return 'Community';
+    const c = cat.toLowerCase();
+    if (c.indexOf('liturg') !== -1 || c.indexOf('mass') !== -1) return 'Mass';
+    if (c.indexOf('youth') !== -1) return 'Youth';
+    if (c.indexOf('ministry') !== -1) return 'Ministry';
+    return 'Community';
+  }
+
+  function icsDateKey(d) {
+    if (!d) return '';
+    return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
+  }
+
+  function icsNormalizeTitle(t) {
+    return (t || '').trim().toLowerCase().replace(/\s+/g,' ');
+  }
+
+  async function icsFetchAllEvents() {
+    const allDocs = [];
+    let pageToken = '';
+    let page = 0;
+    while (page < 10) {
+      const url = BASE + '/events?key=' + API_KEY + '&pageSize=300' + (pageToken ? '&pageToken=' + pageToken : '');
+      const res = await fetch(url, { headers: await authHeaders() });
+      const data = await res.json();
+      allDocs.push.apply(allDocs, data.documents || []);
+      if (!data.nextPageToken) break;
+      pageToken = data.nextPageToken;
+      page++;
+    }
+    return allDocs;
+  }
+
+  async function handleIcsFile(input) {
+    const file = input.files && input.files[0];
+    if (!file) return;
+    document.getElementById('ics-import-status').textContent = 'Reading file...';
+    document.getElementById('ics-import-summary').style.display = 'none';
+    document.getElementById('ics-import-controls').style.display = 'none';
+    document.getElementById('ics-import-actions').style.display = 'none';
+    document.getElementById('ics-import-table').innerHTML = '';
+    document.getElementById('ics-import-success').style.display = 'none';
+    const reader = new FileReader();
+    reader.onload = async function(e) {
+      try {
+        const text = e.target.result;
+        const parsed = parseIcsText(text);
+        if (parsed.length === 0) {
+          document.getElementById('ics-import-status').textContent = 'No events found in this file.';
+          return;
+        }
+        document.getElementById('ics-import-status').textContent = 'Checking against existing events...';
+        const existingDocs = await icsFetchAllEvents();
+        const existingUids = new Set();
+        const existingTitleDateKeys = new Set();
+        existingDocs.forEach(function(doc) {
+          const uid = doc.fields && doc.fields.icsUid && doc.fields.icsUid.stringValue;
+          if (uid) existingUids.add(uid);
+          const title = doc.fields && doc.fields.title && doc.fields.title.stringValue;
+          const startAt = doc.fields && doc.fields.startAt && doc.fields.startAt.stringValue;
+          if (title && startAt) {
+            const d = new Date(startAt);
+            existingTitleDateKeys.add(icsNormalizeTitle(title) + '|' + icsDateKey(d));
+          }
+        });
+        icsParsedEvents = parsed.map(function(ev, idx) {
+          let status = 'new';
+          if (ev.uid && existingUids.has(ev.uid)) {
+            status = 'already_imported';
+          } else if (existingTitleDateKeys.has(icsNormalizeTitle(ev.title) + '|' + icsDateKey(ev.startDate))) {
+            status = 'possible_duplicate';
+          }
+          return Object.assign({}, ev, { idx: idx, status: status, selected: status === 'new' });
+        });
+        document.getElementById('ics-import-status').textContent = '';
+        renderIcsImportTable();
+      } catch (err) {
+        console.log('ICS parse error:', err);
+        document.getElementById('ics-import-status').textContent = 'Error reading file: ' + err.message;
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  function renderIcsImportTable() {
+    const newCount = icsParsedEvents.filter(e => e.status === 'new').length;
+    const dupCount = icsParsedEvents.filter(e => e.status === 'possible_duplicate').length;
+    const importedCount = icsParsedEvents.filter(e => e.status === 'already_imported').length;
+    const summaryEl = document.getElementById('ics-import-summary');
+    summaryEl.style.display = 'block';
+    summaryEl.innerHTML = '<div style="font-size:14px;color:var(--soil);"><strong>' + icsParsedEvents.length + '</strong> events found — <span style="color:#2E7D32;">' + newCount + ' new</span>, <span style="color:var(--dusty-rose);">' + dupCount + ' possible duplicates</span>, ' + importedCount + ' already imported.</div>';
+    document.getElementById('ics-import-controls').style.display = icsParsedEvents.length ? 'block' : 'none';
+    document.getElementById('ics-import-actions').style.display = icsParsedEvents.length ? 'block' : 'none';
+    const dayNames = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+    const monthNames = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const statusLabel = { new: '🆕 New', possible_duplicate: '⚠️ Possible duplicate', already_imported: '✓ Already imported' };
+    const statusColor = { new: '#2E7D32', possible_duplicate: 'var(--gold)', already_imported: 'var(--dusty-rose)' };
+    const html = icsParsedEvents.map(function(ev) {
+      const d = ev.startDate;
+      const dateStr = d ? (dayNames[d.getDay()] + ' ' + monthNames[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear()) : '';
+      const timeStr = ev.allDay ? 'All day' : (d ? d.toLocaleTimeString('en-US', {hour:'numeric',minute:'2-digit'}) : '');
+      return '<div style="display:flex;align-items:center;gap:10px;padding:10px;border-bottom:1px solid var(--linen);">' +
+        '<input type="checkbox" ' + (ev.selected ? 'checked' : '') + ' onchange="icsToggleSelect(' + ev.idx + ', this.checked)" />' +
+        '<div style="flex:1;">' +
+          '<div style="font-size:14px;color:var(--soil);font-weight:600;">' + escHtml(ev.title) + '</div>' +
+          '<div style="font-size:12px;color:var(--dusty-rose);">' + dateStr + ' · ' + timeStr + (ev.location ? ' · ' + escHtml(ev.location) : '') + '</div>' +
+        '</div>' +
+        '<div style="font-size:12px;font-weight:600;color:' + statusColor[ev.status] + ';white-space:nowrap;">' + statusLabel[ev.status] + '</div>' +
+      '</div>';
+    }).join('');
+    document.getElementById('ics-import-table').innerHTML = html;
+  }
+
+  function icsToggleSelect(idx, checked) {
+    const ev = icsParsedEvents.find(e => e.idx === idx);
+    if (ev) ev.selected = checked;
+  }
+
+  function icsSelectAllNew() {
+    icsParsedEvents.forEach(function(e) { if (e.status === 'new') e.selected = true; });
+    renderIcsImportTable();
+  }
+
+  function icsDeselectAll() {
+    icsParsedEvents.forEach(function(e) { e.selected = false; });
+    renderIcsImportTable();
+  }
+
+  async function submitIcsImport() {
+    const toImport = icsParsedEvents.filter(e => e.selected);
+    if (toImport.length === 0) { showToast('No events selected.', 'error'); return; }
+    if (!confirm('Import ' + toImport.length + ' event(s) into the calendar?')) return;
+    document.getElementById('ics-import-status').textContent = 'Importing...';
+    let succeeded = 0;
+    for (const ev of toImport) {
+      try {
+        const dayNamesFull = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+        const monthNamesFull = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+        const d = ev.startDate;
+        const formattedDate = dayNamesFull[d.getDay()] + ', ' + monthNamesFull[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear();
+        const timeStr = ev.allDay ? '' : d.toLocaleTimeString('en-US', {hour:'numeric',minute:'2-digit'});
+        let expiresAt;
+        if (ev.endDate && ev.endDate.getTime() !== ev.startDate.getTime()) {
+          expiresAt = ev.endDate;
+        } else {
+          expiresAt = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59);
+        }
+        await fs_post('events', {
+          title: {stringValue: ev.title},
+          date: {stringValue: formattedDate},
+          time: {stringValue: timeStr},
+          location: {stringValue: ev.location || ''},
+          description: {stringValue: ev.description || ''},
+          category: {stringValue: icsMapCategory(ev.category)},
+          postedBy: {stringValue: 'CalendarWiz Import'},
+          source: {stringValue: 'calendarwiz_import'},
+          type: {stringValue: 'event'},
+          startAt: {stringValue: d.toISOString()},
+          expiresAt: {stringValue: expiresAt.toISOString()},
+          createdAt: {stringValue: new Date().toISOString()},
+          icsUid: {stringValue: ev.uid || ''}
+        });
+        succeeded++;
+      } catch (e) {
+        console.log('Import error for', ev.title, e);
+      }
+    }
+    document.getElementById('ics-import-status').textContent = '';
+    document.getElementById('ics-import-success').style.display = 'block';
+    document.getElementById('ics-import-success').textContent = '✓ Imported ' + succeeded + ' of ' + toImport.length + ' event(s).';
+    showToast('Imported ' + succeeded + ' event(s).', 'success');
+    toImport.forEach(function(ev) { ev.status = 'already_imported'; ev.selected = false; });
+    renderIcsImportTable();
+  }
+
   // CALENDAR VIEW
   var calYear = new Date().getFullYear();
   var calMonth = new Date().getMonth();
