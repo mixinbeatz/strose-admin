@@ -2574,7 +2574,7 @@
     try {
       const res = await fs_get('events');
       const now = new Date();
-      const all = (res.documents||[]).filter(d=>gf(d,'source')==='admin'||gf(d,'source')==='ministry');
+      const all = (res.documents||[]).filter(d=>gf(d,'source')==='admin'||gf(d,'source')==='ministry'||gf(d,'source')==='calendarwiz_import');
       const expired = all.filter(d=>{ const exp=gf(d,'expiresAt'); const sta=gf(d,'startAt'); return (exp && new Date(exp)<=now) || (!exp && sta && new Date(sta)<=now); });
       expired.forEach(d=>fs_delete('events/'+docId(d)));
       const events = all
