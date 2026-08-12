@@ -1961,17 +1961,18 @@
     } else if (pattern === 'monthly-day') {
       var dayOfMonth = start.getDate();
       var m = start.getMonth(); var y = start.getFullYear();
-      while (new Date(y, m, dayOfMonth) <= end) {
-        dates.push(new Date(y, m, dayOfMonth));
+      for (var i = 0; i < months; i++) {
+        var d = new Date(y, m, dayOfMonth);
+        if (d >= start) dates.push(d);
         m++; if (m > 11) { m = 0; y++; }
       }
     } else if (pattern === 'monthly-nth') {
       var nth = document.getElementById('rec-nth').value;
       var weekday = parseInt(document.getElementById('rec-weekday').value);
       var m = start.getMonth(); var y = start.getFullYear();
-      for (var i = 0; i < months + 1; i++) {
+      for (var i = 0; i < months; i++) {
         var d = nth === 'last' ? getLastWeekday(y, m, weekday) : getNthWeekday(y, m, parseInt(nth), weekday);
-        if (d && d >= start && d <= end) dates.push(d);
+        if (d && d >= start) dates.push(d);
         m++; if (m > 11) { m = 0; y++; }
       }
     }
