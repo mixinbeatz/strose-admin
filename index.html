@@ -446,11 +446,12 @@
               </div>
               <div class="form-group">
                 <label class="form-label">Start Date & Time *</label>
-                <input type="datetime-local" class="form-input" id="evt-start" />
+                <input type="datetime-local" class="form-input" id="evt-start" oninput="autoSetEventEnd()" />
               </div>
-              <div class="form-group">
+              <div class="form-group" id="evt-end-group" style="display:none">
                 <label class="form-label">End Date & Time *</label>
-                <input type="datetime-local" class="form-input" id="evt-end" />
+                <input type="datetime-local" class="form-input" id="evt-end" oninput="evtEndManuallySet=true" />
+                <div style="font-size:12px;color:var(--dusty-rose);margin-top:4px;">Defaults to end of day — adjust if this event runs past midnight.</div>
               </div>
               <div class="form-group">
                 <label class="form-label">Location</label>
@@ -1650,10 +1651,8 @@
   // Set default start/end to today
   const nowLocal = new Date(); nowLocal.setMinutes(nowLocal.getMinutes() - nowLocal.getTimezoneOffset());
   const nowStr = nowLocal.toISOString().slice(0,16);
-  const endLocal = new Date(nowLocal); endLocal.setHours(endLocal.getHours()+1);
-  const endStr = endLocal.toISOString().slice(0,16);
   document.getElementById('evt-start').value = nowStr;
-  document.getElementById('evt-end').value = endStr;
+  autoSetEventEnd();
 
   document.getElementById('login-pass').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
   tryRestoreSession();
@@ -2111,6 +2110,18 @@
   }
 
   // ── SINGLE EVENT ──
+  let evtEndManuallySet = false;
+  function autoSetEventEnd() {
+    const startVal = document.getElementById('evt-start').value;
+    const endGroup = document.getElementById('evt-end-group');
+    if (!startVal) { endGroup.style.display = 'none'; return; }
+    endGroup.style.display = '';
+    if (evtEndManuallySet) return;
+    const startDate = new Date(startVal);
+    const pad = n => String(n).padStart(2, '0');
+    const endStr = startDate.getFullYear() + '-' + pad(startDate.getMonth() + 1) + '-' + pad(startDate.getDate()) + 'T23:59';
+    document.getElementById('evt-end').value = endStr;
+  }
   async function postSingleEvent() {
     const title = document.getElementById('evt-title').value.trim();
     const start = document.getElementById('evt-start').value;
@@ -2147,6 +2158,8 @@
     document.getElementById('evt-start').value='';
     document.getElementById('evt-end').value='';
     document.getElementById('evt-category').value='Ministry';
+    evtEndManuallySet = false;
+    document.getElementById('evt-end-group').style.display = 'none';
   }
 
   // ── BULK PARSER ──
