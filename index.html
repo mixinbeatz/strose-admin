@@ -2015,8 +2015,24 @@
     }
     document.getElementById('rec-success').style.display = 'block';
     setTimeout(function(){ document.getElementById('rec-success').style.display = 'none'; }, 3000);
+    clearRecurringForm();
   }
 
+  function clearRecurringForm() {
+    document.getElementById('rec-title').value = '';
+    document.getElementById('rec-time').value = '';
+    document.getElementById('rec-location').value = '';
+    document.getElementById('rec-category').value = 'Ministry';
+    document.getElementById('rec-desc').value = '';
+    document.getElementById('rec-pattern').value = 'weekly';
+    document.getElementById('rec-nth').value = '1';
+    document.getElementById('rec-weekday').value = '0';
+    document.getElementById('rec-start').value = '';
+    document.getElementById('rec-months').value = '6';
+    document.getElementById('rec-weeks').value = '8';
+    document.getElementById('rec-preview').style.display = 'none';
+    updateRecurringPreview();
+  }
   // CALENDAR VIEW
   var calYear = new Date().getFullYear();
   var calMonth = new Date().getMonth();
