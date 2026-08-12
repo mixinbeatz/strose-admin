@@ -1653,6 +1653,7 @@
   const nowStr = nowLocal.toISOString().slice(0,16);
   document.getElementById('evt-start').value = nowStr;
   autoSetEventEnd();
+  updateRecurringPreview();
 
   document.getElementById('login-pass').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
   tryRestoreSession();
