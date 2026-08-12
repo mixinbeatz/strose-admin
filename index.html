@@ -3698,20 +3698,14 @@
       if (sendAt <= new Date()) { showToast('Scheduled time must be in the future.', 'error'); return; }
       if (!confirm('Schedule Fast Blast for ' + sendAt.toLocaleString() + '?\n\n"' + title + '"')) return;
       try {
-        const url = BASE + '/scheduledFastBlast?key=' + API_KEY;
-        const res = await fetch(url, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ fields: {
-            title: { stringValue: title },
-            body: { stringValue: body },
-            durationHours: { integerValue: durationHours },
-            sendAt: { stringValue: sendAt.toISOString() },
-            postedBy: { stringValue: document.getElementById('logged-in-user').textContent },
-            createdAt: { stringValue: new Date().toISOString() }
-          }})
+        const data = await fs_post('scheduledFastBlast', {
+          title: { stringValue: title },
+          body: { stringValue: body },
+          durationHours: { integerValue: durationHours },
+          sendAt: { stringValue: sendAt.toISOString() },
+          postedBy: { stringValue: document.getElementById('logged-in-user').textContent },
+          createdAt: { stringValue: new Date().toISOString() }
         });
-        const data = await res.json();
         if (data.name) {
           document.getElementById('fb-success').style.display = 'block';
           setTimeout(() => document.getElementById('fb-success').style.display = 'none', 3000);
@@ -3728,19 +3722,13 @@
     if (!confirm('Send Fast Blast to ALL parishioners?\n\n"' + title + '"\n\nThis cannot be undone.')) return;
     try {
       const expiresAt = new Date(Date.now() + durationHours * 60 * 60 * 1000).toISOString();
-      const url = BASE + '/fastBlast?key=' + API_KEY;
-      const res = await fetch(url, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ fields: {
-          title: { stringValue: title },
-          body: { stringValue: body },
-          expiresAt: { stringValue: expiresAt },
-          postedBy: { stringValue: document.getElementById('logged-in-user').textContent },
-          createdAt: { stringValue: new Date().toISOString() }
-        }})
+      const data = await fs_post('fastBlast', {
+        title: { stringValue: title },
+        body: { stringValue: body },
+        expiresAt: { stringValue: expiresAt },
+        postedBy: { stringValue: document.getElementById('logged-in-user').textContent },
+        createdAt: { stringValue: new Date().toISOString() }
       });
-      const data = await res.json();
       if (data.name) {
         document.getElementById('fb-success').style.display = 'block';
         setTimeout(() => document.getElementById('fb-success').style.display = 'none', 3000);
