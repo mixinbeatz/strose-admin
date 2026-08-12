@@ -3593,17 +3593,13 @@
     const days = pollExpiry === '3d' ? 3 : pollExpiry === '7d' ? 7 : pollExpiry === '14d' ? 14 : 30;
     const expiresAt = new Date(Date.now() + days*24*60*60*1000).toISOString();
     try {
-      const res = await fetch(BASE + '/polls?key=' + API_KEY, {
-        method: 'POST', headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ fields: {
-          question: {stringValue: question},
-          options: {arrayValue: {values: options.map(o => ({stringValue: o}))}},
-          active: {booleanValue: true},
-          expiresAt: {stringValue: expiresAt},
-          createdAt: {stringValue: new Date().toISOString()}
-        }})
+      const data = await fs_post('polls', {
+        question: {stringValue: question},
+        options: {arrayValue: {values: options.map(o => ({stringValue: o}))}},
+        active: {booleanValue: true},
+        expiresAt: {stringValue: expiresAt},
+        createdAt: {stringValue: new Date().toISOString()}
       });
-      const data = await res.json();
       if (data.name) {
         document.getElementById('poll-success').style.display = 'block';
         setTimeout(()=>document.getElementById('poll-success').style.display='none',3000);
@@ -3812,17 +3808,13 @@
     const body = document.getElementById('pr-body').value.trim();
     if (!title || !body) { showToast('Title and message required.', 'error'); return; }
     try {
-      const res = await fetch(BASE + '/prayerRequests?key=' + API_KEY, {
-        method: 'POST', headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ fields: {
-          title: {stringValue: title},
-          body: {stringValue: body},
-          postedBy: {stringValue: 'Nancy Poniatowski'},
-          expiresAt: {stringValue: getExpiryDate(prExpiry)},
-          createdAt: {stringValue: new Date().toISOString()}
-        }})
+      const data = await fs_post('prayerRequests', {
+        title: {stringValue: title},
+        body: {stringValue: body},
+        postedBy: {stringValue: 'Nancy Poniatowski'},
+        expiresAt: {stringValue: getExpiryDate(prExpiry)},
+        createdAt: {stringValue: new Date().toISOString()}
       });
-      const data = await res.json();
       if (data.name) {
         document.getElementById('pr-success').style.display = 'block';
         setTimeout(()=>document.getElementById('pr-success').style.display='none',3000);
@@ -4266,15 +4258,12 @@
       const title = document.getElementById('psub-title-' + id)?.value.trim() || 'Prayer Request';
       const body = document.getElementById('psub-body-' + id)?.value.trim() || '';
       // Post to prayerRequests
-      await fetch(BASE + '/prayerRequests?key=' + API_KEY, {
-        method: 'POST', headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ fields: {
-          title: {stringValue: title},
-          body: {stringValue: body},
-          postedBy: {stringValue: 'Prayer Chain'},
-          expiresAt: {stringValue: new Date(Date.now() + 7*24*60*60*1000).toISOString()},
-          createdAt: {stringValue: new Date().toISOString()}
-        }})
+      await fs_post('prayerRequests', {
+        title: {stringValue: title},
+        body: {stringValue: body},
+        postedBy: {stringValue: 'Prayer Chain'},
+        expiresAt: {stringValue: new Date(Date.now() + 7*24*60*60*1000).toISOString()},
+        createdAt: {stringValue: new Date().toISOString()}
       });
       // Mark submission as approved
       await fs_patch('prayerSubmissions/' + id, {status: {stringValue: 'approved'}});
