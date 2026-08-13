@@ -3365,6 +3365,60 @@
     if (!uploadData.name) throw new Error('Upload failed');
     return 'https://firebasestorage.googleapis.com/v0/b/' + BUCKET + '/o/' + encodeURIComponent(uploadData.name) + '?alt=media';
   }
+  // Resizes an image to an exact target (used by the dual web/app upload
+  // below, which needs two specific sizes rather than the "only shrink if
+  // over threshold" behavior of compressImageIfNeeded above).
+  function resizeImageTo(base64, contentType, maxDim, quality) {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        let { width, height } = img;
+        if (width > maxDim || height > maxDim) {
+          if (width > height) { height = Math.round(height * (maxDim / width)); width = maxDim; }
+          else { width = Math.round(width * (maxDim / height)); height = maxDim; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        const dataUrl = canvas.toDataURL('image/jpeg', quality);
+        resolve(dataUrl.split(',')[1]);
+      };
+      img.onerror = () => resolve(base64);
+      img.src = 'data:' + contentType + ';base64,' + base64;
+    });
+  }
+  async function uploadRawFile(base64, contentType, path) {
+    const BUCKET = 'saint-rose-anthem.firebasestorage.app';
+    const binary = atob(base64);
+    const bytes = new Uint8Array(binary.length);
+    for (let i = 0; i < binary.length; i++) bytes[i] = binary.charCodeAt(i);
+    const uploadUrl = 'https://firebasestorage.googleapis.com/v0/b/' + BUCKET + '/o/' + encodeURIComponent(path) + '?uploadType=media&key=' + API_KEY;
+    const token = await getValidIdToken();
+    const uploadRes = await fetch(uploadUrl, { method: 'POST', headers: { 'Content-Type': contentType, 'Authorization': 'Bearer ' + token }, body: bytes.buffer });
+    const uploadData = await uploadRes.json();
+    if (!uploadData.name) throw new Error('Upload failed');
+    return 'https://firebasestorage.googleapis.com/v0/b/' + BUCKET + '/o/' + encodeURIComponent(uploadData.name) + '?alt=media';
+  }
+  // Used by Homepage Gallery and Around the Parish, since both feed the
+  // website (larger displays) and the app (phone/tablet screens). Produces
+  // two files per upload: a sharper "web" version for the website and a
+  // smaller "app" version for mobile, so neither platform is stuck with the
+  // other's ideal size.
+  async function uploadDevFileDual(base64, fileName, folder) {
+    const ts = Date.now();
+    const cleanName = fileName.replace(/\s+/g, '_');
+    const [webBase64, appBase64] = await Promise.all([
+      resizeImageTo(base64, 'image/jpeg', 2200, 0.85),
+      resizeImageTo(base64, 'image/jpeg', 1200, 0.78),
+    ]);
+    const [webUrl, appUrl] = await Promise.all([
+      uploadRawFile(webBase64, 'image/jpeg', folder + '/' + ts + '_web_' + cleanName),
+      uploadRawFile(appBase64, 'image/jpeg', folder + '/' + ts + '_app_' + cleanName),
+    ]);
+    return { webUrl, appUrl };
+  }
   // Shared drag-and-drop helpers. Wraps a dropped file into a { files: [file] }
   // object so it can be passed straight into the existing onchange handlers,
   // which only ever read input.files[0] — no changes needed to those handlers.
@@ -4865,10 +4919,13 @@
         reader.onerror = reject;
         reader.readAsDataURL(file);
       });
-      const url = await uploadDevFile(base64, file.name, 'gallery', file.type);
-      await fs_patch('siteContent/gallery', { [slotKey + 'Url']: { stringValue: url } });
+      const { webUrl, appUrl } = await uploadDevFileDual(base64, file.name, 'gallery');
+      await fs_patch('siteContent/gallery', {
+        [slotKey + 'Url']: { stringValue: webUrl },
+        [slotKey + 'UrlApp']: { stringValue: appUrl },
+      });
       galleryData[slotKey] = galleryData[slotKey] || { url: '', alt: '' };
-      galleryData[slotKey].url = url;
+      galleryData[slotKey].url = webUrl;
       renderGallerySlots();
       showToast('Photo updated!', 'success');
     } catch(e) { showToast('Upload failed.', 'error'); }
@@ -4987,10 +5044,13 @@
         reader.onerror = reject;
         reader.readAsDataURL(file);
       });
-      const url = await uploadDevFile(base64, file.name, 'around-parish', file.type);
-      await fs_patch('siteContent/aroundParish', { [slotKey + 'Url']: { stringValue: url } });
+      const { webUrl, appUrl } = await uploadDevFileDual(base64, file.name, 'around-parish');
+      await fs_patch('siteContent/aroundParish', {
+        [slotKey + 'Url']: { stringValue: webUrl },
+        [slotKey + 'UrlApp']: { stringValue: appUrl },
+      });
       aroundParishData[slotKey] = aroundParishData[slotKey] || { url: '', alt: '' };
-      aroundParishData[slotKey].url = url;
+      aroundParishData[slotKey].url = webUrl;
       renderAroundParishSlots();
       showToast('Photo updated!', 'success');
     } catch(e) { showToast('Upload failed.', 'error'); }
