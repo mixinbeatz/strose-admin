@@ -3319,7 +3319,39 @@
     reader.readAsDataURL(file);
   }
 
+  // Resizes/re-compresses an image before upload if it's over ~500KB, so
+  // full-resolution camera photos (often 3-8MB) don't ship straight to
+  // production and slow down every screen that loads them. Caps at 1600px
+  // on the longest edge and re-encodes as JPEG at 82% quality -- plenty
+  // sharp for any phone/tablet screen. Skips already-small files untouched.
+  function compressImageIfNeeded(base64, contentType) {
+    return new Promise((resolve) => {
+      const approxBytes = base64.length * 0.75;
+      if (approxBytes < 500000) { resolve({ base64, contentType }); return; }
+      const img = new Image();
+      img.onload = () => {
+        const maxDim = 1600;
+        let { width, height } = img;
+        if (width > maxDim || height > maxDim) {
+          if (width > height) { height = Math.round(height * (maxDim / width)); width = maxDim; }
+          else { width = Math.round(width * (maxDim / height)); height = maxDim; }
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = width;
+        canvas.height = height;
+        const ctx = canvas.getContext('2d');
+        ctx.drawImage(img, 0, 0, width, height);
+        const dataUrl = canvas.toDataURL('image/jpeg', 0.82);
+        resolve({ base64: dataUrl.split(',')[1], contentType: 'image/jpeg' });
+      };
+      img.onerror = () => resolve({ base64, contentType });
+      img.src = 'data:' + contentType + ';base64,' + base64;
+    });
+  }
   async function uploadDevFile(base64, fileName, folder, contentType) {
+    const compressed = await compressImageIfNeeded(base64, contentType);
+    base64 = compressed.base64;
+    contentType = compressed.contentType;
     const BUCKET = 'saint-rose-anthem.firebasestorage.app';
     const ts = Date.now();
     const path = folder + '/' + ts + '_' + fileName.replace(/\s+/g, '_');
