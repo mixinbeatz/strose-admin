@@ -304,7 +304,7 @@
       <div class="nav-group collapsed">
         <div class="nav-item staff-only cheyanne-only" onclick="showPage('approvals',this)"><span class="nav-icon">👥</span> Parish Family Approvals <span class="nav-badge" id="approval-count">0</span></div>
         <div class="nav-item staff-only" onclick="showPage('event-requests',this)"><span class="nav-icon">📋</span> Event Requests <span class="nav-badge" id="event-req-count" style="display:none">0</span></div>
-        <div class="nav-item staff-only" onclick="showPage('family-registrations',this);loadFamilyRegistrations()"><span class="nav-icon">📝</span> Family Registrations <span class="nav-badge" id="familyreg-count" style="display:none">0</span></div>
+        <div class="nav-item staff-only" onclick="showPage('family-registrations',this);loadFamilyRegistrations();loadReviewedFamilies()"><span class="nav-icon">📝</span> Family Registrations <span class="nav-badge" id="familyreg-count" style="display:none">0</span></div>
         <div class="nav-item staff-only" onclick="showPage('directory',this)"><span class="nav-icon">📋</span> Parish Family Directory</div>
       </div>
 
@@ -1592,6 +1592,14 @@
           <div class="card-title">📝 Family Registrations</div>
           <div class="info-box">New families who registered through the website's Family Registration form. Review each one, then mark it reviewed once you've added them to your records.</div>
           <div id="familyreg-list"><div style="color:var(--dusty-rose);font-size:14px;">Loading...</div></div>
+        </div>
+        <div class="card">
+          <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;">
+            <span>✓ Reviewed Families</span>
+            <button class="btn btn-outline btn-sm" onclick="exportReviewedFamiliesCSV()">Export CSV</button>
+          </div>
+          <div class="info-box">Families that have been reviewed and added to parish records. Alphabetical by last name.</div>
+          <div id="familyreg-reviewed-list"><div style="color:var(--dusty-rose);font-size:14px;">Loading...</div></div>
         </div>
       </div>
 
@@ -3141,6 +3149,7 @@
       document.getElementById('familyreg-' + id)?.remove();
       showToast(name + ' family marked reviewed.', 'success');
       loadFamilyRegistrations();
+      loadReviewedFamilies();
     } catch(e) { showToast('Error.', 'error'); }
   }
 
@@ -3151,6 +3160,72 @@
       document.getElementById('familyreg-' + id)?.remove();
       showToast(name + ' registration deleted.', 'success');
     } catch(e) { showToast('Error.', 'error'); }
+  }
+  // ── REVIEWED FAMILIES ──
+  // Simple list of families already reviewed and added to parish records --
+  // kept minimal for now (name + date entered + delete), with a CSV export
+  // for whatever system the office uses. Can grow columns/detail later once
+  // there's a clearer picture of what the office actually wants from this.
+  let reviewedFamiliesCache = [];
+  async function loadReviewedFamilies() {
+    const list = document.getElementById('familyreg-reviewed-list');
+    try {
+      const res = await fs_get('familyRegistrations');
+      const docs = (res.documents || []).filter(d => gf(d, 'reviewed') === true);
+      docs.sort((a, b) => (gf(a, 'lastName') || '').localeCompare(gf(b, 'lastName') || ''));
+      reviewedFamiliesCache = docs;
+      if (docs.length === 0) {
+        list.innerHTML = '<div class="empty-state"><div class="empty-icon">✓</div><div class="empty-title">No reviewed families yet</div></div>';
+        return;
+      }
+      list.innerHTML = docs.map(renderReviewedFamilyRow).join('');
+    } catch(e) { list.innerHTML = '<div style="color:var(--danger);">Error loading.</div>'; }
+  }
+  function renderReviewedFamilyRow(doc) {
+    const id = doc.name.split('/').pop();
+    const lastName = gf(doc, 'lastName') || '';
+    const headName = gf(doc, 'headName') || '';
+    const reviewedAt = gf(doc, 'reviewedAt');
+    const dateStr = reviewedAt ? new Date(reviewedAt).toLocaleDateString() : '';
+    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--linen);">' +
+      '<div><strong>' + escHtml(lastName) + ' Family</strong>' + (headName ? ' <span style="color:var(--dusty-rose);font-size:13px;">(' + escHtml(headName) + ')</span>' : '') + '</div>' +
+      '<div style="display:flex;align-items:center;gap:12px;">' +
+        (dateStr ? '<span style="font-size:12px;color:var(--dusty-rose);">Entered ' + dateStr + '</span>' : '') +
+        '<button class="btn btn-outline btn-sm" onclick="deleteReviewedFamily(\'' + id + '\',\'' + escAttr(lastName) + '\')">Delete</button>' +
+      '</div>' +
+    '</div>';
+  }
+  async function deleteReviewedFamily(id, name) {
+    if (!confirm('Delete ' + name + ' family from reviewed records? This cannot be undone.')) return;
+    try {
+      await fs_delete('familyRegistrations/' + id);
+      showToast(name + ' family deleted.', 'success');
+      loadReviewedFamilies();
+    } catch(e) { showToast('Error.', 'error'); }
+  }
+  function exportReviewedFamiliesCSV() {
+    if (reviewedFamiliesCache.length === 0) { showToast('No reviewed families to export.', 'error'); return; }
+    const headers = ['Last Name', 'Head of House', 'Spouse', 'Main Phone', 'Address', 'City', 'State', 'Zip', 'Envelopes', 'Date Entered'];
+    const csvEscape = (v) => '"' + String(v || '').replace(/"/g, '""') + '"';
+    const rows = reviewedFamiliesCache.map(doc => {
+      const reviewedAt = gf(doc, 'reviewedAt');
+      const dateStr = reviewedAt ? new Date(reviewedAt).toLocaleDateString() : '';
+      return [
+        gf(doc, 'lastName'), gf(doc, 'headName'), gf(doc, 'spouseName'), gf(doc, 'mainPhone'),
+        gf(doc, 'address'), gf(doc, 'city'), gf(doc, 'state'), gf(doc, 'zip'),
+        gf(doc, 'envelopes'), dateStr,
+      ].map(csvEscape).join(',');
+    });
+    const csv = headers.map(csvEscape).join(',') + '\n' + rows.join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'reviewed_families_' + new Date().toISOString().split('T')[0] + '.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
   }
 
   // ── DIRECTORY ──
@@ -3386,7 +3461,13 @@
         const ctx = canvas.getContext('2d');
         ctx.drawImage(img, 0, 0, width, height);
         const dataUrl = canvas.toDataURL('image/jpeg', quality);
-        resolve(dataUrl.split(',')[1]);
+        const resizedBase64 = dataUrl.split(',')[1];
+        // Safety check: if the original was already small/well-compressed
+        // (e.g. a screenshot, or a photo already run through this pipeline
+        // once), forcing a fixed quality re-encode can produce a LARGER
+        // file even at the same or smaller dimensions. Never ship a
+        // "compressed" file that's actually bigger than what we started with.
+        resolve(resizedBase64.length < base64.length ? resizedBase64 : base64);
       };
       img.onerror = () => resolve(base64);
       img.src = 'data:' + contentType + ';base64,' + base64;
