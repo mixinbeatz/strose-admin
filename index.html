@@ -318,7 +318,7 @@
         </div>
         <div class="nav-subsection-toggle staff-only collapsed" onclick="toggleNavSection(this)"><span>Music Ministry</span><span class="nav-chevron">▾</span></div>
         <div class="nav-group collapsed">
-        <div class="nav-item staff-only" onclick="showPage('music-ministry',this)"><span class="nav-icon">🎵</span> Post to Music Ministry</div>
+        <div class="nav-item staff-only" onclick="showPage('music-ministry',this);loadMusicMinistryInfo()"><span class="nav-icon">🎵</span> Music Ministry</div>
         <div class="nav-item staff-only" onclick="showPage('songsheet',this)"><span class="nav-icon">🎵</span> Mass Songsheet</div>
         <div class="nav-item staff-only" onclick="showPage('music-members',this)"><span class="nav-icon">👥</span> Music Members</div>
         </div>
@@ -1236,6 +1236,42 @@
       <!-- MUSIC MINISTRY -->
       <div class="page" id="page-music-ministry">
         <div class="card">
+          <div class="card-title">🎵 Music Ministry Info</div>
+          <div class="info-box">Edit Music Ministry's information below. Changes appear on the website and in the app immediately.</div>
+          <div id="music-loading" style="color:var(--dusty-rose);font-size:14px;">Loading...</div>
+          <div id="music-form" style="display:none;">
+            <div class="form-group">
+              <label class="form-label">Schedule</label>
+              <input type="text" class="form-input" id="music-schedule" placeholder="e.g. Every Sunday, 8:30 AM" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Location</label>
+              <input type="text" class="form-input" id="music-location" placeholder="e.g. Church" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Description</label>
+              <textarea class="form-textarea" id="music-description" style="min-height:120px;"></textarea>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Contact Name</label>
+              <input type="text" class="form-input" id="music-contact" placeholder="e.g. Matthew Ficarra" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Phone</label>
+              <input type="text" class="form-input" id="music-phone" placeholder="e.g. 8478775020" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Email</label>
+              <input type="text" class="form-input" id="music-email" placeholder="e.g. musicministry@stroseanthem.com" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Link (optional)</label>
+              <input type="text" class="form-input" id="music-link" placeholder="https://..." />
+            </div>
+            <button class="btn btn-primary" onclick="saveMusicMinistryInfo()">Save Changes</button>
+          </div>
+        </div>
+        <div class="card" style="margin-top:16px;">
           <div class="card-title">🎵 Post to Music Ministry</div>
           <div class="info-box">Post a message to Music Ministry members in the app. Members who have opted in will receive a push notification.</div>
           <div class="form-group">
@@ -4548,6 +4584,39 @@
   var musicMembers = [];
 
   // --- MEN'S MINISTRY (owner-managed page, not gated behind a leader claim) ---
+  async function loadMusicMinistryInfo() {
+    try {
+      const res = await fs_get_doc('ministries/music');
+      document.getElementById('music-schedule').value = gf(res, 'schedule') || '';
+      document.getElementById('music-location').value = gf(res, 'location') || '';
+      document.getElementById('music-description').value = gf(res, 'description') || '';
+      document.getElementById('music-contact').value = gf(res, 'contact') || '';
+      document.getElementById('music-phone').value = gf(res, 'phone') || '';
+      document.getElementById('music-email').value = gf(res, 'email') || '';
+      document.getElementById('music-link').value = gf(res, 'link') || '';
+      document.getElementById('music-loading').style.display = 'none';
+      document.getElementById('music-form').style.display = 'block';
+    } catch(e) {
+      document.getElementById('music-loading').textContent = 'Error loading ministry data.';
+    }
+  }
+  async function saveMusicMinistryInfo() {
+    const fields = {
+      schedule: {stringValue: document.getElementById('music-schedule').value.trim()},
+      location: {stringValue: document.getElementById('music-location').value.trim()},
+      description: {stringValue: document.getElementById('music-description').value.trim()},
+      contact: {stringValue: document.getElementById('music-contact').value.trim()},
+      phone: {stringValue: document.getElementById('music-phone').value.trim()},
+      email: {stringValue: document.getElementById('music-email').value.trim()},
+      link: {stringValue: document.getElementById('music-link').value.trim()},
+    };
+    try {
+      await fs_patch('ministries/music', fields);
+      showToast('Ministry info updated!', 'success');
+    } catch(e) {
+      showToast('Error saving changes.', 'error');
+    }
+  }
   async function loadMensMinistry() {
     try {
       const res = await fs_get_doc('ministries/mens');
