@@ -3182,18 +3182,118 @@
     } catch(e) { list.innerHTML = '<div style="color:var(--danger);">Error loading.</div>'; }
   }
   function renderReviewedFamilyRow(doc) {
-    const id = doc.name.split('/').pop();
+    const id = docId(doc);
     const lastName = gf(doc, 'familyLastName') || '';
     const headName = gf(doc, 'headName') || '';
     const reviewedAt = gf(doc, 'reviewedAt');
     const dateStr = reviewedAt ? new Date(reviewedAt).toLocaleDateString() : '';
-    return '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;border-bottom:1px solid var(--linen);">' +
-      '<div><strong>' + escHtml(lastName) + ' Family</strong>' + (headName ? ' <span style="color:var(--dusty-rose);font-size:13px;">(' + escHtml(headName) + ')</span>' : '') + '</div>' +
-      '<div style="display:flex;align-items:center;gap:12px;">' +
-        (dateStr ? '<span style="font-size:12px;color:var(--dusty-rose);">Entered ' + dateStr + '</span>' : '') +
-        '<button class="btn btn-outline btn-sm" onclick="deleteReviewedFamily(\'' + id + '\',\'' + escAttr(lastName) + '\')">Delete</button>' +
+    return '<div style="border-bottom:1px solid var(--linen);">' +
+      '<div style="display:flex;align-items:center;justify-content:space-between;padding:10px 0;cursor:pointer;" onclick="toggleReviewedDetail(\'' + id + '\')">' +
+        '<div><strong>' + escHtml(lastName) + ' Family</strong>' + (headName ? ' <span style="color:var(--dusty-rose);font-size:13px;">(' + escHtml(headName) + ')</span>' : '') + '</div>' +
+        '<div style="display:flex;align-items:center;gap:12px;">' +
+          (dateStr ? '<span style="font-size:12px;color:var(--dusty-rose);">Entered ' + dateStr + '</span>' : '') +
+          '<span id="reviewed-chevron-' + id + '" style="color:var(--dusty-rose);font-size:16px;">›</span>' +
+        '</div>' +
       '</div>' +
+      '<div id="reviewed-detail-' + id + '" style="display:none;padding-bottom:16px;">' + renderReviewedFamilyDetail(doc) + '</div>' +
     '</div>';
+  }
+  function toggleReviewedDetail(id) {
+    const el = document.getElementById('reviewed-detail-' + id);
+    const chevron = document.getElementById('reviewed-chevron-' + id);
+    if (!el) return;
+    const isOpen = el.style.display !== 'none';
+    el.style.display = isOpen ? 'none' : 'block';
+    if (chevron) chevron.textContent = isOpen ? '›' : '⌄';
+  }
+  function renderReviewedFamilyDetail(doc) {
+    const id = docId(doc);
+    const lastName = gf(doc,'familyLastName') || '';
+    const mainPhone = gf(doc,'mainPhone') || '';
+    const envelopes = gf(doc,'envelopes') || '';
+    const address = gf(doc,'homeAddress') || '';
+    const city = gf(doc,'city') || '';
+    const state = gf(doc,'state') || '';
+    const zip = gf(doc,'zip') || '';
+    const headName = gf(doc,'headName') || '';
+    const headTitle = gf(doc,'headTitle') || '';
+    const headBirthdate = gf(doc,'headBirthdate') || '';
+    const maritalStatus = gf(doc,'maritalStatus') || '';
+    const marriageDate = gf(doc,'marriageDate') || '';
+    const marriedByPriest = gf(doc,'marriedByPriest') || '';
+    const headOccupation = gf(doc,'headOccupation') || '';
+    const headEmail = gf(doc,'headEmail') || '';
+    const headBaptized = gf(doc,'headBaptized') || '';
+    const headEucharist = gf(doc,'headEucharist') || '';
+    const headConfirmed = gf(doc,'headConfirmed') || '';
+    const spouseName = gf(doc,'spouseName') || '';
+    const spouseTitle = gf(doc,'spouseTitle') || '';
+    const spouseBirthdate = gf(doc,'spouseBirthdate') || '';
+    const spouseOccupation = gf(doc,'spouseOccupation') || '';
+    const spouseEmail = gf(doc,'spouseEmail') || '';
+    const spouseBaptized = gf(doc,'spouseBaptized') || '';
+    const spouseEucharist = gf(doc,'spouseEucharist') || '';
+    const spouseConfirmed = gf(doc,'spouseConfirmed') || '';
+    const comments = gf(doc,'comments') || '';
+    const otherPhonesField = doc.fields && doc.fields.otherPhones;
+    const otherPhones = ((otherPhonesField && otherPhonesField.arrayValue && otherPhonesField.arrayValue.values) || []).map(function(v) {
+      const f = v.mapValue.fields;
+      return { label: (f.label && f.label.stringValue) || '', number: (f.number && f.number.stringValue) || '' };
+    });
+    const childrenField = doc.fields && doc.fields.children;
+    const children = ((childrenField && childrenField.arrayValue && childrenField.arrayValue.values) || []).map(function(v) {
+      const f = v.mapValue.fields;
+      return {
+        firstName: (f.firstName && f.firstName.stringValue) || '', lastName: (f.lastName && f.lastName.stringValue) || '',
+        gender: (f.gender && f.gender.stringValue) || '', birthdate: (f.birthdate && f.birthdate.stringValue) || '',
+        baptized: (f.baptized && f.baptized.stringValue) || '', firstReconciliation: (f.firstReconciliation && f.firstReconciliation.stringValue) || '',
+        firstEucharist: (f.firstEucharist && f.firstEucharist.stringValue) || '', confirmed: (f.confirmed && f.confirmed.stringValue) || '',
+      };
+    });
+
+    let html = '<div style="padding-top:4px;">';
+    html += '<div class="partner-meta">' + escHtml(mainPhone) + (envelopes ? ' · Envelopes: ' + escHtml(envelopes) : '') + (address ? ' · ' + escHtml(address) + (city ? ', ' + escHtml(city) : '') + (state ? ', ' + escHtml(state) : '') + (zip ? ' ' + escHtml(zip) : '') : '') + '</div>';
+    if (otherPhones.length) {
+      html += '<div style="font-size:13px;color:var(--soil);margin-top:6px;">Other phones: ' + otherPhones.map(function(p) { return escHtml(p.label ? p.label + ': ' : '') + escHtml(p.number); }).join(', ') + '</div>';
+    }
+
+    html += '<div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--linen);">';
+    html += '<div style="font-family:\'Cinzel\',serif;font-size:12px;color:var(--burgundy);letter-spacing:0.5px;margin-bottom:6px;">HEAD OF HOUSE</div>';
+    html += '<div style="font-size:14px;color:var(--soil);">' + escHtml(headTitle) + ' ' + escHtml(headName) + (headBirthdate ? ' · b. ' + escHtml(headBirthdate) : '') + '</div>';
+    html += '<div style="font-size:13px;color:var(--dusty-rose);margin-top:2px;">' + [maritalStatus, headOccupation, headEmail].filter(Boolean).map(escHtml).join(' · ') + '</div>';
+    if (marriageDate || marriedByPriest) {
+      html += '<div style="font-size:13px;color:var(--dusty-rose);">' + (marriageDate ? 'Married ' + escHtml(marriageDate) : '') + (marriedByPriest ? ' · By a priest: ' + escHtml(marriedByPriest) : '') + '</div>';
+    }
+    html += '<div style="font-size:12px;color:var(--soil);opacity:0.7;margin-top:4px;">Baptized: ' + yn(headBaptized) + ' · First Eucharist: ' + yn(headEucharist) + ' · Confirmed: ' + yn(headConfirmed) + '</div>';
+    html += '</div>';
+
+    if (spouseName) {
+      html += '<div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--linen);">';
+      html += '<div style="font-family:\'Cinzel\',serif;font-size:12px;color:var(--burgundy);letter-spacing:0.5px;margin-bottom:6px;">SPOUSE / OTHER ADULT</div>';
+      html += '<div style="font-size:14px;color:var(--soil);">' + escHtml(spouseTitle) + ' ' + escHtml(spouseName) + (spouseBirthdate ? ' · b. ' + escHtml(spouseBirthdate) : '') + '</div>';
+      html += '<div style="font-size:13px;color:var(--dusty-rose);margin-top:2px;">' + [spouseOccupation, spouseEmail].filter(Boolean).map(escHtml).join(' · ') + '</div>';
+      html += '<div style="font-size:12px;color:var(--soil);opacity:0.7;margin-top:4px;">Baptized: ' + yn(spouseBaptized) + ' · First Eucharist: ' + yn(spouseEucharist) + ' · Confirmed: ' + yn(spouseConfirmed) + '</div>';
+      html += '</div>';
+    }
+
+    if (children.length) {
+      html += '<div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--linen);">';
+      html += '<div style="font-family:\'Cinzel\',serif;font-size:12px;color:var(--burgundy);letter-spacing:0.5px;margin-bottom:8px;">CHILDREN (' + children.length + ')</div>';
+      html += children.map(function(c) {
+        return '<div style="font-size:13px;color:var(--soil);margin-bottom:6px;"><strong>' + escHtml(c.firstName) + ' ' + escHtml(c.lastName) + '</strong>' + (c.gender ? ' (' + escHtml(c.gender) + ')' : '') + (c.birthdate ? ' · b. ' + escHtml(c.birthdate) : '') + '<div style="font-size:12px;color:var(--soil);opacity:0.7;">Baptized: ' + yn(c.baptized) + ' · First Reconciliation: ' + yn(c.firstReconciliation) + ' · First Eucharist: ' + yn(c.firstEucharist) + ' · Confirmed: ' + yn(c.confirmed) + '</div></div>';
+      }).join('');
+      html += '</div>';
+    }
+
+    if (comments) {
+      html += '<div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--linen);font-size:13px;color:var(--soil);"><strong>Comments:</strong> ' + escHtml(comments) + '</div>';
+    }
+
+    html += '<div style="margin-top:16px;">';
+    html += '<button class="btn btn-outline btn-sm" onclick="deleteReviewedFamily(\'' + id + '\',\'' + escAttr(lastName) + '\')">Delete</button>';
+    html += '</div>';
+    html += '</div>';
+    return html;
   }
   async function deleteReviewedFamily(id, name) {
     if (!confirm('Delete ' + name + ' family from reviewed records? This cannot be undone.')) return;
