@@ -3172,7 +3172,7 @@
     try {
       const res = await fs_get('familyRegistrations');
       const docs = (res.documents || []).filter(d => gf(d, 'reviewed') === true);
-      docs.sort((a, b) => (gf(a, 'lastName') || '').localeCompare(gf(b, 'lastName') || ''));
+      docs.sort((a, b) => (gf(a, 'familyLastName') || '').localeCompare(gf(b, 'familyLastName') || ''));
       reviewedFamiliesCache = docs;
       if (docs.length === 0) {
         list.innerHTML = '<div class="empty-state"><div class="empty-icon">✓</div><div class="empty-title">No reviewed families yet</div></div>';
@@ -3183,7 +3183,7 @@
   }
   function renderReviewedFamilyRow(doc) {
     const id = doc.name.split('/').pop();
-    const lastName = gf(doc, 'lastName') || '';
+    const lastName = gf(doc, 'familyLastName') || '';
     const headName = gf(doc, 'headName') || '';
     const reviewedAt = gf(doc, 'reviewedAt');
     const dateStr = reviewedAt ? new Date(reviewedAt).toLocaleDateString() : '';
@@ -3211,8 +3211,8 @@
       const reviewedAt = gf(doc, 'reviewedAt');
       const dateStr = reviewedAt ? new Date(reviewedAt).toLocaleDateString() : '';
       return [
-        gf(doc, 'lastName'), gf(doc, 'headName'), gf(doc, 'spouseName'), gf(doc, 'mainPhone'),
-        gf(doc, 'address'), gf(doc, 'city'), gf(doc, 'state'), gf(doc, 'zip'),
+        gf(doc, 'familyLastName'), gf(doc, 'headName'), gf(doc, 'spouseName'), gf(doc, 'mainPhone'),
+        gf(doc, 'homeAddress'), gf(doc, 'city'), gf(doc, 'state'), gf(doc, 'zip'),
         gf(doc, 'envelopes'), dateStr,
       ].map(csvEscape).join(',');
     });
