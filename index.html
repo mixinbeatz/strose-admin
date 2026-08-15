@@ -4387,7 +4387,7 @@
       });
       // Close existing poll
       const pollId = activePoll.name.split('/').pop();
-      await fs_patch('polls/' + pollId, {active: {booleanValue: false}});
+      await fs_patch('polls/' + pollId, {active: {booleanValue: false}, closedAt: {stringValue: new Date().toISOString()}});
       showToast('Poll loaded for editing — make changes and click Launch Poll.', 'success');
       window.scrollTo(0,0);
     } catch(e) { showToast('Error loading poll.', 'error'); }
@@ -4401,7 +4401,7 @@
       const activePoll = (res.documents||[]).find(d => d.fields?.active?.booleanValue !== false && (d.fields?.expiresAt?.stringValue||'') > now);
       if (!activePoll) { showToast('No active poll.', 'error'); return; }
       const pollId = activePoll.name.split('/').pop();
-      await fs_patch('polls/' + pollId, {active: {booleanValue: false}});
+      await fs_patch('polls/' + pollId, {active: {booleanValue: false}, closedAt: {stringValue: new Date().toISOString()}});
       showToast('Poll closed.', 'success');
       loadPollResults();
     } catch(e) { showToast('Error closing poll.', 'error'); }
