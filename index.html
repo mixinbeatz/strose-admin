@@ -721,6 +721,7 @@
         <div class="card" id="ref-scheduled-card" style="margin-top:16px;display:none;">
           <div class="card-title">🕒 Scheduled Reflection (Upcoming)</div>
           <div id="ref-scheduled-preview"><div style="color:var(--dusty-rose);font-size:14px;">Loading...</div></div>
+          <button class="btn btn-gold" style="margin-top:12px;" onclick="makeReflectionLiveNow()">⚡ Make Live Now</button>
         </div>
       </div>
 
@@ -2741,12 +2742,23 @@
       if(futureDocs.length>0){
         if(scheduledCard) scheduledCard.style.display='block';
         if(scheduledEl) scheduledEl.innerHTML = renderReflectionCard(futureDocs[0], false);
-        window._scheduledReflection = {title: gf(futureDocs[0],'heading'), author: gf(futureDocs[0],'author'), body: gf(futureDocs[0],'body'), liturgicalDate: gf(futureDocs[0],'liturgicalDate'), publishAt: gf(futureDocs[0],'publishAt')};
+        window._scheduledReflection = {id: docId(futureDocs[0]), title: gf(futureDocs[0],'heading'), author: gf(futureDocs[0],'author'), body: gf(futureDocs[0],'body'), liturgicalDate: gf(futureDocs[0],'liturgicalDate'), publishAt: gf(futureDocs[0],'publishAt')};
       } else {
         window._scheduledReflection = null;
         if(scheduledCard) scheduledCard.style.display='none';
       }
     } catch(e){showToast('Error loading.','error');}
+  }
+
+  async function makeReflectionLiveNow() {
+    const r = window._scheduledReflection;
+    if(!r || !r.id){ showToast('No scheduled reflection found.','error'); return; }
+    if(!confirm('Make "' + r.title + '" live right now? This will replace the current live reflection.')) return;
+    try {
+      await fs_patch('weeklyReflection/' + r.id, {publishAt:{stringValue:new Date().toISOString()}});
+      showToast('Reflection is now live!','success');
+      loadCurrentReflection();
+    } catch(e){ showToast('Error making reflection live.','error'); }
   }
 
   function normalizeReflectionBody(raw) {
