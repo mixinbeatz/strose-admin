@@ -5384,14 +5384,16 @@
     } else {
       el.innerHTML = parishDevMediaData.photos.map((p, i) => `
         <div style="border:1px solid var(--linen);border-radius:10px;padding:16px;margin-bottom:14px;display:flex;gap:16px;align-items:center;">
-          <div style="width:100px;height:70px;border-radius:6px;background:var(--linen);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;">
+          <div style="width:100px;height:70px;border-radius:6px;background:var(--linen);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;position:relative;">
             <img src="${p.url}" style="max-width:100%;max-height:100%;object-fit:contain;" onclick="openLightbox('${p.url}')" />
+            ${p.funded ? '<div style="position:absolute;top:2px;left:2px;background:var(--burgundy);color:var(--white);font-size:8px;padding:2px 4px;border-radius:2px;font-family:\'Cinzel\',serif;">Funded</div>' : ''}
           </div>
           <div style="flex:1;">
-            <div style="font-family:'Cinzel',serif;font-size:13px;color:var(--burgundy);margin-bottom:6px;">${i===0?'Main photo':'Photo '+(i+1)}</div>
+            <div style="font-family:'Cinzel',serif;font-size:13px;color:var(--burgundy);margin-bottom:6px;">${i===0?'Main photo':'Photo '+(i+1)}${p.funded ? ' — <span style="color:var(--burgundy);">Funded</span>' : ''}</div>
             <input type="text" class="form-input" placeholder="Alt text (optional)" value="${(p.alt||'').replace(/"/g,'&quot;')}" onchange="saveParishDevMediaAlt(${i},this.value)" style="margin-bottom:8px;font-size:13px;" />
             <button class="btn btn-outline btn-sm" onclick="moveParishDevMediaPhoto(${i},-1)" ${i===0?'disabled':''}>↑ Move Up</button>
             <button class="btn btn-outline btn-sm" onclick="moveParishDevMediaPhoto(${i},1)" ${i===parishDevMediaData.photos.length-1?'disabled':''}>↓ Move Down</button>
+            <button class="btn ${p.funded ? 'btn-danger' : 'btn-outline'} btn-sm" onclick="toggleParishDevMediaFunded(${i})">${p.funded ? 'Unmark Funded' : 'Mark Funded'}</button>
             <button class="btn btn-danger btn-sm" onclick="removeParishDevMediaPhoto(${i})">Remove</button>
           </div>
         </div>
@@ -5438,6 +5440,12 @@
     await saveParishDevPhotosArray();
     showToast('Alt text saved.', 'success');
   }
+  async function toggleParishDevMediaFunded(idx) {
+    parishDevMediaData.photos[idx].funded = !parishDevMediaData.photos[idx].funded;
+    await saveParishDevPhotosArray();
+    renderParishDevMediaPhotos();
+    showToast(parishDevMediaData.photos[idx].funded ? 'Marked as funded.' : 'Unmarked as funded.', 'success');
+  }
   function selectParishDevPreviewPhoto(idx) {
     parishDevPreviewIdx = idx;
     renderParishDevMediaPreview();
@@ -5477,16 +5485,19 @@
     const thumbsHtml = parishDevMediaData.photos.length > 1 ? `
       <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap;">
         ${parishDevMediaData.photos.map((p, i) => `
-          <div onclick="selectParishDevPreviewPhoto(${i})" style="width:60px;height:60px;border-radius:4px;overflow:hidden;cursor:pointer;background:var(--white);border:2px solid ${i===parishDevPreviewIdx?'var(--gold)':'transparent'};display:flex;align-items:center;justify-content:center;flex-shrink:0;">
+          <div onclick="selectParishDevPreviewPhoto(${i})" style="width:60px;height:60px;border-radius:4px;overflow:hidden;cursor:pointer;background:var(--white);border:2px solid ${i===parishDevPreviewIdx?'var(--gold)':'transparent'};display:flex;align-items:center;justify-content:center;flex-shrink:0;position:relative;">
             <img src="${p.url}" style="max-width:100%;max-height:100%;object-fit:contain;" />
+            ${p.funded ? '<div style="position:absolute;top:2px;left:2px;background:var(--burgundy);color:var(--white);font-size:7px;padding:2px 3px;border-radius:2px;font-family:\'Cinzel\',serif;">Funded</div>' : ''}
           </div>
         `).join('')}
       </div>
     ` : '';
     el.innerHTML = headerHtml + `
-      <div style="width:100%;max-height:340px;aspect-ratio:16/10;background:var(--white);border-radius:6px;display:flex;align-items:center;justify-content:center;overflow:hidden;">
+      <div style="width:100%;max-height:340px;aspect-ratio:16/10;background:var(--white);border-radius:6px;display:flex;align-items:center;justify-content:center;overflow:hidden;position:relative;">
         <img src="${main.url}" style="max-width:100%;max-height:100%;object-fit:contain;" />
+        ${main.funded ? '<div style="position:absolute;top:10px;left:10px;background:var(--burgundy);color:var(--white);font-family:\'Cinzel\',serif;font-size:11px;padding:4px 10px;border-radius:3px;">Funded</div>' : ''}
       </div>
+      ${main.funded ? '<div style="margin-top:10px;padding:10px 14px;background:rgba(92,26,46,0.07);border:1px solid var(--burgundy);border-radius:6px;font-size:14px;color:var(--burgundy);font-weight:600;text-align:center;">Funded! Thank You. This project has been fully funded thanks to the generosity of our parish family.</div>' : ''}
       ${thumbsHtml}
     `;
   }
