@@ -309,7 +309,7 @@
       </div>
 
       <!-- MINISTRIES -->
-      <div class="nav-section-toggle collapsed staff-only" onclick="toggleNavSection(this)"><span>Ministries</span><span class="nav-chevron">▾</span></div>
+      <div class="nav-section-toggle collapsed staff-only ministry-leader" onclick="toggleNavSection(this)"><span>Ministries</span><span class="nav-chevron">▾</span></div>
       <div class="nav-group collapsed">
         <div class="nav-subsection-toggle staff-only collapsed" onclick="toggleNavSection(this)"><span>Parish Development</span><span class="nav-chevron">▾</span></div>
         <div class="nav-group collapsed">
@@ -322,10 +322,10 @@
         <div class="nav-item staff-only" onclick="showPage('songsheet',this)"><span class="nav-icon">🎵</span> Mass Songsheet</div>
         <div class="nav-item staff-only" onclick="showPage('music-members',this)"><span class="nav-icon">👥</span> Music Members</div>
         </div>
-        <div class="nav-subsection-toggle staff-only collapsed" onclick="toggleNavSection(this)"><span>Men's Ministry</span><span class="nav-chevron">▾</span></div>
+        <div class="nav-subsection-toggle staff-only ministry-leader collapsed" data-ministry="mens" onclick="toggleNavSection(this)"><span>Men's Ministry</span><span class="nav-chevron">▾</span></div>
         <div class="nav-group collapsed">
-        <div class="nav-item staff-only" onclick="showPage('mens-ministry',this);loadMensMinistry();loadMensCurrentPost()"><span class="nav-icon">⛪</span> Men's Ministry</div>
-        <div class="nav-item staff-only" onclick="showPage('mens-members',this)"><span class="nav-icon">👥</span> Men's Ministry Members</div>
+        <div class="nav-item staff-only ministry-leader" data-ministry="mens" onclick="showPage('mens-ministry',this);loadMensMinistry();loadMensCurrentPost()"><span class="nav-icon">⛪</span> Men's Ministry</div>
+        <div class="nav-item staff-only ministry-leader" data-ministry="mens" onclick="showPage('mens-members',this)"><span class="nav-icon">👥</span> Men's Ministry Members</div>
 
         </div>
         <div class="nav-subsection-toggle ministry-only collapsed" style="display:none" onclick="toggleNavSection(this)"><span>Catholic Daughters</span><span class="nav-chevron">▾</span></div>
@@ -1828,22 +1828,36 @@
     }
   }
 
+  // Ministries with their own dedicated, purpose-built portal pages (like
+  // Men's Ministry) instead of the generic My Ministry / Post to Members
+  // template. Add a ministry id here once you build it a real page, and its
+  // .ministry-leader nav items with matching data-ministry will be scoped to
+  // just that leader's account. Ministries not in this list fall back to the
+  // generic .ministry-only pages (safe default for onboarding a new leader
+  // before you've built their dedicated page).
+  const MINISTRIES_WITH_DEDICATED_PAGES = ['mens'];
+
   function applyRoleNav() {
     const isMinistry = !!(currentClaims && currentClaims.role === 'ministry');
+    const ministryId = currentClaims && currentClaims.ministry;
     const isCheyanne = !!(currentClaims && currentClaims.email === 'cbosn@stroseanthem.com');
     const isMatt     = !isMinistry && !isCheyanne;
 
     document.getElementById('topbar-date').textContent = new Date().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
     var mpt = document.getElementById('mobile-page-title'); if(mpt) mpt.textContent = 'Dashboard';
 
-    document.querySelectorAll('.ministry-only, .staff-only, .cheyanne-only').forEach(el => {
-      var show = (el.classList.contains('ministry-only') && isMinistry)
-              || (el.classList.contains('staff-only') && isMatt)
-              || (el.classList.contains('cheyanne-only') && isCheyanne);
+    document.querySelectorAll('.ministry-only, .staff-only, .cheyanne-only, .ministry-leader').forEach(el => {
+      var show = false;
+      if (el.classList.contains('staff-only') && isMatt) show = true;
+      if (el.classList.contains('cheyanne-only') && isCheyanne) show = true;
+      if (el.classList.contains('ministry-leader') && isMinistry && (!el.dataset.ministry || el.dataset.ministry === ministryId)) show = true;
+      if (el.classList.contains('ministry-only') && !el.classList.contains('ministry-leader') && isMinistry && !MINISTRIES_WITH_DEDICATED_PAGES.includes(ministryId)) show = true;
       el.style.display = show ? '' : 'none';
     });
 
-    if (isMinistry) {
+    if (isMinistry && MINISTRIES_WITH_DEDICATED_PAGES.includes(ministryId)) {
+      if (ministryId === 'mens') { showPage('mens-ministry', document.querySelector('.ministry-leader[data-ministry="mens"]')); loadMensMinistry(); loadMensCurrentPost(); }
+    } else if (isMinistry) {
       showPage('ministry-post', document.querySelector('.ministry-only.nav-item')); loadMinistryPosts();
     } else if (isCheyanne) {
       showPage('dashboard', navItem('dashboard'));
