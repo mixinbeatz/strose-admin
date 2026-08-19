@@ -476,7 +476,7 @@
               </div>
             </div>
             <div class="btn-row">
-              <button class="btn btn-primary" onclick="postSingleEvent()">Add Event</button>
+              <button class="btn btn-primary" id="evt-submit-btn" onclick="postSingleEvent()">Add Event</button>
               <button class="btn btn-outline" onclick="clearSingleEvt()">Clear</button>
             </div>
             <div class="post-success" id="evt-success">✓ Event added successfully.</div>
@@ -2457,6 +2457,29 @@
     const endStr = startDate.getFullYear() + '-' + pad(startDate.getMonth() + 1) + '-' + pad(startDate.getDate()) + 'T23:59';
     document.getElementById('evt-end').value = endStr;
   }
+  function toLocalInputValue(iso) {
+    if (!iso) return '';
+    const d = new Date(iso);
+    const pad = n => String(n).padStart(2, '0');
+    return d.getFullYear() + '-' + pad(d.getMonth()+1) + '-' + pad(d.getDate()) + 'T' + pad(d.getHours()) + ':' + pad(d.getMinutes());
+  }
+  function editEvent(id) {
+    const doc = window._eventsCache && window._eventsCache[id];
+    if (!doc) { showToast('Could not load that event.', 'error'); return; }
+    document.getElementById('evt-title').value = gf(doc,'title') || '';
+    document.getElementById('evt-location').value = gf(doc,'location') || '';
+    document.getElementById('evt-desc').value = gf(doc,'description') || '';
+    document.getElementById('evt-category').value = gf(doc,'category') || 'Ministry';
+    document.getElementById('evt-start').value = toLocalInputValue(gf(doc,'startAt'));
+    evtEndManuallySet = true;
+    document.getElementById('evt-end-group').style.display = '';
+    document.getElementById('evt-end').value = toLocalInputValue(gf(doc,'expiresAt'));
+    window._editingEventId = id;
+    document.getElementById('evt-submit-btn').textContent = 'Update Event';
+    document.querySelector('#panel-single .card-title, #page-events .section-title')?.scrollIntoView({behavior:'smooth', block:'start'});
+    document.getElementById('evt-title').scrollIntoView({behavior:'smooth', block:'center'});
+    showToast('Editing "' + (gf(doc,'title')||'event') + '" — update the fields and click Update Event.', 'success');
+  }
   async function postSingleEvent() {
     const title = document.getElementById('evt-title').value.trim();
     const start = document.getElementById('evt-start').value;
@@ -2470,20 +2493,30 @@
     const formatted = startDate.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
     const timeStr = startDate.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
     try {
-      await fs_post('events',{
-        title:{stringValue:title}, date:{stringValue:formatted}, time:{stringValue:timeStr},
-        location:{stringValue:location}, category:{stringValue:category}, description:{stringValue:desc},
-        postedBy:{stringValue:'Parish Staff'}, source:{stringValue:'admin'}, type:{stringValue:'event'},
-        startAt:{stringValue:new Date(start).toISOString()},
-        expiresAt:{stringValue:new Date(end).toISOString()},
-        createdAt:{stringValue:new Date().toISOString()}
-      });
+      if (window._editingEventId) {
+        await fs_patch('events/' + window._editingEventId, {
+          title:{stringValue:title}, date:{stringValue:formatted}, time:{stringValue:timeStr},
+          location:{stringValue:location}, category:{stringValue:category}, description:{stringValue:desc},
+          startAt:{stringValue:new Date(start).toISOString()},
+          expiresAt:{stringValue:new Date(end).toISOString()}
+        });
+        showToast('Event updated!','success');
+      } else {
+        await fs_post('events',{
+          title:{stringValue:title}, date:{stringValue:formatted}, time:{stringValue:timeStr},
+          location:{stringValue:location}, category:{stringValue:category}, description:{stringValue:desc},
+          postedBy:{stringValue:'Parish Staff'}, source:{stringValue:'admin'}, type:{stringValue:'event'},
+          startAt:{stringValue:new Date(start).toISOString()},
+          expiresAt:{stringValue:new Date(end).toISOString()},
+          createdAt:{stringValue:new Date().toISOString()}
+        });
+        showToast('Event added!','success');
+      }
       document.getElementById('evt-success').style.display='block';
-      showToast('Event added!','success');
       clearSingleEvt();
       setTimeout(()=>{document.getElementById('evt-success').style.display='none';},4000);
       setTimeout(()=>loadRecentEvents(), 1000);
-    } catch(e){showToast('Error adding event.','error');}
+    } catch(e){showToast(window._editingEventId ? 'Error updating event.' : 'Error adding event.','error');}
   }
 
   function clearSingleEvt() {
@@ -2495,6 +2528,8 @@
     document.getElementById('evt-category').value='Ministry';
     evtEndManuallySet = false;
     document.getElementById('evt-end-group').style.display = 'none';
+    window._editingEventId = null;
+    document.getElementById('evt-submit-btn').textContent = 'Add Event';
   }
 
   // ── BULK PARSER ──
@@ -2637,6 +2672,8 @@
       const events = all
         .filter(d=>{ const exp=gf(d,'expiresAt'); const sta=gf(d,'startAt'); return (!exp||new Date(exp)>now) && (!sta||new Date(sta)>now); })
         .sort((a,b)=>{ const da=gf(a,'startAt')||gf(a,'date'); const db=gf(b,'startAt')||gf(b,'date'); return new Date(da)-new Date(db); });
+      window._eventsCache = {};
+      events.forEach(d => { window._eventsCache[docId(d)] = d; });
       if(events.length===0){
         list.innerHTML='<div class="empty-state"><div class="empty-icon">📅</div><div class="empty-title">No upcoming events</div><div class="empty-sub">Events you post will appear here.</div></div>';
         return;
@@ -2652,7 +2689,7 @@
         const dateShort=dt?months[dt.getMonth()]:'—';
         const dayNum=dt?dt.getDate():'';
         const safeTitle=escAttr(title);
-        return '<div class="event-row" id="evtrow-'+id+'"><div class="event-row-date"><div>'+dateShort+'</div><div style="font-size:18px;">'+dayNum+'</div></div><div class="event-row-info"><div class="event-row-title">'+escHtml(title)+'</div><div class="event-row-meta">'+[time,location].filter(x=>x).join(' · ')+(ministry?' <span style="color:var(--dusty-rose);font-size:11px;margin-left:6px;">'+escHtml(ministry)+'</span>':'')+'</div></div><button class="btn btn-danger btn-sm" onclick="deleteEvent(\''+id+'\',\''+safeTitle+'\')">Delete</button></div>';
+        return '<div class="event-row" id="evtrow-'+id+'"><div class="event-row-date"><div>'+dateShort+'</div><div style="font-size:18px;">'+dayNum+'</div></div><div class="event-row-info"><div class="event-row-title">'+escHtml(title)+'</div><div class="event-row-meta">'+[time,location].filter(x=>x).join(' · ')+(ministry?' <span style="color:var(--dusty-rose);font-size:11px;margin-left:6px;">'+escHtml(ministry)+'</span>':'')+'</div></div><button class="btn btn-outline btn-sm" onclick="editEvent(\''+id+'\')">Edit</button><button class="btn btn-danger btn-sm" onclick="deleteEvent(\''+id+'\',\''+safeTitle+'\')">Delete</button></div>';
       }).join('');
     } catch(e){list.innerHTML='<div style="color:var(--danger);">Error loading.</div>';}
   }
