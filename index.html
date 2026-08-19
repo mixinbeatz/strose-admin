@@ -2466,6 +2466,8 @@
   function editEvent(id) {
     const doc = window._eventsCache && window._eventsCache[id];
     if (!doc) { showToast('Could not load that event.', 'error'); return; }
+    const singleTab = document.querySelector('#page-events .inner-tab[onclick*="switchInnerTab(\'single\'"]');
+    if (singleTab) switchInnerTab('single', singleTab);
     document.getElementById('evt-title').value = gf(doc,'title') || '';
     document.getElementById('evt-location').value = gf(doc,'location') || '';
     document.getElementById('evt-desc').value = gf(doc,'description') || '';
@@ -2476,8 +2478,7 @@
     document.getElementById('evt-end').value = toLocalInputValue(gf(doc,'expiresAt'));
     window._editingEventId = id;
     document.getElementById('evt-submit-btn').textContent = 'Update Event';
-    document.querySelector('#panel-single .card-title, #page-events .section-title')?.scrollIntoView({behavior:'smooth', block:'start'});
-    document.getElementById('evt-title').scrollIntoView({behavior:'smooth', block:'center'});
+    window.scrollTo(0,0);
     showToast('Editing "' + (gf(doc,'title')||'event') + '" — update the fields and click Update Event.', 'success');
   }
   async function postSingleEvent() {
@@ -2493,6 +2494,7 @@
     const formatted = startDate.toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
     const timeStr = startDate.toLocaleTimeString('en-US',{hour:'numeric',minute:'2-digit'});
     try {
+      const wasEditing = !!window._editingEventId;
       if (window._editingEventId) {
         await fs_patch('events/' + window._editingEventId, {
           title:{stringValue:title}, date:{stringValue:formatted}, time:{stringValue:timeStr},
@@ -2514,6 +2516,10 @@
       }
       document.getElementById('evt-success').style.display='block';
       clearSingleEvt();
+      if (wasEditing) {
+        const recentTab = document.querySelector('#page-events .inner-tab[onclick*="switchInnerTab(\'recent\'"]');
+        if (recentTab) switchInnerTab('recent', recentTab);
+      }
       setTimeout(()=>{document.getElementById('evt-success').style.display='none';},4000);
       setTimeout(()=>loadRecentEvents(), 1000);
     } catch(e){showToast(window._editingEventId ? 'Error updating event.' : 'Error adding event.','error');}
