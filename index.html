@@ -361,6 +361,10 @@
         <div class="nav-item staff-only" onclick="showPage('parish-dev-media',this);loadParishDevMedia()"><span class="nav-icon">🏗️</span> Parish Development</div>
         <div class="nav-item staff-only" onclick="showPage('mass-schedule',this);loadMassSchedule()"><span class="nav-icon">⏰</span> Mass Schedule</div>
       </div>
+      <div class="nav-section-toggle collapsed owner-admin-only" style="display:none" onclick="toggleNavSection(this)"><span>Staff &amp; Access</span><span class="nav-chevron">▾</span></div>
+      <div class="nav-group collapsed">
+        <div class="nav-item owner-admin-only" style="display:none" onclick="showPage('onboard-leader',this)"><span class="nav-icon">🔑</span> Onboard Ministry Leader</div>
+      </div>
     </nav>
     <div class="sidebar-footer">
       <a href="https://mixinbeatz.github.io/strose-website/" target="_blank" rel="noopener" class="signout-btn" style="display:block;text-align:center;text-decoration:none;box-sizing:border-box;margin-bottom:8px;">🌐 View Website</a>
@@ -1144,6 +1148,50 @@
           <span id="mass-schedule-success" style="display:none;color:var(--success);margin-left:12px;">Saved!</span>
         </div>
       </div>
+      <!-- ONBOARD MINISTRY LEADER -->
+      <div class="page" id="page-onboard-leader">
+        <div class="card">
+          <div class="card-title">🔑 Onboard Ministry Leader</div>
+          <div class="info-box">Creates a portal login for a new ministry leader, sends them an email to set their own password, and drafts a welcome letter for you to review and send. Repeat this for each future leader -- Matt and Patrick's Men's Ministry access was set up manually before this existed.</div>
+          <div class="form-group">
+            <label class="form-label">Name *</label>
+            <input type="text" class="form-input" id="ol-name" placeholder="e.g. Patrick Sullivan" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Email *</label>
+            <input type="email" class="form-input" id="ol-email" placeholder="e.g. patrick@stroseanthem.com" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Role *</label>
+            <select class="form-select" id="ol-role" onchange="toggleOnboardMinistryField()">
+              <option value="ministry">Ministry Leader (scoped to one ministry)</option>
+              <option value="staff">Staff (broader operational access)</option>
+              <option value="clergy">Clergy (content only)</option>
+              <option value="admin">Admin (full access, incl. partner approval)</option>
+            </select>
+          </div>
+          <div class="form-group" id="ol-ministry-group">
+            <label class="form-label">Ministry ID *</label>
+            <input type="text" class="form-input" id="ol-ministry" list="ol-ministry-list" placeholder="e.g. mens, music, cda" />
+            <datalist id="ol-ministry-list">
+              <option value="mens">Men's Ministry</option>
+              <option value="music">Music Ministry</option>
+              <option value="cda">Catholic Daughters</option>
+            </datalist>
+            <div style="font-size:12px;color:var(--dusty-rose);margin-top:4px;">Lowercase, no spaces -- this becomes their claim and their data's document ID. If this ministry doesn't have its own dedicated portal page yet, they'll see the generic My Ministry / Post to Members tools instead.</div>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-primary" id="ol-submit-btn" onclick="onboardLeader()">Create Account &amp; Send Invite</button>
+            <button class="btn btn-outline" onclick="clearOnboardForm()">Clear</button>
+          </div>
+          <div class="post-success" id="ol-success" style="display:none;"></div>
+          <div id="ol-welcome-letter-box" style="display:none;margin-top:16px;padding:16px;background:var(--sand);border-radius:8px;">
+            <div style="font-family:'Cinzel',serif;font-size:13px;color:var(--burgundy);margin-bottom:8px;">Welcome letter</div>
+            <div style="font-size:13px;color:var(--soil);margin-bottom:10px;">Drafted and ready in Gmail -- review it, then hit send yourself.</div>
+            <button class="btn btn-outline" id="ol-welcome-btn">📧 Open Welcome Letter in Gmail</button>
+          </div>
+        </div>
+      </div>
       <div class="page" id="page-hero-media">
         <div class="card">
           <div class="card-title">👁️ Live Preview</div>
@@ -1703,6 +1751,7 @@
   const API_KEY = 'AIzaSyBKjyHaRNkIjTV87zrhhvg6pBxarm3lcQ8';
   const PROJECT_ID = 'saint-rose-anthem';
   const BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/parishes/saint-rose-anthem`;
+  const FUNCTIONS_BASE = 'https://us-central1-saint-rose-anthem.cloudfunctions.net';
   const MINISTRY_NAME_MAP = { cda: 'Catholic Daughters', mens: "Men's Ministry" }; // ministry id (custom claim) -> display name. Add an entry here + assign the custom claim to onboard each new ministry leader.
   const STAFF_NAME_MAP = {
     'markramski@gmail.com': 'Mark Ramotowski',
@@ -1842,16 +1891,18 @@
     const ministryId = currentClaims && currentClaims.ministry;
     const isCheyanne = !!(currentClaims && currentClaims.email === 'cbosn@stroseanthem.com');
     const isMatt     = !isMinistry && !isCheyanne;
+    const isOwnerOrAdmin = !!(currentClaims && (currentClaims.role === 'owner' || currentClaims.role === 'admin'));
 
     document.getElementById('topbar-date').textContent = new Date().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
     var mpt = document.getElementById('mobile-page-title'); if(mpt) mpt.textContent = 'Dashboard';
 
-    document.querySelectorAll('.ministry-only, .staff-only, .cheyanne-only, .ministry-leader').forEach(el => {
+    document.querySelectorAll('.ministry-only, .staff-only, .cheyanne-only, .ministry-leader, .owner-admin-only').forEach(el => {
       var show = false;
       if (el.classList.contains('staff-only') && isMatt) show = true;
       if (el.classList.contains('cheyanne-only') && isCheyanne) show = true;
       if (el.classList.contains('ministry-leader') && isMinistry && (!el.dataset.ministry || el.dataset.ministry === ministryId)) show = true;
       if (el.classList.contains('ministry-only') && !el.classList.contains('ministry-leader') && isMinistry && !MINISTRIES_WITH_DEDICATED_PAGES.includes(ministryId)) show = true;
+      if (el.classList.contains('owner-admin-only') && isOwnerOrAdmin) show = true;
       el.style.display = show ? '' : 'none';
     });
 
@@ -1896,7 +1947,7 @@
     if(el) el.classList.add('active');
     window.scrollTo(0,0);
     closeSidebar();
-    const titles = {dashboard:'Dashboard',events:'Events',announcement:'Post Announcement',fastblast:'Fast Blast',reflection:'Weekly Reflection','parish-development':'Parish Development',daily:'Daily Reflection',songsheet:'Mass Songsheet',welcome:'Welcome Message','hero-media':'Hero Section','welcome-media':'Welcome Section',gallery:'Homepage Gallery','around-parish':'Around the Parish','parish-dev-media':'Parish Development','mass-schedule':'Mass Schedule','music-ministry':'Music Ministry','music-members':'Music Ministry Members',approvals:'Parish Family Approvals',partners:'Partner Requests',directory:'Parish Family Directory','ministry-post':'Post to Members','cda-members':'My Members','prayer-chain':'Prayer Chain','prayer-submissions':'Prayer Submissions','submit-event':'Submit Event','event-requests':'Event Requests',intention:'Mass Intentions','my-ministry':'My Ministry'};
+    const titles = {dashboard:'Dashboard',events:'Events',announcement:'Post Announcement',fastblast:'Fast Blast',reflection:'Weekly Reflection','parish-development':'Parish Development',daily:'Daily Reflection',songsheet:'Mass Songsheet',welcome:'Welcome Message','hero-media':'Hero Section','welcome-media':'Welcome Section',gallery:'Homepage Gallery','around-parish':'Around the Parish','parish-dev-media':'Parish Development','mass-schedule':'Mass Schedule','music-ministry':'Music Ministry','music-members':'Music Ministry Members',approvals:'Parish Family Approvals',partners:'Partner Requests',directory:'Parish Family Directory','ministry-post':'Post to Members','cda-members':'My Members','prayer-chain':'Prayer Chain','prayer-submissions':'Prayer Submissions','submit-event':'Submit Event','event-requests':'Event Requests',intention:'Mass Intentions','my-ministry':'My Ministry','onboard-leader':'Onboard Ministry Leader'};
     document.getElementById('page-title').textContent = titles[id]||id;
     var mpt = document.getElementById('mobile-page-title'); if(mpt) mpt.textContent = titles[id]||id;
     if(id==='approvals') loadApprovals();
@@ -2954,6 +3005,93 @@
       const upcoming = docs.filter(function(d){ return gf(d,'date') >= today; });
       renderScheduledQueue(upcoming);
     } catch(e) { showToast('Error loading.','error'); }
+  }
+  // ---- ONBOARD MINISTRY LEADER ----
+  function toggleOnboardMinistryField() {
+    const role = document.getElementById('ol-role').value;
+    document.getElementById('ol-ministry-group').style.display = (role === 'ministry') ? '' : 'none';
+  }
+  function clearOnboardForm() {
+    document.getElementById('ol-name').value = '';
+    document.getElementById('ol-email').value = '';
+    document.getElementById('ol-role').value = 'ministry';
+    document.getElementById('ol-ministry').value = '';
+    document.getElementById('ol-ministry-group').style.display = '';
+    document.getElementById('ol-success').style.display = 'none';
+    document.getElementById('ol-welcome-letter-box').style.display = 'none';
+  }
+  function ministryDisplayName(id) {
+    return MINISTRY_NAME_MAP[id] || (id.charAt(0).toUpperCase() + id.slice(1) + ' Ministry');
+  }
+  async function onboardLeader() {
+    const name = document.getElementById('ol-name').value.trim();
+    const email = document.getElementById('ol-email').value.trim();
+    const role = document.getElementById('ol-role').value;
+    const ministry = document.getElementById('ol-ministry').value.trim().toLowerCase();
+    if (!name || !email) { showToast('Please fill in name and email.', 'error'); return; }
+    if (role === 'ministry' && !ministry) { showToast('Please enter a ministry ID for this leader.', 'error'); return; }
+
+    const btn = document.getElementById('ol-submit-btn');
+    btn.disabled = true;
+    btn.textContent = 'Creating account...';
+
+    try {
+      const idToken = localStorage.getItem('authIdToken');
+      const body = { email, role, parish: 'saint-rose-anthem' };
+      if (role === 'ministry') body.ministry = ministry;
+
+      const grantRes = await fetch(FUNCTIONS_BASE + '/grantRole', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + idToken },
+        body: JSON.stringify(body)
+      });
+      const grantData = await grantRes.json();
+      if (!grantRes.ok) throw new Error(grantData.error || 'Could not create the account.');
+
+      btn.textContent = 'Sending invite...';
+      const inviteRes = await fetch('https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=' + API_KEY, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ requestType: 'PASSWORD_RESET', email: email })
+      });
+      const inviteData = await inviteRes.json();
+      if (!inviteRes.ok) throw new Error((inviteData.error && inviteData.error.message) || 'Account created, but the invite email failed to send.');
+
+      const successEl = document.getElementById('ol-success');
+      successEl.innerHTML = 'Account created for ' + escHtml(email) + '. An email to set their password has been sent automatically.';
+      successEl.style.display = 'block';
+      showToast('Account created and invite sent!', 'success');
+
+      const roleLabel = role === 'ministry' ? (ministryDisplayName(ministry) + ' leader') : (role.charAt(0).toUpperCase() + role.slice(1));
+      const subject = 'Welcome to the Saint Rose Portal, ' + name.split(' ')[0] + '!';
+      const firstName = name.split(' ')[0];
+      const roleDescription = (role === 'ministry')
+        ? 'update your ministry information and post messages to your members'
+        : 'manage parish content';
+      const letterLines = [
+        'Hi ' + firstName + ',',
+        '',
+        'Welcome aboard as our ' + roleLabel + '. We are glad to have you.',
+        '',
+        'You now have access to the Saint Rose staff portal at portal.saintroseanthem.org, where you will be able to ' + roleDescription + '.',
+        '',
+        'In a separate email from Firebase (noreply@saint-rose-anthem.firebaseapp.com), you will get a link to set your own password. That is not spam -- it is the real account we just created for you (' + email + '). Once you have set a password, log in at portal.saintroseanthem.org with that email.',
+        '',
+        'Let me know if you have any trouble getting in, or any questions about what you will see once you are there.',
+        '',
+        'Welcome to the team!',
+        'Mark'
+      ];
+      const letterBody = letterLines.join(String.fromCharCode(10));
+      const gmailUrl = 'https://mail.google.com/mail/?view=cm&fs=1&to=' + encodeURIComponent(email) + '&su=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(letterBody);
+      document.getElementById('ol-welcome-btn').onclick = () => window.open(gmailUrl, '_blank');
+      document.getElementById('ol-welcome-letter-box').style.display = 'block';
+    } catch (err) {
+      showToast(err.message || 'Something went wrong.', 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Create Account & Send Invite';
+    }
   }
   function emailDailyReflection() {
     // Grab the first row's content
