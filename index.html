@@ -1538,11 +1538,11 @@
             <textarea class="form-input" id="mp-body" rows="5" placeholder="Your message to ministry members..."></textarea>
           </div>
           <div class="form-group">
-            <label class="form-label">Expires</label>
-            <div style="display:flex;gap:8px;flex-wrap:wrap;">
-              <button class="btn btn-outline btn-sm mp-expiry active-expiry" onclick="setMpExpiry(this,'3d')">3 Days</button>
-              <button class="btn btn-outline btn-sm mp-expiry" onclick="setMpExpiry(this,'7d')">7 Days</button>
-              <button class="btn btn-outline btn-sm mp-expiry" onclick="setMpExpiry(this,'30d')">30 Days</button>
+            <label class="form-label">Expires in <span id="mp-expiry-days-label">7</span> day(s) — around <span id="mp-expiry-date-label"></span></label>
+            <input type="range" id="mp-expiry-slider" min="1" max="90" value="7" step="1" style="width:100%;" oninput="updateMpExpiryLabel(this.value)" />
+            <div style="display:flex;justify-content:space-between;font-size:11px;color:var(--dusty-rose);margin-top:2px;">
+              <span>1 day</span>
+              <span>90 days</span>
             </div>
           </div>
           <div class="btn-row">
@@ -4700,9 +4700,20 @@
   }
 
   // Ministry expiry state
-  let mpExpiry = '3d';
+  let mpExpiry = 7;
   let prExpiry = '7d';
-  function setMpExpiry(el, val) { mpExpiry = val; document.querySelectorAll('.mp-expiry').forEach(b=>b.classList.remove('active-expiry')); el.classList.add('active-expiry'); }
+  function updateMpExpiryLabel(val) {
+    mpExpiry = parseInt(val, 10);
+    document.getElementById('mp-expiry-days-label').textContent = mpExpiry;
+    const d = new Date();
+    d.setDate(d.getDate() + mpExpiry);
+    document.getElementById('mp-expiry-date-label').textContent = d.toLocaleDateString('en-US', {month:'short', day:'numeric'});
+  }
+  if (document.readyState === 'loading') {
+    document.addEventListener('DOMContentLoaded', () => updateMpExpiryLabel(7));
+  } else {
+    updateMpExpiryLabel(7);
+  }
   function setPrExpiry(el, val) { prExpiry = val; document.querySelectorAll('.pr-expiry').forEach(b=>b.classList.remove('active-expiry')); el.classList.add('active-expiry'); }
 
   function getExpiryDate(code) {
@@ -4710,6 +4721,11 @@
     if (code === '3d') d.setDate(d.getDate()+3);
     else if (code === '7d') d.setDate(d.getDate()+7);
     else if (code === '30d') d.setDate(d.getDate()+30);
+    return d.toISOString();
+  }
+  function getExpiryDateFromDays(days) {
+    const d = new Date();
+    d.setDate(d.getDate() + parseInt(days, 10));
     return d.toISOString();
   }
 
@@ -4726,7 +4742,7 @@
         message: {stringValue: body},
         ministry: {stringValue: ministryName},
         postedBy: {stringValue: postedBy},
-        expiresAt: {stringValue: getExpiryDate(mpExpiry)},
+        expiresAt: {stringValue: getExpiryDateFromDays(mpExpiry)},
         createdAt: {stringValue: new Date().toISOString()}
       });
       document.getElementById('mp-success').style.display = 'block';
