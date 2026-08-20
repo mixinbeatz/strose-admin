@@ -3037,13 +3037,12 @@
     btn.textContent = 'Creating account...';
 
     try {
-      const idToken = localStorage.getItem('authIdToken');
       const body = { email, role, parish: 'saint-rose-anthem' };
       if (role === 'ministry') body.ministry = ministry;
 
       const grantRes = await fetch(FUNCTIONS_BASE + '/grantRole', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + idToken },
+        headers: await authHeaders({ 'Content-Type': 'application/json' }),
         body: JSON.stringify(body)
       });
       const grantData = await grantRes.json();
