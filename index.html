@@ -1172,14 +1172,16 @@
             </select>
           </div>
           <div class="form-group" id="ol-ministry-group">
-            <label class="form-label">Ministry ID *</label>
-            <input type="text" class="form-input" id="ol-ministry" list="ol-ministry-list" placeholder="e.g. mens, music, cda" />
-            <datalist id="ol-ministry-list">
-              <option value="mens">Men's Ministry</option>
-              <option value="music">Music Ministry</option>
-              <option value="cda">Catholic Daughters</option>
-            </datalist>
-            <div style="font-size:12px;color:var(--dusty-rose);margin-top:4px;">Lowercase, no spaces -- this becomes their claim and their data's document ID. If this ministry doesn't have its own dedicated portal page yet, they'll see the generic My Ministry / Post to Members tools instead.</div>
+            <label class="form-label">Ministry *</label>
+            <select class="form-select" id="ol-ministry"></select>
+            <div style="font-size:12px;color:var(--dusty-rose);margin-top:4px;">If this ministry doesn't have its own dedicated portal page yet, they'll see the generic My Ministry / Post to Members tools instead.</div>
+            <div style="margin-top:10px;padding:10px 12px;background:var(--linen);border-radius:6px;">
+              <div style="font-size:12px;color:var(--burgundy);font-family:'Cinzel',serif;margin-bottom:6px;">Don't see the ministry you need?</div>
+              <div style="display:flex;gap:8px;">
+                <input type="text" class="form-input" id="new-ministry-name" placeholder="e.g. Safety Team" style="flex:1;" />
+                <button class="btn btn-outline btn-sm" onclick="addMinistry()">+ Add Ministry</button>
+              </div>
+            </div>
           </div>
           <div class="btn-row">
             <button class="btn btn-primary" id="ol-submit-btn" onclick="onboardLeader()">Create Account &amp; Send Invite</button>
@@ -1753,7 +1755,14 @@
   const PROJECT_ID = 'saint-rose-anthem';
   const BASE = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/parishes/saint-rose-anthem`;
   const FUNCTIONS_BASE = 'https://us-central1-saint-rose-anthem.cloudfunctions.net';
-  const MINISTRY_NAME_MAP = { cda: 'Catholic Daughters', mens: "Men's Ministry" }; // ministry id (custom claim) -> display name. Add an entry here + assign the custom claim to onboard each new ministry leader.
+  // Ministries are now a real, portal-managed registry (Firestore `ministries`
+  // collection) instead of a hardcoded list -- see loadMinistryRegistry()
+  // below. These are just fallback display names shown briefly before that
+  // fetch completes, or if it fails; the live fetch always wins once it
+  // finishes loading.
+  const MINISTRY_NAME_DEFAULTS = { cda: 'Catholic Daughters', mens: "Men's Ministry", music: 'Music Ministry' };
+  let MINISTRY_NAME_MAP = Object.assign({}, MINISTRY_NAME_DEFAULTS);
+  let ministryRegistry = Object.keys(MINISTRY_NAME_DEFAULTS).map(id => ({ id: id, name: MINISTRY_NAME_DEFAULTS[id] }));
   const STAFF_NAME_MAP = {
     'markramski@gmail.com': 'Mark Ramotowski',
     'mficarra@stroseanthem.com': 'Matthew Ficarra',
@@ -3008,6 +3017,68 @@
     } catch(e) { showToast('Error loading.','error'); }
   }
   // ---- ONBOARD MINISTRY LEADER ----
+  // Loads every ministry from Firestore (the `ministries` collection is the
+  // single source of truth -- same docs that back each ministry's info page)
+  // and uses it to populate MINISTRY_NAME_MAP + the ministry select below,
+  // instead of a hardcoded list. This is what makes "Add Ministry" work: a
+  // brand new ministry becomes selectable the moment its doc exists.
+  async function loadMinistryRegistry() {
+    try {
+      const res = await fs_get('ministries');
+      const docs = res.documents || [];
+      if (!docs.length) return; // keep MINISTRY_NAME_DEFAULTS as a safe fallback
+      const newMap = {};
+      const list = [];
+      docs.forEach(d => {
+        const id = docId(d);
+        const name = gf(d, 'name') || MINISTRY_NAME_DEFAULTS[id] || (id.charAt(0).toUpperCase() + id.slice(1) + ' Ministry');
+        newMap[id] = name;
+        list.push({ id: id, name: name });
+      });
+      list.sort((a, b) => a.name.localeCompare(b.name));
+      MINISTRY_NAME_MAP = newMap;
+      ministryRegistry = list;
+      renderOnboardMinistrySelect();
+    } catch (e) { /* keep fallback defaults */ }
+  }
+  loadMinistryRegistry();
+  function renderOnboardMinistrySelect(selectId) {
+    const sel = document.getElementById('ol-ministry');
+    if (!sel) return;
+    const previousValue = sel.value;
+    sel.innerHTML = ministryRegistry.map(function(m) {
+      return '<option value="' + m.id + '">' + escHtml(m.name) + '</option>';
+    }).join('');
+    const target = selectId || previousValue;
+    if (target && ministryRegistry.some(function(m) { return m.id === target; })) sel.value = target;
+  }
+  async function addMinistry() {
+    const nameInput = document.getElementById('new-ministry-name');
+    const name = nameInput.value.trim();
+    if (!name) { showToast('Please enter a ministry name.', 'error'); return; }
+    const id = name.toLowerCase().replace(/[^a-z0-9]+/g, '');
+    if (!id) { showToast('That name did not produce a usable ID -- try adding a letter or number.', 'error'); return; }
+    if (ministryRegistry.some(function(m) { return m.id === id; })) {
+      showToast('A ministry with that ID already exists.', 'error');
+      return;
+    }
+    try {
+      const existing = await fs_get_doc('ministries/' + id);
+      if (existing && existing.fields) {
+        showToast('A ministry document with that ID already exists in Firestore.', 'error');
+        return;
+      }
+    } catch (e) { /* 404 means it does not exist yet, which is what we want */ }
+    try {
+      await fs_patch('ministries/' + id, { name: { stringValue: name } });
+      showToast('Ministry "' + name + '" added.', 'success');
+      nameInput.value = '';
+      await loadMinistryRegistry();
+      renderOnboardMinistrySelect(id);
+    } catch (e) {
+      showToast('Error creating ministry.', 'error');
+    }
+  }
   function toggleOnboardMinistryField() {
     const role = document.getElementById('ol-role').value;
     document.getElementById('ol-ministry-group').style.display = (role === 'ministry') ? '' : 'none';
@@ -3016,7 +3087,8 @@
     document.getElementById('ol-name').value = '';
     document.getElementById('ol-email').value = '';
     document.getElementById('ol-role').value = 'ministry';
-    document.getElementById('ol-ministry').value = '';
+    renderOnboardMinistrySelect();
+    document.getElementById('new-ministry-name').value = '';
     document.getElementById('ol-ministry-group').style.display = '';
     document.getElementById('ol-success').style.display = 'none';
     document.getElementById('ol-welcome-letter-box').style.display = 'none';
