@@ -365,6 +365,7 @@
       <div class="nav-section-toggle collapsed owner-admin-only" style="display:none" onclick="toggleNavSection(this)"><span>Staff &amp; Access</span><span class="nav-chevron">▾</span></div>
       <div class="nav-group collapsed">
         <div class="nav-item owner-admin-only" style="display:none" onclick="showPage('onboard-leader',this)"><span class="nav-icon">🔑</span> Onboard Ministry Leader</div>
+        <div class="nav-item owner-admin-only" style="display:none" onclick="showPage('leader-tracker',this);loadLeaderTracker()"><span class="nav-icon">📋</span> Ministry Leaders</div>
       </div>
     </nav>
     <div class="sidebar-footer">
@@ -1199,6 +1200,20 @@
           </div>
         </div>
       </div>
+      <!-- MINISTRY LEADER TRACKER -->
+      <div class="page" id="page-leader-tracker">
+        <div class="card">
+          <div class="card-title">📋 Ministry Leaders</div>
+          <div class="info-box">Every ministry and who's currently assigned to lead it. Ministries with no leader show as Unassigned -- use Onboard Ministry Leader to fill the slot.</div>
+          <div id="leader-tracker-loading" style="color:var(--dusty-rose);font-size:14px;">Loading...</div>
+          <div id="leader-tracker-list" style="display:none;"></div>
+        </div>
+        <div class="card" id="leader-tracker-other-card" style="display:none;">
+          <div class="card-title">Other Portal Accounts</div>
+          <div class="info-box">Owner, admin, staff, and clergy accounts -- not scoped to a single ministry.</div>
+          <div id="leader-tracker-other-list"></div>
+        </div>
+      </div>
       <div class="page" id="page-hero-media">
         <div class="card">
           <div class="card-title">👁️ Live Preview</div>
@@ -1961,7 +1976,7 @@
     if(el) el.classList.add('active');
     window.scrollTo(0,0);
     closeSidebar();
-    const titles = {dashboard:'Dashboard',events:'Events',announcement:'Post Announcement',fastblast:'Fast Blast',reflection:'Weekly Reflection','parish-development':'Parish Development',daily:'Daily Reflection',songsheet:'Mass Songsheet',welcome:'Welcome Message','hero-media':'Hero Section','welcome-media':'Welcome Section',gallery:'Homepage Gallery','around-parish':'Around the Parish','parish-dev-media':'Parish Development','mass-schedule':'Mass Schedule','music-ministry':'Music Ministry','music-members':'Music Ministry Members',approvals:'Parish Family Approvals',partners:'Partner Requests',directory:'Parish Family Directory','ministry-post':'Post to Members','cda-members':'My Members','prayer-chain':'Prayer Chain','prayer-submissions':'Prayer Submissions','submit-event':'Submit Event','event-requests':'Event Requests',intention:'Mass Intentions','my-ministry':'My Ministry','onboard-leader':'Onboard Ministry Leader'};
+    const titles = {dashboard:'Dashboard',events:'Events',announcement:'Post Announcement',fastblast:'Fast Blast',reflection:'Weekly Reflection','parish-development':'Parish Development',daily:'Daily Reflection',songsheet:'Mass Songsheet',welcome:'Welcome Message','hero-media':'Hero Section','welcome-media':'Welcome Section',gallery:'Homepage Gallery','around-parish':'Around the Parish','parish-dev-media':'Parish Development','mass-schedule':'Mass Schedule','music-ministry':'Music Ministry','music-members':'Music Ministry Members',approvals:'Parish Family Approvals',partners:'Partner Requests',directory:'Parish Family Directory','ministry-post':'Post to Members','cda-members':'My Members','prayer-chain':'Prayer Chain','prayer-submissions':'Prayer Submissions','submit-event':'Submit Event','event-requests':'Event Requests',intention:'Mass Intentions','my-ministry':'My Ministry','onboard-leader':'Onboard Ministry Leader','leader-tracker':'Ministry Leaders'};
     document.getElementById('page-title').textContent = titles[id]||id;
     var mpt = document.getElementById('mobile-page-title'); if(mpt) mpt.textContent = titles[id]||id;
     if(id==='approvals') loadApprovals();
@@ -3216,6 +3231,56 @@
     } finally {
       btn.disabled = false;
       btn.textContent = 'Create Account & Send Invite';
+    }
+  }
+  // ---- MINISTRY LEADER TRACKER ----
+  async function loadLeaderTracker() {
+    const loadingEl = document.getElementById('leader-tracker-loading');
+    const listEl = document.getElementById('leader-tracker-list');
+    const otherCard = document.getElementById('leader-tracker-other-card');
+    const otherListEl = document.getElementById('leader-tracker-other-list');
+    loadingEl.style.display = 'block';
+    loadingEl.textContent = 'Loading...';
+    listEl.style.display = 'none';
+    otherCard.style.display = 'none';
+    try {
+      const res = await fetch(FUNCTIONS_BASE + '/listStaffAccounts', { headers: await authHeaders() });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Could not load accounts.');
+      const accounts = data.accounts || [];
+
+      if (!ministryRegistry.length) await loadMinistryRegistry();
+
+      const ministryAccounts = accounts.filter(function(a) { return a.role === 'ministry' && a.ministry; });
+      const otherAccounts = accounts.filter(function(a) { return !(a.role === 'ministry' && a.ministry); });
+
+      function formatLastLogin(a) {
+        return a.lastSignInTime ? new Date(a.lastSignInTime).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Never logged in';
+      }
+
+      listEl.innerHTML = ministryRegistry.map(function(m) {
+        const leaders = ministryAccounts.filter(function(a) { return a.ministry === m.id; });
+        const rows = leaders.length ? leaders.map(function(a) {
+          const name = STAFF_NAME_MAP[a.email] || a.email;
+          const statusBadge = a.disabled ? ' <span style="color:var(--danger);font-size:11px;">Disabled</span>' : '';
+          return '<div style="font-size:14px;color:var(--soil);margin-bottom:4px;">' + escHtml(name) + ' <span style="color:var(--dusty-rose);font-size:12px;">(' + escHtml(a.email) + ')</span>' + statusBadge + '<div style="font-size:11px;color:var(--dusty-rose);">Last login: ' + formatLastLogin(a) + '</div></div>';
+        }).join('') : '<span style="color:var(--dusty-rose);font-style:italic;">Unassigned</span>';
+        return '<div style="display:flex;justify-content:space-between;align-items:flex-start;padding:12px 0;border-bottom:1px solid var(--linen);"><div style="font-family:Cinzel,serif;font-size:14px;color:var(--burgundy);flex-shrink:0;width:200px;">' + escHtml(m.name) + '</div><div style="flex:1;">' + rows + '</div></div>';
+      }).join('');
+
+      if (otherAccounts.length) {
+        otherListEl.innerHTML = otherAccounts.map(function(a) {
+          const name = STAFF_NAME_MAP[a.email] || a.email;
+          const statusBadge = a.disabled ? ' <span style="color:var(--danger);font-size:11px;">Disabled</span>' : '';
+          return '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--linen);"><div><span style="font-family:Cinzel,serif;font-size:12px;color:var(--burgundy);text-transform:capitalize;">' + escHtml(a.role) + '</span> -- ' + escHtml(name) + ' <span style="color:var(--dusty-rose);font-size:12px;">(' + escHtml(a.email) + ')</span>' + statusBadge + '</div><div style="font-size:11px;color:var(--dusty-rose);">' + formatLastLogin(a) + '</div></div>';
+        }).join('');
+        otherCard.style.display = 'block';
+      }
+
+      loadingEl.style.display = 'none';
+      listEl.style.display = 'block';
+    } catch (e) {
+      loadingEl.textContent = 'Error loading accounts: ' + (e.message || 'unknown error');
     }
   }
   function emailDailyReflection() {
