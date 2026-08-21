@@ -996,6 +996,11 @@
           <div class="card-title">🌹 Welcome Message</div>
           <div class="info-box">This text appears in the Welcome modal on the app Home screen when a parishioner taps the Welcome card. Paste Fr. Bing's message here.</div>
           <div class="form-group">
+            <label class="form-label">Import from Word Doc (.docx)</label>
+            <input type="file" id="welcome-docx-input" accept=".docx" onchange="importWelcomeDocx(this)" />
+            <div style="font-size:12px;color:var(--dusty-rose);margin-top:4px;">Automatically detects bold text and marks it with ** -- review the result below before saving. Fonts from the Word doc don't carry over (the app always uses its own fonts), so there's nothing to match or convert.</div>
+          </div>
+          <div class="form-group">
             <label class="form-label">Welcome Message Body <span style="color:#8B2635">*</span></label>
             <textarea class="form-input" id="welcome-body" rows="12" placeholder="Paste the welcome message here..." style="resize:vertical;"></textarea>
           </div>
@@ -1771,6 +1776,7 @@
 
 <div class="toast" id="toast"></div>
 
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <script>
   const API_KEY = 'AIzaSyBKjyHaRNkIjTV87zrhhvg6pBxarm3lcQ8';
   const PROJECT_ID = 'saint-rose-anthem';
@@ -5479,6 +5485,64 @@
         showToast('Current message loaded.', 'success');
       } else { showToast('No welcome message saved yet.', 'error'); }
     } catch(e) { showToast('No welcome message saved yet.', 'error'); }
+  }
+  // ── WORD DOC IMPORT ──
+  // Unzips a .docx (it's just a ZIP of XML files), walks word/document.xml,
+  // and rebuilds the text as plain paragraphs with **bold** markers around
+  // any bold runs. Fonts and other formatting are intentionally dropped --
+  // the app always renders with its own fonts, so there's nothing to carry
+  // over there. Reusable for any textarea: pass the file input and the
+  // target textarea's id.
+  async function parseDocxToMarkdown(file) {
+    const buffer = await file.arrayBuffer();
+    const zip = await JSZip.loadAsync(buffer);
+    const docXmlFile = zip.file('word/document.xml');
+    if (!docXmlFile) throw new Error('This does not look like a valid .docx file.');
+    const xmlStr = await docXmlFile.async('string');
+    const parser = new DOMParser();
+    const xml = parser.parseFromString(xmlStr, 'text/xml');
+    const paragraphs = xml.getElementsByTagName('w:p');
+    const output = [];
+    for (let i = 0; i < paragraphs.length; i++) {
+      const p = paragraphs[i];
+      let paraText = '';
+      const runs = p.getElementsByTagName('w:r');
+      for (let j = 0; j < runs.length; j++) {
+        const r = runs[j];
+        const rPrList = r.getElementsByTagName('w:rPr');
+        let isBold = false;
+        if (rPrList.length > 0) {
+          const bList = rPrList[0].getElementsByTagName('w:b');
+          if (bList.length > 0) {
+            const val = bList[0].getAttribute('w:val');
+            isBold = (val !== '0' && val !== 'false');
+          }
+        }
+        const tEls = r.getElementsByTagName('w:t');
+        let runText = '';
+        for (let k = 0; k < tEls.length; k++) runText += tEls[k].textContent;
+        if (!runText) continue;
+        if (isBold) runText = '**' + runText + '**';
+        paraText += runText;
+      }
+      output.push(paraText);
+    }
+    const paraSep = String.fromCharCode(10) + String.fromCharCode(10);
+    return output.join(paraSep);
+  }
+  async function importWelcomeDocx(input) {
+    const file = input.files && input.files[0];
+    if (!file) return;
+    try {
+      showToast('Reading document...', 'success');
+      const text = await parseDocxToMarkdown(file);
+      document.getElementById('welcome-body').value = text;
+      showToast('Imported! Bold text is marked with ** -- review before saving.', 'success');
+    } catch (e) {
+      showToast('Could not read that file: ' + (e.message || 'unknown error'), 'error');
+    } finally {
+      input.value = '';
+    }
   }
   // ── HOMEPAGE GALLERY ──
   const GALLERY_SLOTS = [
