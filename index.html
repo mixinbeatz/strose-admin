@@ -331,6 +331,8 @@
         <div class="nav-item staff-only ministry-leader" data-ministry="mens" onclick="showPage('mens-members',this)"><span class="nav-icon">👥</span> Men's Ministry Members</div>
 
         </div>
+        <div class="nav-subsection-toggle staff-only collapsed" onclick="toggleNavSection(this)"><span>All Ministries</span><span class="nav-chevron">▾</span></div>
+        <div class="nav-group collapsed" id="ministries-nav-list"></div>
         <div class="nav-subsection-toggle ministry-only collapsed" style="display:none" onclick="toggleNavSection(this)"><span>Catholic Daughters</span><span class="nav-chevron">▾</span></div>
         <div class="nav-group collapsed">
         <div class="nav-item ministry-only" style="display:none" onclick="showPage('my-ministry',this);loadMyMinistry()"><span class="nav-icon">⛪</span> My Ministry</div>
@@ -1506,6 +1508,108 @@
             <div style="color:var(--dusty-rose);font-size:13px;padding:8px;">Click Load Members to see your Men's Ministry team.</div>
           </div>
           <div style="margin-top:10px;font-size:12px;color:var(--dusty-rose);" id="mens-member-count"></div>
+        </div>
+      </div>
+
+      <!-- GENERIC MANAGE MINISTRY (used for every ministry in the registry except
+           Men's/Music, which have their own dedicated pages above) -->
+      <div class="page" id="page-manage-ministry">
+        <div class="card">
+          <div class="card-title">⛪ <span id="mmg-heading-name">Ministry</span> Info</div>
+          <div class="info-box">Edit this ministry's information below. Changes appear on the website and in the app immediately.</div>
+          <div id="mmg-loading" style="color:var(--dusty-rose);font-size:14px;">Loading...</div>
+          <div id="mmg-form" style="display:none;">
+            <div class="form-group">
+              <label class="form-label">Schedule</label>
+              <input type="text" class="form-input" id="mmg-schedule" placeholder="e.g. Every Friday, 5:30 AM" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Location</label>
+              <input type="text" class="form-input" id="mmg-location" placeholder="e.g. Parish Hall" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Description</label>
+              <textarea class="form-textarea" id="mmg-description" style="min-height:120px;"></textarea>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Contact Name</label>
+              <input type="text" class="form-input" id="mmg-contact" placeholder="e.g. John Smith" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Phone</label>
+              <input type="text" class="form-input" id="mmg-phone" placeholder="e.g. 8478775020" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Email</label>
+              <input type="text" class="form-input" id="mmg-email" placeholder="e.g. ministry@stroseanthem.com" />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Link (optional)</label>
+              <input type="text" class="form-input" id="mmg-link" placeholder="https://..." />
+            </div>
+            <button class="btn btn-primary" onclick="saveManageMinistry()">Save Changes</button>
+          </div>
+        </div>
+        <div class="card" style="margin-top:16px;">
+          <div class="card-title">✝️ Post to Members</div>
+          <div class="info-box">Post a message to this ministry's members in the app. Members who have opted in will receive a push notification.</div>
+          <div class="form-group">
+            <label class="form-label">Posted By <span style="color:#8B2635">*</span></label>
+            <input type="text" class="form-input" id="mmg-postedby" placeholder="Your name" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Message <span style="color:#8B2635">*</span></label>
+            <textarea class="form-input" id="mmg-body" rows="5" placeholder="Your message to members..."></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Expires</label>
+            <div style="display:flex;gap:8px;flex-wrap:wrap;">
+              <button class="btn btn-outline btn-sm mmg-expiry active-expiry" onclick="setManageExpiry(this,'3d')">3 Days</button>
+              <button class="btn btn-outline btn-sm mmg-expiry" onclick="setManageExpiry(this,'7d')">7 Days</button>
+              <button class="btn btn-outline btn-sm mmg-expiry" onclick="setManageExpiry(this,'30d')">30 Days</button>
+            </div>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-primary" onclick="postManageMinistry()">Post to App</button>
+            <button class="btn btn-outline" onclick="emailManageMinistry()">📧 Email Members</button>
+          </div>
+          <div class="post-success" id="mmg-success">✓ Message posted.</div>
+        </div>
+        <div class="card" style="margin-top:16px;">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
+            <div class="card-title" style="margin:0;">Current Post</div>
+            <button class="btn btn-outline btn-sm" onclick="loadManageCurrentPost()">Refresh</button>
+          </div>
+          <div id="mmg-current-post"><div style="color:var(--dusty-rose);font-size:14px;">Loading...</div></div>
+        </div>
+        <div class="card" style="margin-top:16px;">
+          <div class="card-title">📬 Email Members</div>
+          <div class="info-box">Opens Gmail with your members in BCC. Review and send — replies come back to you only.</div>
+          <div class="form-group">
+            <label class="form-label">Subject</label>
+            <input type="text" class="form-input" id="mmg-subject" placeholder="e.g. Meeting This Friday" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Message</label>
+            <textarea class="form-input" id="mmg-email-body" rows="5" placeholder="Your message..."></textarea>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-outline" onclick="emailManageMinistry()">📧 Open in Gmail</button>
+          </div>
+        </div>
+        <div class="card" style="margin-top:16px;">
+          <div class="card-title">👥 Members</div>
+          <div class="info-box">Members who have joined the app and selected this ministry. Select members to include in your email BCC.</div>
+          <div style="display:flex;gap:8px;margin-bottom:12px;flex-wrap:wrap;">
+            <button class="btn btn-primary btn-sm" onclick="loadManageMembers()">🔄 Load Members</button>
+            <button class="btn btn-outline btn-sm" onclick="selectAllManage()">Select All</button>
+            <button class="btn btn-outline btn-sm" onclick="deselectAllManage()">Deselect All</button>
+            <button class="btn btn-outline btn-sm" onclick="emailSelectedManage()">📧 Email Selected</button>
+          </div>
+          <div id="mmg-members-list" style="max-height:500px;overflow-y:auto;border:1px solid var(--linen);border-radius:8px;padding:8px;">
+            <div style="color:var(--dusty-rose);font-size:13px;padding:8px;">Click Load Members to see this ministry's team.</div>
+          </div>
+          <div style="margin-top:10px;font-size:12px;color:var(--dusty-rose);" id="mmg-member-count"></div>
         </div>
       </div>
 
@@ -3066,6 +3170,7 @@
       MINISTRY_NAME_MAP = newMap;
       ministryRegistry = list;
       renderOnboardMinistrySelect();
+      renderMinistriesNavList();
     } catch (e) { /* keep fallback defaults */ }
   }
   loadMinistryRegistry();
@@ -5176,6 +5281,195 @@
   function emailSelectedMens() {
     const myEmail = (currentClaims && currentClaims.email) || '';
     const checked = Array.from(document.querySelectorAll('.mens-check:checked')).map(c => c.dataset.email).filter(Boolean);
+    if (checked.length === 0) { showToast('No members selected.', 'error'); return; }
+    const url = 'https://mail.google.com/mail/?view=cm&fs=1&to=' + encodeURIComponent(myEmail) + '&bcc=' + encodeURIComponent(checked.join(','));
+    window.open(url, '_blank');
+  }
+
+  // --- GENERIC MANAGE MINISTRY (works for any ministry in the registry
+  // except mens/music, which keep their dedicated bespoke pages above).
+  // Every future ministry gets full portal access automatically the moment
+  // it exists in the ministries Firestore collection -- no new code needed. ---
+  let currentManagedMinistryId = '';
+  let currentManagedMinistryName = '';
+  let mmgExpiry = '3d';
+
+  function openMinistry(id, el) {
+    const m = ministryRegistry.find(function(x){ return x.id === id; });
+    const name = m ? m.name : id;
+    currentManagedMinistryId = id;
+    currentManagedMinistryName = name;
+    showPage('manage-ministry', el);
+    document.getElementById('page-title').textContent = name;
+    var mpt = document.getElementById('mobile-page-title'); if (mpt) mpt.textContent = name;
+    var heading = document.getElementById('mmg-heading-name'); if (heading) heading.textContent = name;
+    document.getElementById('mmg-form').style.display = 'none';
+    document.getElementById('mmg-loading').style.display = 'block';
+    document.getElementById('mmg-loading').textContent = 'Loading...';
+    loadManageMinistry(id);
+    loadManageCurrentPost(id);
+  }
+
+  function renderMinistriesNavList() {
+    const container = document.getElementById('ministries-nav-list');
+    if (!container) return;
+    const skip = ['mens', 'music'];
+    const items = ministryRegistry.filter(function(m) { return skip.indexOf(m.id) === -1; });
+    container.innerHTML = items.map(function(m) {
+      return '<div class="nav-item staff-only" onclick="openMinistry(\'' + m.id + '\', this)">' + escHtml(m.name) + '</div>';
+    }).join('');
+  }
+
+  async function loadManageMinistry(id) {
+    try {
+      const res = await fs_get_doc('ministries/' + id);
+      document.getElementById('mmg-schedule').value = gf(res, 'schedule') || '';
+      document.getElementById('mmg-location').value = gf(res, 'location') || '';
+      document.getElementById('mmg-description').value = gf(res, 'description') || '';
+      document.getElementById('mmg-contact').value = gf(res, 'contact') || '';
+      document.getElementById('mmg-phone').value = gf(res, 'phone') || '';
+      document.getElementById('mmg-email').value = gf(res, 'email') || '';
+      document.getElementById('mmg-link').value = gf(res, 'link') || '';
+      document.getElementById('mmg-loading').style.display = 'none';
+      document.getElementById('mmg-form').style.display = 'block';
+    } catch(e) {
+      document.getElementById('mmg-loading').textContent = 'Error loading ministry data.';
+    }
+  }
+  async function saveManageMinistry() {
+    const id = currentManagedMinistryId;
+    if (!id) return;
+    const fields = {
+      schedule: {stringValue: document.getElementById('mmg-schedule').value.trim()},
+      location: {stringValue: document.getElementById('mmg-location').value.trim()},
+      description: {stringValue: document.getElementById('mmg-description').value.trim()},
+      contact: {stringValue: document.getElementById('mmg-contact').value.trim()},
+      phone: {stringValue: document.getElementById('mmg-phone').value.trim()},
+      email: {stringValue: document.getElementById('mmg-email').value.trim()},
+      link: {stringValue: document.getElementById('mmg-link').value.trim()},
+    };
+    try {
+      await fs_patch('ministries/' + id, fields);
+      showToast('Ministry info updated!', 'success');
+    } catch(e) {
+      showToast('Error saving changes.', 'error');
+    }
+  }
+  function setManageExpiry(el, val) {
+    mmgExpiry = val;
+    document.querySelectorAll('.mmg-expiry').forEach(function(b){ b.classList.remove('active-expiry'); });
+    el.classList.add('active-expiry');
+  }
+  async function postManageMinistry() {
+    const id = currentManagedMinistryId;
+    if (!id) return;
+    const postedBy = document.getElementById('mmg-postedby').value.trim();
+    const body = document.getElementById('mmg-body').value.trim();
+    if (!postedBy) { showToast('Please enter your name.', 'error'); return; }
+    if (!body) { showToast('Please enter a message.', 'error'); return; }
+    try {
+      await fs_patch('currentPosts/' + id, {
+        message: {stringValue: body},
+        ministry: {stringValue: currentManagedMinistryName},
+        postedBy: {stringValue: postedBy},
+        expiresAt: {stringValue: getExpiryDate(mmgExpiry)},
+        createdAt: {stringValue: new Date().toISOString()}
+      });
+      document.getElementById('mmg-success').style.display = 'block';
+      setTimeout(function(){ document.getElementById('mmg-success').style.display='none'; },3000);
+      document.getElementById('mmg-body').value = '';
+      showToast('Message posted!', 'success');
+      loadManageCurrentPost(id);
+    } catch(e) { showToast('Error posting.', 'error'); }
+  }
+  async function loadManageCurrentPost(idArg) {
+    const id = idArg || currentManagedMinistryId;
+    const el = document.getElementById('mmg-current-post');
+    if (!el || !id) return;
+    el.innerHTML = '<div style="color:var(--dusty-rose);font-size:14px;">Loading...</div>';
+    try {
+      const res = await fs_get_doc('currentPosts/' + id);
+      if (!res.fields) {
+        el.innerHTML = '<div style="color:var(--dusty-rose);font-size:14px;">No active post.</div>';
+        return;
+      }
+      const now = new Date();
+      const message = gf(res,'message');
+      const postedBy = gf(res,'postedBy');
+      const expiresAt = gf(res,'expiresAt');
+      const createdAt = gf(res,'createdAt');
+      const expired = expiresAt && new Date(expiresAt) < now;
+      const dateLabel = createdAt ? new Date(createdAt).toLocaleDateString('en-US',{month:'short',day:'numeric'}) : '';
+      const expiryLabel = expired ? 'Expired' : (expiresAt ? 'Expires ' + new Date(expiresAt).toLocaleDateString('en-US',{month:'short',day:'numeric'}) : '');
+      el.innerHTML = '<div style="padding:12px 0;border-bottom:1px solid var(--linen);">' +
+        '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;">' +
+        '<div style="flex:1;">' +
+        '<div style="font-size:14px;color:var(--soil);margin-bottom:4px;">' + message + '</div>' +
+        '<div style="font-size:12px;color:var(--dusty-rose);">' + postedBy + (dateLabel ? ' \u00b7 ' + dateLabel : '') + (expiryLabel ? ' \u00b7 ' + expiryLabel : '') + (expired ? ' (hidden from app)' : '') + '</div>' +
+        '</div>' +
+        '<button class="btn btn-danger btn-sm" onclick="clearManageCurrentPost()">Clear</button>' +
+        '</div></div>';
+    } catch(e) { el.innerHTML = '<div style="color:var(--danger);">Error loading.</div>'; }
+  }
+  async function clearManageCurrentPost() {
+    const id = currentManagedMinistryId;
+    if (!id) return;
+    if (!confirm('Clear this post? It will no longer show in the app.')) return;
+    try {
+      await fs_delete('currentPosts/' + id);
+      showToast('Post cleared.', 'success');
+      loadManageCurrentPost(id);
+    } catch(e) { showToast('Error clearing post.', 'error'); }
+  }
+  function emailManageMinistry() {
+    const myEmail = (currentClaims && currentClaims.email) || '';
+    const subject = document.getElementById('mmg-subject')?.value.trim() || document.getElementById('mmg-body')?.value.trim().substring(0,50) || currentManagedMinistryName;
+    const body = document.getElementById('mmg-email-body')?.value.trim() || document.getElementById('mmg-body')?.value.trim() || '';
+    const checked = Array.from(document.querySelectorAll('.mmg-check:checked')).map(function(c){ return c.dataset.email; }).filter(Boolean);
+    const bcc = checked.length > 0 ? checked.join(',') : myEmail;
+    const url = 'https://mail.google.com/mail/?view=cm&fs=1&to=' + encodeURIComponent(myEmail) + '&bcc=' + encodeURIComponent(bcc) + '&su=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+    window.open(url, '_blank');
+  }
+  let mmgMembers = [];
+  async function loadManageMembers() {
+    const id = currentManagedMinistryId;
+    const name = currentManagedMinistryName;
+    if (!id) return;
+    document.getElementById('mmg-members-list').innerHTML = '<div style="color:var(--dusty-rose);font-size:13px;padding:8px;">Loading...</div>';
+    try {
+      const res = await fs_get('parishFamily');
+      mmgMembers = (res.documents||[]).filter(function(d){
+        const approved = d.fields?.approved?.booleanValue === true;
+        const ministries = d.fields?.ministries?.stringValue || '';
+        return approved && ministries.includes(name);
+      }).sort(function(a,b){ return (a.fields?.name?.stringValue||'').localeCompare(b.fields?.name?.stringValue||''); });
+      renderManageMembers();
+      document.getElementById('mmg-member-count').textContent = mmgMembers.length + ' members found';
+    } catch(e) { showToast('Error loading members.', 'error'); }
+  }
+  function renderManageMembers() {
+    const list = document.getElementById('mmg-members-list');
+    if (mmgMembers.length === 0) { list.innerHTML = '<div style="color:var(--dusty-rose);font-size:13px;padding:8px;">No members found in app directory.</div>'; return; }
+    list.innerHTML = mmgMembers.map(function(d){
+      const name = d.fields?.name?.stringValue || '';
+      const email = d.fields?.email?.stringValue || '';
+      const showEmail = d.fields?.showEmail?.booleanValue === true;
+      return '<label style="display:flex;align-items:center;gap:10px;padding:8px;border-bottom:1px solid var(--linen);cursor:pointer;">' +
+        '<input type="checkbox" class="mmg-check" data-email="' + email + '" data-show="' + showEmail + '" ' + (showEmail && email ? '' : 'disabled') + ' style="width:16px;height:16px;accent-color:var(--burgundy);">' +
+        '<span style="flex:1;font-size:14px;color:var(--soil);">' + name + '</span>' +
+        '<span style="font-size:12px;color:var(--dusty-rose);">' + (showEmail && email ? email : '(no email shared)') + '</span>' +
+        '</label>';
+    }).join('');
+  }
+  function selectAllManage() {
+    document.querySelectorAll('.mmg-check:not(:disabled)').forEach(function(c){ c.checked = true; });
+  }
+  function deselectAllManage() {
+    document.querySelectorAll('.mmg-check').forEach(function(c){ c.checked = false; });
+  }
+  function emailSelectedManage() {
+    const myEmail = (currentClaims && currentClaims.email) || '';
+    const checked = Array.from(document.querySelectorAll('.mmg-check:checked')).map(function(c){ return c.dataset.email; }).filter(Boolean);
     if (checked.length === 0) { showToast('No members selected.', 'error'); return; }
     const url = 'https://mail.google.com/mail/?view=cm&fs=1&to=' + encodeURIComponent(myEmail) + '&bcc=' + encodeURIComponent(checked.join(','));
     window.open(url, '_blank');
