@@ -6453,6 +6453,8 @@
       await fs_post('eventRequests', {
         title: {stringValue: title},
         date: {stringValue: date},
+        startDateRaw: {stringValue: startDateRaw},
+        endDateRaw: {stringValue: endDateRaw || startDateRaw},
         time: {stringValue: time},
         location: {stringValue: eventLocation},
         description: {stringValue: description},
@@ -6523,6 +6525,17 @@
       var data = await fs_get_doc('eventRequests/' + id);
       console.log('eventRequest data:', JSON.stringify(data));
       var f = data.fields;
+      var startRaw = f.startDateRaw && f.startDateRaw.stringValue;
+      var endRaw = f.endDateRaw && f.endDateRaw.stringValue;
+      var startAtDate = startRaw ? new Date(startRaw + 'T12:00:00') : new Date();
+      var expiresAtDate;
+      if (endRaw) {
+        expiresAtDate = new Date(endRaw + 'T23:59:59');
+      } else if (startRaw) {
+        expiresAtDate = new Date(startRaw + 'T23:59:59');
+      } else {
+        expiresAtDate = new Date(Date.now() + 90*24*60*60*1000);
+      }
       var result = await fs_post('events', {
         title: f.title || {stringValue:''},
         date: f.date || {stringValue:''},
@@ -6534,8 +6547,8 @@
         postedBy: {stringValue: f.submittedBy && f.submittedBy.stringValue ? f.submittedBy.stringValue : 'Ministry Leader'},
         source: {stringValue: 'ministry'},
         createdAt: {stringValue: new Date().toISOString()},
-        startAt: {stringValue: new Date().toISOString()},
-        expiresAt: {stringValue: new Date(Date.now() + 90*24*60*60*1000).toISOString()}
+        startAt: {stringValue: startAtDate.toISOString()},
+        expiresAt: {stringValue: expiresAtDate.toISOString()}
       });
       console.log('fs_post events result:', JSON.stringify(result));
       await fs_patch('eventRequests/' + id, {status: {stringValue: 'approved'}});
