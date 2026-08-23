@@ -85,6 +85,12 @@
   .form-textarea.large { min-height: 280px; }
   .form-textarea.bulk { min-height: 200px; font-family: monospace; font-size: 13px; }
 
+  .textarea-toolbar { display: flex; gap: 6px; margin-bottom: 8px; }
+  .toolbar-btn { width: 34px; height: 30px; border: 1.5px solid var(--linen); border-radius: 6px; background: var(--sand); color: var(--soil); font-size: 15px; cursor: pointer; transition: all 0.15s; display: flex; align-items: center; justify-content: center; }
+  .toolbar-btn:hover { border-color: var(--burgundy); color: var(--burgundy); background: var(--white); }
+  .toolbar-btn.tb-bold { font-family: 'Cinzel', serif; font-weight: 700; }
+  .toolbar-btn.tb-italic { font-style: italic; }
+
   .expiry-options { display: flex; gap: 8px; flex-wrap: wrap; }
   .expiry-chip { padding: 8px 16px; border: 1.5px solid var(--linen); border-radius: 20px; font-family: 'Faustina', serif; font-size: 14px; color: var(--soil); background: var(--sand); cursor: pointer; transition: all 0.15s; }
   .expiry-chip:hover { border-color: var(--burgundy); color: var(--burgundy); }
@@ -717,6 +723,10 @@
           </div>
           <div class="form-group">
             <label class="form-label">Full Reflection Text *</label>
+            <div class="textarea-toolbar">
+              <button type="button" class="toolbar-btn tb-bold" title="Bold" onclick="wrapSelection('ref-body','**')">B</button>
+              <button type="button" class="toolbar-btn tb-italic" title="Italic" onclick="wrapSelection('ref-body','*')">I</button>
+            </div>
             <textarea class="form-textarea large" id="ref-body" placeholder="Paste the full text of Fr. Bing's reflection here..."></textarea>
           </div>
           <div class="btn-row">
@@ -1004,6 +1014,10 @@
           </div>
           <div class="form-group">
             <label class="form-label">Welcome Message Body <span style="color:#8B2635">*</span></label>
+            <div class="textarea-toolbar">
+              <button type="button" class="toolbar-btn tb-bold" title="Bold" onclick="wrapSelection('welcome-body','**')">B</button>
+              <button type="button" class="toolbar-btn tb-italic" title="Italic" onclick="wrapSelection('welcome-body','*')">I</button>
+            </div>
             <textarea class="form-input" id="welcome-body" rows="12" placeholder="Paste the welcome message here..." style="resize:vertical;"></textarea>
           </div>
           <div class="btn-row">
@@ -2182,6 +2196,33 @@
   function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
   function docId(doc) { return doc.name.split('/').pop(); }
 
+  // Wraps (or, on a second click, unwraps) the current selection in a textarea with a markdown-style
+  // marker -- '**' for bold, '*' for italic -- matching the convention the Word-doc importer already
+  // writes for bold (see importWelcomeDocx). No selection just drops a marker pair with the cursor between them.
+  function wrapSelection(textareaId, marker) {
+    const ta = document.getElementById(textareaId);
+    if (!ta) return;
+    const start = ta.selectionStart, end = ta.selectionEnd;
+    const val = ta.value;
+    const len = marker.length;
+    const before = val.slice(Math.max(0, start - len), start);
+    const after = val.slice(end, end + len);
+    let newVal, newStart, newEnd;
+    if (start !== end && before === marker && after === marker) {
+      newVal = val.slice(0, start - len) + val.slice(start, end) + val.slice(end + len);
+      newStart = start - len; newEnd = end - len;
+    } else if (start === end) {
+      newVal = val.slice(0, start) + marker + marker + val.slice(end);
+      newStart = newEnd = start + len;
+    } else {
+      newVal = val.slice(0, start) + marker + val.slice(start, end) + marker + val.slice(end);
+      newStart = start + len; newEnd = end + len;
+    }
+    ta.value = newVal;
+    ta.focus();
+    ta.setSelectionRange(newStart, newEnd);
+  }
+
 
   // RECURRING EVENTS
   function updateRecurringPreview() {
@@ -3120,6 +3161,10 @@
         '<div style="font-family:Cinzel,serif;font-size:13px;color:var(--burgundy);margin-bottom:10px;">' + label + '</div>' +
         '<input type="hidden" id="daily-date-' + i + '" value="' + dateStr + '" />' +
         '<input type="text" class="form-input" id="daily-title-' + i + '" placeholder="Title (optional)" style="margin-bottom:8px;" />' +
+        '<div class="textarea-toolbar">' +
+          '<button type="button" class="toolbar-btn tb-bold" title="Bold" onclick="wrapSelection(\'daily-body-' + i + '\',\'**\')">B</button>' +
+          '<button type="button" class="toolbar-btn tb-italic" title="Italic" onclick="wrapSelection(\'daily-body-' + i + '\',\'*\')">I</button>' +
+        '</div>' +
         '<textarea class="form-textarea" id="daily-body-' + i + '" placeholder="Paste reflection text here..." style="min-height:100px;"></textarea>' +
         '<input type="text" class="form-input" id="daily-music-' + i + '" placeholder="YouTube music link (optional) - e.g. https://youtu.be/XXXXX" style="margin-top:8px;" />' +
         '</div>';
