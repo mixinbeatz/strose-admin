@@ -313,6 +313,7 @@
       <div class="nav-group collapsed">
         <div class="nav-item staff-only cheyanne-only" onclick="showPage('approvals',this)"><span class="nav-icon">👥</span> Parish Family Approvals <span class="nav-badge" id="approval-count">0</span></div>
         <div class="nav-item staff-only" onclick="showPage('event-requests',this)"><span class="nav-icon">📋</span> Event Requests <span class="nav-badge" id="event-req-count" style="display:none">0</span></div>
+        <div class="nav-item staff-only" onclick="showPage('contact-requests',this);loadContactRequests()"><span class="nav-icon">✉️</span> Contact Requests <span class="nav-badge" id="contact-req-count" style="display:none">0</span></div>
         <div class="nav-item staff-only" onclick="showPage('family-registrations',this);loadFamilyRegistrations();loadReviewedFamilies()"><span class="nav-icon">📝</span> Family Registrations <span class="nav-badge" id="familyreg-count" style="display:none">0</span></div>
         <div class="nav-item staff-only" onclick="showPage('directory',this)"><span class="nav-icon">📋</span> Parish Family Directory</div>
       </div>
@@ -1910,6 +1911,13 @@
           <div id="event-requests-list"><p style="opacity:0.5;font-size:14px">Loading...</p></div>
         </div>
       </div>
+      <div class="page" id="page-contact-requests">
+        <div class="card">
+          <div class="card-title">✉️ Contact Requests</div>
+          <div class="info-box">Submitted from the app's Contact Us form. Staff get a push notification the moment one comes in; mark a request handled once you've followed up.</div>
+          <div id="contact-requests-list"><p style="opacity:0.5;font-size:14px">Loading...</p></div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -2135,7 +2143,7 @@
     if(el) el.classList.add('active');
     window.scrollTo(0,0);
     closeSidebar();
-    const titles = {dashboard:'Dashboard',events:'Events',announcement:'Post Announcement',fastblast:'Fast Blast',reflection:'Weekly Reflection','parish-development':'Parish Development',daily:'Daily Reflection',songsheet:'Mass Songsheet',welcome:'Welcome Message','hero-media':'Hero Section','welcome-media':'Welcome Section',gallery:'Homepage Gallery','around-parish':'Around the Parish','parish-dev-media':'Parish Development','mass-schedule':'Mass Schedule',councils:'Pastoral & Finance Council','music-ministry':'Music Ministry','music-members':'Music Ministry Members',approvals:'Parish Family Approvals',partners:'Partner Requests',directory:'Parish Family Directory','ministry-post':'Post to Members','cda-members':'My Members','prayer-chain':'Prayer Chain','prayer-submissions':'Prayer Submissions','submit-event':'Submit Event','event-requests':'Event Requests',intention:'Mass Intentions','my-ministry':'My Ministry','onboard-leader':'Onboard Ministry Leader','leader-tracker':'Ministry Leaders'};
+    const titles = {dashboard:'Dashboard',events:'Events',announcement:'Post Announcement',fastblast:'Fast Blast',reflection:'Weekly Reflection','parish-development':'Parish Development',daily:'Daily Reflection',songsheet:'Mass Songsheet',welcome:'Welcome Message','hero-media':'Hero Section','welcome-media':'Welcome Section',gallery:'Homepage Gallery','around-parish':'Around the Parish','parish-dev-media':'Parish Development','mass-schedule':'Mass Schedule',councils:'Pastoral & Finance Council','music-ministry':'Music Ministry','music-members':'Music Ministry Members',approvals:'Parish Family Approvals',partners:'Partner Requests',directory:'Parish Family Directory','ministry-post':'Post to Members','cda-members':'My Members','prayer-chain':'Prayer Chain','prayer-submissions':'Prayer Submissions','submit-event':'Submit Event','event-requests':'Event Requests','contact-requests':'Contact Requests',intention:'Mass Intentions','my-ministry':'My Ministry','onboard-leader':'Onboard Ministry Leader','leader-tracker':'Ministry Leaders'};
     document.getElementById('page-title').textContent = titles[id]||id;
     var mpt = document.getElementById('mobile-page-title'); if(mpt) mpt.textContent = titles[id]||id;
     if(id==='approvals') loadApprovals();
@@ -2703,7 +2711,7 @@
 
   async function loadDashboard() {
     try {
-      const [fam,parts,ref,prayerSubs,eventReqs,dailyRef,familyRegs] = await Promise.all([fs_get('parishFamily'),fs_get('partnerRequests'),fs_get('weeklyReflection'),fs_get('prayerSubmissions'),fs_get('eventRequests'),fs_get('dailyReflection'),fs_get('familyRegistrations')]);
+      const [fam,parts,ref,prayerSubs,eventReqs,dailyRef,familyRegs,contactReqs] = await Promise.all([fs_get('parishFamily'),fs_get('partnerRequests'),fs_get('weeklyReflection'),fs_get('prayerSubmissions'),fs_get('eventRequests'),fs_get('dailyReflection'),fs_get('familyRegistrations'),fs_get('contactRequests')]);
       const pendingPrayers = (prayerSubs.documents||[]).filter(d=>gf(d,'status')==='pending');
       const prayerBadge = document.getElementById('prayer-sub-count');
       if (prayerBadge) { prayerBadge.textContent = pendingPrayers.length; prayerBadge.style.display = pendingPrayers.length > 0 ? '' : 'none'; }
@@ -2716,6 +2724,9 @@
       const pendingEventReqs = (eventReqs.documents||[]).filter(d=>gf(d,'status')==='pending');
       const eventReqBadge = document.getElementById('event-req-count');
       if (eventReqBadge) { eventReqBadge.textContent = pendingEventReqs.length; eventReqBadge.style.display = pendingEventReqs.length > 0 ? '' : 'none'; }
+      const pendingContactReqs = (contactReqs.documents||[]).filter(d=>gf(d,'status')==='pending');
+      const contactReqBadge = document.getElementById('contact-req-count');
+      if (contactReqBadge) { contactReqBadge.textContent = pendingContactReqs.length; contactReqBadge.style.display = pendingContactReqs.length > 0 ? '' : 'none'; }
       document.getElementById('stat-members').textContent = approved.length;
       document.getElementById('stat-pending').textContent = pending.length;
       document.getElementById('stat-partners').textContent = preqs.length;
@@ -5886,6 +5897,44 @@
       showToast('Dismissed.', 'success');
       loadPrayerSubmissions();
     } catch(e) { showToast('Error dismissing.', 'error'); }
+  }
+
+  async function loadContactRequests() {
+    const list = document.getElementById('contact-requests-list');
+    list.innerHTML = '<div style="color:var(--dusty-rose);font-size:14px;">Loading...</div>';
+    try {
+      const res = await fs_get('contactRequests');
+      const docs = (res.documents||[]).filter(d => gf(d,'status') === 'pending')
+        .sort((a,b) => gf(b,'createdAt').localeCompare(gf(a,'createdAt')));
+      const badge = document.getElementById('contact-req-count');
+      if (docs.length > 0) { badge.style.display = ''; badge.textContent = docs.length; }
+      else { badge.style.display = 'none'; }
+      if (docs.length === 0) { list.innerHTML = '<div style="color:var(--dusty-rose);font-size:14px;padding:12px;">No pending contact requests.</div>'; return; }
+      list.innerHTML = docs.map(doc => {
+        const id = docId(doc);
+        const name = gf(doc, 'name') || 'Anonymous';
+        const contact = gf(doc, 'contact');
+        const subject = gf(doc, 'subject');
+        const message = gf(doc, 'message');
+        const date = new Date(gf(doc,'createdAt')||'').toLocaleDateString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+        return '<div id="creq-' + id + '" style="padding:16px;border-bottom:1px solid var(--linen);">' +
+          '<div style="font-family:\'Cinzel\',serif;font-size:13px;color:var(--burgundy);margin-bottom:2px;">' + escHtml(name) + (subject ? ' — ' + escHtml(subject) : '') + '</div>' +
+          '<div style="font-size:11px;color:var(--dusty-rose);margin-bottom:2px;">' + escHtml(contact) + '</div>' +
+          '<div style="font-size:11px;color:var(--dusty-rose);margin-bottom:10px;">' + date + '</div>' +
+          '<div style="font-size:13px;color:var(--soil);line-height:1.6;margin-bottom:12px;padding:8px;background:var(--sand);border-radius:6px;">' + escHtml(message) + '</div>' +
+          '<button class="btn btn-primary btn-sm" onclick="markContactHandled(\'' + id + '\')">Mark Handled</button>' +
+        '</div>';
+      }).join('');
+    } catch(e) { list.innerHTML = '<div style="color:var(--dusty-rose);font-size:14px;">Error loading.</div>'; }
+  }
+
+  async function markContactHandled(id) {
+    try {
+      await fs_patch('contactRequests/' + id, {status: {stringValue: 'handled'}});
+      document.getElementById('creq-' + id)?.remove();
+      showToast('Marked handled.', 'success');
+      loadContactRequests();
+    } catch(e) { showToast('Error updating.', 'error'); }
   }
 
   async function saveWelcomeMessage() {
