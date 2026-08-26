@@ -371,6 +371,7 @@
         <div class="nav-item staff-only" onclick="showPage('around-parish',this);loadAroundParish()"><span class="nav-icon">📸</span> Around the Parish</div>
         <div class="nav-item staff-only" onclick="showPage('parish-dev-media',this);loadParishDevMedia()"><span class="nav-icon">🏗️</span> Parish Development</div>
         <div class="nav-item staff-only" onclick="showPage('mass-schedule',this);loadMassSchedule()"><span class="nav-icon">⏰</span> Mass Schedule</div>
+        <div class="nav-item staff-only" onclick="showPage('councils',this);loadCouncils()"><span class="nav-icon">⛪</span> Pastoral &amp; Finance Council</div>
       </div>
       <div class="nav-section-toggle collapsed owner-admin-only" style="display:none" onclick="toggleNavSection(this)"><span>Staff &amp; Access</span><span class="nav-chevron">▾</span></div>
       <div class="nav-group collapsed">
@@ -1171,6 +1172,38 @@
           <button class="btn btn-primary" onclick="saveMassSchedule()">Save Mass Schedule</button>
           <button class="btn btn-outline" onclick="loadMassSchedule()" style="margin-left:8px;">Reload Current</button>
           <span id="mass-schedule-success" style="display:none;color:var(--success);margin-left:12px;">Saved!</span>
+        </div>
+      </div>
+      <div class="page" id="page-councils">
+        <div class="card">
+          <div class="card-title">⛪ Pastoral &amp; Finance Council</div>
+          <div class="info-box">Public-read content shown in the app's Parish tab (Council section). Each council's mission, roster, and meeting schedule are edited separately below.</div>
+        </div>
+        <div class="card">
+          <div class="card-title">Pastoral Council</div>
+          <div class="form-group"><label class="form-label">Mission</label><textarea class="form-input" id="council-pastoral-mission" rows="3"></textarea></div>
+          <div class="form-group"><label class="form-label">Meeting Schedule</label><input type="text" class="form-input" id="council-pastoral-schedule" placeholder="e.g. Second Tuesday of the month, 6:30 PM" /></div>
+          <div class="form-group">
+            <label class="form-label">Members</label>
+            <div id="council-pastoral-members"></div>
+            <button class="btn btn-outline btn-sm" onclick="addCouncilMemberRow('pastoral')" style="margin-top:8px;">+ Add Member</button>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-title">Finance Council</div>
+          <div class="form-group"><label class="form-label">Mission</label><textarea class="form-input" id="council-finance-mission" rows="3"></textarea></div>
+          <div class="form-group"><label class="form-label">Meeting Schedule</label><input type="text" class="form-input" id="council-finance-schedule" placeholder="e.g. Third Monday of the month, 6:00 PM" /></div>
+          <div class="form-group">
+            <label class="form-label">Members</label>
+            <div id="council-finance-members"></div>
+            <button class="btn btn-outline btn-sm" onclick="addCouncilMemberRow('finance')" style="margin-top:8px;">+ Add Member</button>
+          </div>
+        </div>
+        <div class="card">
+          <button class="btn btn-primary" onclick="saveCouncil('pastoral')">Save Pastoral Council</button>
+          <button class="btn btn-primary" onclick="saveCouncil('finance')" style="margin-left:8px;">Save Finance Council</button>
+          <button class="btn btn-outline" onclick="loadCouncils()" style="margin-left:8px;">Reload Current</button>
+          <span id="councils-success" style="display:none;color:var(--success);margin-left:12px;">Saved!</span>
         </div>
       </div>
       <!-- ONBOARD MINISTRY LEADER -->
@@ -2102,7 +2135,7 @@
     if(el) el.classList.add('active');
     window.scrollTo(0,0);
     closeSidebar();
-    const titles = {dashboard:'Dashboard',events:'Events',announcement:'Post Announcement',fastblast:'Fast Blast',reflection:'Weekly Reflection','parish-development':'Parish Development',daily:'Daily Reflection',songsheet:'Mass Songsheet',welcome:'Welcome Message','hero-media':'Hero Section','welcome-media':'Welcome Section',gallery:'Homepage Gallery','around-parish':'Around the Parish','parish-dev-media':'Parish Development','mass-schedule':'Mass Schedule','music-ministry':'Music Ministry','music-members':'Music Ministry Members',approvals:'Parish Family Approvals',partners:'Partner Requests',directory:'Parish Family Directory','ministry-post':'Post to Members','cda-members':'My Members','prayer-chain':'Prayer Chain','prayer-submissions':'Prayer Submissions','submit-event':'Submit Event','event-requests':'Event Requests',intention:'Mass Intentions','my-ministry':'My Ministry','onboard-leader':'Onboard Ministry Leader','leader-tracker':'Ministry Leaders'};
+    const titles = {dashboard:'Dashboard',events:'Events',announcement:'Post Announcement',fastblast:'Fast Blast',reflection:'Weekly Reflection','parish-development':'Parish Development',daily:'Daily Reflection',songsheet:'Mass Songsheet',welcome:'Welcome Message','hero-media':'Hero Section','welcome-media':'Welcome Section',gallery:'Homepage Gallery','around-parish':'Around the Parish','parish-dev-media':'Parish Development','mass-schedule':'Mass Schedule',councils:'Pastoral & Finance Council','music-ministry':'Music Ministry','music-members':'Music Ministry Members',approvals:'Parish Family Approvals',partners:'Partner Requests',directory:'Parish Family Directory','ministry-post':'Post to Members','cda-members':'My Members','prayer-chain':'Prayer Chain','prayer-submissions':'Prayer Submissions','submit-event':'Submit Event','event-requests':'Event Requests',intention:'Mass Intentions','my-ministry':'My Ministry','onboard-leader':'Onboard Ministry Leader','leader-tracker':'Ministry Leaders'};
     document.getElementById('page-title').textContent = titles[id]||id;
     var mpt = document.getElementById('mobile-page-title'); if(mpt) mpt.textContent = titles[id]||id;
     if(id==='approvals') loadApprovals();
@@ -4579,6 +4612,59 @@
       document.getElementById('mass-schedule-success').style.display = 'inline';
       setTimeout(() => document.getElementById('mass-schedule-success').style.display = 'none', 3000);
       showToast('Mass schedule saved!', 'success');
+    } catch(e) { showToast('Error saving.', 'error'); }
+  }
+  // ── PASTORAL & FINANCE COUNCIL ──
+  const councilMembers = { pastoral: [], finance: [] };
+  const COUNCIL_DOC_IDS = { pastoral: 'pastoralCouncil', finance: 'financeCouncil' };
+  function renderCouncilMemberRows(which) {
+    const container = document.getElementById('council-' + which + '-members');
+    container.innerHTML = councilMembers[which].map((m, i) =>
+      '<div style="display:flex;gap:8px;margin-bottom:6px;align-items:center;">' +
+        '<input type="text" class="form-input" style="flex:1;" placeholder="Name" value="' + escHtml(m.name) + '" oninput="councilMembers.' + which + '[' + i + '].name=this.value" />' +
+        '<input type="text" class="form-input" style="flex:1;" placeholder="Role" value="' + escHtml(m.role) + '" oninput="councilMembers.' + which + '[' + i + '].role=this.value" />' +
+        '<button class="btn btn-outline btn-sm" onclick="removeCouncilMemberRow(\'' + which + '\',' + i + ')">Remove</button>' +
+      '</div>'
+    ).join('') || '<div style="color:var(--dusty-rose);font-size:13px;">No members added yet.</div>';
+  }
+  function addCouncilMemberRow(which) {
+    councilMembers[which].push({ name: '', role: '' });
+    renderCouncilMemberRows(which);
+  }
+  function removeCouncilMemberRow(which, i) {
+    councilMembers[which].splice(i, 1);
+    renderCouncilMemberRows(which);
+  }
+  async function loadCouncils() {
+    for (const which of ['pastoral', 'finance']) {
+      try {
+        const res = await fs_get('siteContent/' + COUNCIL_DOC_IDS[which]);
+        document.getElementById('council-' + which + '-mission').value = gf(res, 'mission');
+        document.getElementById('council-' + which + '-schedule').value = gf(res, 'meetingSchedule');
+        councilMembers[which] = (res.fields?.members?.arrayValue?.values || []).map(v => ({
+          name: v.mapValue?.fields?.name?.stringValue || '',
+          role: v.mapValue?.fields?.role?.stringValue || '',
+        }));
+      } catch(e) {
+        councilMembers[which] = [];
+      }
+      renderCouncilMemberRows(which);
+    }
+  }
+  async function saveCouncil(which) {
+    const fields = {
+      mission: { stringValue: document.getElementById('council-' + which + '-mission').value.trim() },
+      meetingSchedule: { stringValue: document.getElementById('council-' + which + '-schedule').value.trim() },
+      members: { arrayValue: { values: councilMembers[which]
+        .filter(m => m.name.trim() || m.role.trim())
+        .map(m => ({ mapValue: { fields: { name: { stringValue: m.name.trim() }, role: { stringValue: m.role.trim() } } } })) } },
+      updatedAt: { stringValue: new Date().toISOString() },
+    };
+    try {
+      await fs_patch('siteContent/' + COUNCIL_DOC_IDS[which], fields);
+      document.getElementById('councils-success').style.display = 'inline';
+      setTimeout(() => document.getElementById('councils-success').style.display = 'none', 3000);
+      showToast((which === 'pastoral' ? 'Pastoral' : 'Finance') + ' Council saved!', 'success');
     } catch(e) { showToast('Error saving.', 'error'); }
   }
   function clearBulletinPaste() {
