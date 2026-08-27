@@ -4702,9 +4702,22 @@
     const list = councilMembers[which];
     container.innerHTML = list.map((m, i) =>
       '<div style="border:1px solid var(--linen);border-radius:8px;padding:12px;margin-bottom:10px;">' +
-        '<div style="display:flex;gap:8px;margin-bottom:8px;">' +
-          '<input type="text" class="form-input" style="flex:1;" placeholder="Name" value="' + escHtml(m.name) + '" oninput="councilMembers.' + which + '[' + i + '].name=this.value" />' +
-          '<input type="text" class="form-input" style="flex:1;" placeholder="Role" value="' + escHtml(m.role) + '" oninput="councilMembers.' + which + '[' + i + '].role=this.value" />' +
+        '<div style="display:flex;gap:12px;margin-bottom:8px;">' +
+          '<div class="drop-zone" style="width:60px;height:60px;border-radius:30px;background:var(--linen);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDropUpload(event, (f) => handleCouncilMemberPhotoUpload(\'' + which + '\',' + i + ',f))">' +
+            (m.photoUrl
+              ? '<img src="' + m.photoUrl + '" style="width:100%;height:100%;object-fit:cover;cursor:pointer;" onclick="openLightbox(\'' + m.photoUrl + '\')" />'
+              : '<span style="font-size:22px;opacity:0.5;">👤</span>') +
+          '</div>' +
+          '<div style="flex:1;display:flex;flex-direction:column;gap:8px;">' +
+            '<input type="text" class="form-input" placeholder="Name" value="' + escHtml(m.name) + '" oninput="councilMembers.' + which + '[' + i + '].name=this.value" />' +
+            '<input type="text" class="form-input" placeholder="Role" value="' + escHtml(m.role) + '" oninput="councilMembers.' + which + '[' + i + '].role=this.value" />' +
+          '</div>' +
+        '</div>' +
+        '<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">' +
+          '<label class="btn btn-outline btn-sm" style="cursor:pointer;">' + (m.photoUrl ? 'Replace Photo' : 'Add Photo') + ' (or drag &amp; drop onto thumbnail)' +
+            '<input type="file" accept="image/*" style="display:none;" onchange="handleCouncilMemberPhotoUpload(\'' + which + '\',' + i + ',this)" />' +
+          '</label>' +
+          (m.photoUrl ? '<button class="btn btn-outline btn-sm" onclick="removeCouncilMemberPhoto(\'' + which + '\',' + i + ')">Remove Photo</button>' : '') +
         '</div>' +
         '<textarea class="form-input" rows="5" placeholder="Bio (optional)" style="margin-bottom:8px;" oninput="councilMembers.' + which + '[' + i + '].bio=this.value">' + escHtml(m.bio) + '</textarea>' +
         '<div style="display:flex;gap:6px;justify-content:flex-end;">' +
@@ -4716,7 +4729,37 @@
     ).join('') || '<div style="color:var(--dusty-rose);font-size:13px;">No members added yet.</div>';
   }
   function addCouncilMemberRow(which, prefill) {
-    councilMembers[which].push({ name: (prefill && prefill.name) || '', role: '', bio: (prefill && prefill.bio) || '' });
+    councilMembers[which].push({ name: (prefill && prefill.name) || '', role: '', bio: (prefill && prefill.bio) || '', photoUrl: '' });
+    renderCouncilMemberRows(which);
+  }
+  // Uploads straight into the in-memory councilMembers array (same as every
+  // other field on this card) rather than fs_patch-ing immediately like the
+  // single-image pages (Hero/Welcome/Gallery) do -- a member card has
+  // several fields with one shared Save Members button, and immediately
+  // persisting on photo drop would also silently save whatever in-progress
+  // name/role/bio edits happen to be sitting in the other fields right now.
+  async function handleCouncilMemberPhotoUpload(which, i, input) {
+    const file = input.files[0];
+    if (!file) return;
+    try {
+      const base64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = e => resolve(e.target.result.split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      const url = await uploadDevFile(base64, file.name, 'councils/' + COUNCIL_DOC_IDS[which] + '/members', file.type);
+      councilMembers[which][i].photoUrl = url;
+      renderCouncilMemberRows(which);
+      showToast('Photo uploaded — click Save Members to keep it.', 'success');
+    } catch(e) { showToast('Upload failed.', 'error'); }
+  }
+  // Clears the field only -- doesn't delete the file from Storage. No
+  // pattern for that cleanup exists anywhere else in this portal today
+  // (checked), so an orphaned file is consistent with how every other
+  // photo swap here already works, not a regression.
+  function removeCouncilMemberPhoto(which, i) {
+    councilMembers[which][i].photoUrl = '';
     renderCouncilMemberRows(which);
   }
   function removeCouncilMemberRow(which, i) {
@@ -4770,6 +4813,7 @@
           name: v.mapValue?.fields?.name?.stringValue || '',
           role: v.mapValue?.fields?.role?.stringValue || '',
           bio: v.mapValue?.fields?.bio?.stringValue || '',
+          photoUrl: v.mapValue?.fields?.photoUrl?.stringValue || '',
           // Backward-compat: older entries saved before `order` existed
           // fall back to their position in the stored array.
           order: v.mapValue?.fields?.order?.integerValue !== undefined ? parseInt(v.mapValue.fields.order.integerValue, 10) : idx,
@@ -4792,6 +4836,7 @@
           name: { stringValue: m.name.trim() },
           role: { stringValue: m.role.trim() },
           bio: { stringValue: (m.bio || '').trim() },
+          photoUrl: { stringValue: m.photoUrl || '' },
           order: { integerValue: String(i) },
         } } })) } },
       updatedAt: { stringValue: new Date().toISOString() },
