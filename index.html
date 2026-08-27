@@ -4711,6 +4711,7 @@
           '<div style="flex:1;display:flex;flex-direction:column;gap:8px;">' +
             '<input type="text" class="form-input" placeholder="Name" value="' + escHtml(m.name) + '" oninput="councilMembers.' + which + '[' + i + '].name=this.value" />' +
             '<input type="text" class="form-input" placeholder="Role" value="' + escHtml(m.role) + '" oninput="councilMembers.' + which + '[' + i + '].role=this.value" />' +
+            '<input type="email" class="form-input" placeholder="Email (optional)" value="' + escHtml(m.email) + '" oninput="councilMembers.' + which + '[' + i + '].email=this.value" />' +
           '</div>' +
         '</div>' +
         '<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">' +
@@ -4729,7 +4730,7 @@
     ).join('') || '<div style="color:var(--dusty-rose);font-size:13px;">No members added yet.</div>';
   }
   function addCouncilMemberRow(which, prefill) {
-    councilMembers[which].push({ name: (prefill && prefill.name) || '', role: '', bio: (prefill && prefill.bio) || '', photoUrl: '' });
+    councilMembers[which].push({ name: (prefill && prefill.name) || '', role: '', bio: (prefill && prefill.bio) || '', photoUrl: '', email: '' });
     renderCouncilMemberRows(which);
   }
   // Uploads straight into the in-memory councilMembers array (same as every
@@ -4814,6 +4815,7 @@
           role: v.mapValue?.fields?.role?.stringValue || '',
           bio: v.mapValue?.fields?.bio?.stringValue || '',
           photoUrl: v.mapValue?.fields?.photoUrl?.stringValue || '',
+          email: v.mapValue?.fields?.email?.stringValue || '',
           // Backward-compat: older entries saved before `order` existed
           // fall back to their position in the stored array.
           order: v.mapValue?.fields?.order?.integerValue !== undefined ? parseInt(v.mapValue.fields.order.integerValue, 10) : idx,
@@ -4837,6 +4839,7 @@
           role: { stringValue: m.role.trim() },
           bio: { stringValue: (m.bio || '').trim() },
           photoUrl: { stringValue: m.photoUrl || '' },
+          email: { stringValue: (m.email || '').trim() },
           order: { integerValue: String(i) },
         } } })) } },
       updatedAt: { stringValue: new Date().toISOString() },
