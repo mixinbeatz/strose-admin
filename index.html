@@ -2235,7 +2235,14 @@
   async function fs_get_doc(path) { const r=await fetch(`${BASE}/${path}?key=${API_KEY}`,{headers:await authHeaders()}); return await r.json(); }
   async function fs_post(col,fields) { const r=await fetch(`${BASE}/${col}?key=${API_KEY}`,{method:'POST',headers:await authHeaders({'Content-Type':'application/json'}),body:JSON.stringify({fields})}); return await r.json(); }
   async function fs_patch(path,fields) { const mask=Object.keys(fields).map(f=>`updateMask.fieldPaths=${f}`).join('&'); const r=await fetch(`${BASE}/${path}?key=${API_KEY}&${mask}`,{method:'PATCH',headers:await authHeaders({'Content-Type':'application/json'}),body:JSON.stringify({fields})}); return await r.json(); }
-  async function fs_delete(path) { await fetch(`${BASE}/${path}?key=${API_KEY}`,{method:'DELETE',headers:await authHeaders()}); }
+  async function fs_delete(path) {
+    const res = await fetch(`${BASE}/${path}?key=${API_KEY}`, {method:'DELETE', headers: await authHeaders()});
+    if (!res.ok) {
+      const body = await res.text().catch(() => '');
+      throw new Error(`fs_delete failed (${res.status}): ${body}`);
+    }
+    return res;
+  }
   function gf(doc,key) { const f=doc.fields?.[key]; if(!f) return ''; if(f.booleanValue!==undefined) return f.booleanValue; return f.stringValue??f.integerValue??''; }
   // Safely embed user-entered text inside a single-quoted JS string AND a double-quoted HTML attribute (e.g. onclick="fn('${escAttr(name)}')").
   // Fixes names/titles containing a double quote (e.g. Robert "Bob" Smith) breaking the onclick attribute and crashing the button.
@@ -2710,7 +2717,7 @@
       renderCal();
       var day = parseInt(document.getElementById('cal-events-list').querySelector('div')?.textContent?.split('-')[2]);
       if (day) showCalDay(day);
-    } catch(e){showToast('Error deleting.','error');}
+    } catch(e){showToast('Error deleting: ' + e.message, 'error');}
   }
 
   function calPrev() { calMonth--; if (calMonth < 0) { calMonth = 11; calYear--; } renderCal(); }
@@ -2972,7 +2979,7 @@
       const now = new Date();
       const all = (res.documents||[]).filter(d=>gf(d,'source')==='admin'||gf(d,'source')==='ministry'||gf(d,'source')==='calendarwiz_import');
       const expired = all.filter(d=>{ const exp=gf(d,'expiresAt'); const sta=gf(d,'startAt'); return (exp && new Date(exp)<=now) || (!exp && sta && new Date(sta)<=now); });
-      expired.forEach(d=>fs_delete('events/'+docId(d)));
+      expired.forEach(d=>fs_delete('events/'+docId(d)).catch(e=>console.warn('Failed to clean up expired event', docId(d), e)));
       const events = all
         .filter(d=>{ const exp=gf(d,'expiresAt'); const sta=gf(d,'startAt'); return (!exp||new Date(exp)>now) && (!sta||new Date(sta)>now); })
         .sort((a,b)=>{ const da=gf(a,'startAt')||gf(a,'date'); const db=gf(b,'startAt')||gf(b,'date'); return new Date(da)-new Date(db); });
@@ -3004,7 +3011,7 @@
       await fs_delete(`events/${id}`);
       document.getElementById(`evtrow-${id}`)?.remove();
       showToast('Event deleted.','success');
-    } catch(e){showToast('Error deleting.','error');}
+    } catch(e){showToast('Error deleting: ' + e.message,'error');}
   }
 
   // ── ANNOUNCEMENT ──
@@ -3164,7 +3171,7 @@
       showToast('Reflection scheduled!','success');
       setTimeout(()=>{document.getElementById('ref-success').style.display='none';},4000);
       loadCurrentReflection();
-    } catch(e){showToast('Error updating.','error');}
+    } catch(e){showToast('Error updating: ' + e.message,'error');}
   }
 
   // ── DAILY ──
@@ -3194,7 +3201,7 @@
       document.getElementById('daily-success').style.display='block';
       showToast('Daily reflection posted!','success');
       setTimeout(()=>{document.getElementById('daily-success').style.display='none';},4000);
-    } catch(e){showToast('Error posting.','error');}
+    } catch(e){showToast('Error posting: ' + e.message,'error');}
   }
 
   // ── DAILY SCHEDULER ──
@@ -3506,6 +3513,8 @@
 
   async function saveScheduledReflections() {
     var saved = 0;
+    var attempted = 0;
+    var lastError = null;
     for (let i = 0; i < 7; i++) {
       const dateEl = document.getElementById('daily-date-' + i);
       const titleEl = document.getElementById('daily-title-' + i);
@@ -3517,6 +3526,7 @@
       const body = bodyEl.value.trim();
       const musicUrl = musicEl ? musicEl.value.trim() : '';
       if (!body) continue;
+      attempted++;
       try {
         const existing = await fs_get('scheduledReflections');
         for (const doc of (existing.documents||[]).filter(function(d){ return gf(d,'date')===date; })) {
@@ -3531,13 +3541,15 @@
           createdAt:{stringValue:new Date().toISOString()}
         });
         saved++;
-      } catch(e) { console.log('Error saving reflection for', date, e); }
+      } catch(e) { console.log('Error saving reflection for', date, e); lastError = e; }
     }
     if (saved > 0) {
       document.getElementById('daily-success').style.display='block';
       showToast(saved + ' reflection(s) scheduled!','success');
       setTimeout(function(){ document.getElementById('daily-success').style.display='none'; },4000);
       loadScheduledReflections();
+    } else if (attempted > 0) {
+      showToast('Error saving: ' + lastError.message, 'error');
     } else {
       showToast('No reflections to save — add text to at least one day.','error');
     }
@@ -3563,9 +3575,11 @@
   }
   async function deleteScheduled(id) {
     if (!confirm('Delete this scheduled reflection?')) return;
-    await fs_delete('scheduledReflections/' + id);
-    showToast('Deleted.','success');
-    loadScheduledReflections();
+    try {
+      await fs_delete('scheduledReflections/' + id);
+      showToast('Deleted.','success');
+      loadScheduledReflections();
+    } catch(e) { showToast('Error deleting: ' + e.message, 'error'); }
   }
 
     async function publishTodayNow() {
@@ -3590,7 +3604,7 @@
         createdAt: {stringValue: new Date().toISOString()}
       });
       showToast('Today\'s reflection is now live in the app!', 'success');
-    } catch(e) { showToast('Error publishing.', 'error'); }
+    } catch(e) { showToast('Error publishing: ' + e.message, 'error'); }
   }
 
     // ── APPROVALS ──
@@ -3801,7 +3815,7 @@
       await fs_delete('familyRegistrations/' + id);
       document.getElementById('familyreg-' + id)?.remove();
       showToast(name + ' registration deleted.', 'success');
-    } catch(e) { showToast('Error.', 'error'); }
+    } catch(e) { showToast('Error deleting: ' + e.message, 'error'); }
   }
   // ── REVIEWED FAMILIES ──
   // Simple list of families already reviewed and added to parish records --
@@ -3943,7 +3957,7 @@
       await fs_delete('familyRegistrations/' + id);
       showToast(name + ' family deleted.', 'success');
       loadReviewedFamilies();
-    } catch(e) { showToast('Error.', 'error'); }
+    } catch(e) { showToast('Error deleting: ' + e.message, 'error'); }
   }
   function exportReviewedFamiliesCSV() {
     if (reviewedFamiliesCache.length === 0) { showToast('No reviewed families to export.', 'error'); return; }
@@ -4015,7 +4029,7 @@
   async function removeMember(id,name){
     if(!confirm(`Remove ${name} from the Parish Family directory?`))return;
     try{await fs_delete(`parishFamily/${id}`);document.getElementById(`dir-${id}`)?.remove();allMembers=allMembers.filter(d=>docId(d)!==id);showToast(`${name} removed.`,'success');loadDashboard();}
-    catch(e){showToast('Error.','error');}
+    catch(e){showToast('Error deleting: ' + e.message,'error');}
   }
   function emailMember(email){
     if(!email){showToast('No email on file.','error');return;}
@@ -4444,7 +4458,7 @@
       await fs_delete('developmentOpportunities/' + id);
       showToast('Deleted.', 'success');
       loadDevelopmentItems();
-    } catch (e) { showToast('Error deleting.', 'error'); }
+    } catch (e) { showToast('Error deleting: ' + e.message, 'error'); }
   }
 
   async function loadDevelopmentItems() {
@@ -4831,7 +4845,7 @@
       await fs_delete('massIntentions/' + id);
       document.getElementById('introw-' + id)?.remove();
       showToast('Intention deleted.', 'success');
-    } catch(e) { showToast('Error deleting.', 'error'); }
+    } catch(e) { showToast('Error deleting: ' + e.message, 'error'); }
   }
   async function loadMyMinistry() {
     const ministryId = currentClaims && currentClaims.ministry;
@@ -4909,7 +4923,7 @@
       await fs_delete('currentPosts/' + ministryId);
       showToast('Post cleared.', 'success');
       loadMinistryPosts();
-    } catch(e) { showToast('Error clearing post.', 'error'); }
+    } catch(e) { showToast('Error clearing post: ' + e.message, 'error'); }
   }
   async function postSongsheet() {
     const title = document.getElementById('ss-title').value.trim();
@@ -4945,7 +4959,7 @@
       showToast('Songsheet uploaded!', 'success');
       btn.disabled = false; btn.textContent = 'Upload Songsheet';
       setTimeout(() => { document.getElementById('ss-success').style.display = 'none'; }, 4000);
-    } catch(e) { showToast('Upload failed. Try again.', 'error'); btn.disabled = false; btn.textContent = 'Upload Songsheet'; }
+    } catch(e) { showToast('Upload failed: ' + e.message, 'error'); btn.disabled = false; btn.textContent = 'Upload Songsheet'; }
   }
 
   async function loadCurrentSongsheet() {
@@ -5146,9 +5160,11 @@
 
   async function cancelScheduledFastBlast(id) {
     if (!confirm('Cancel this scheduled Fast Blast?')) return;
-    await fs_delete('scheduledFastBlast/' + id);
-    showToast('Cancelled.', 'success');
-    loadScheduledFastBlasts();
+    try {
+      await fs_delete('scheduledFastBlast/' + id);
+      showToast('Cancelled.', 'success');
+      loadScheduledFastBlasts();
+    } catch(e) { showToast('Error cancelling: ' + e.message, 'error'); }
   }
 
   // Ministry expiry state
@@ -5381,7 +5397,7 @@
       await fs_delete('currentPosts/mens');
       showToast('Post cleared.', 'success');
       loadMensCurrentPost();
-    } catch(e) { showToast('Error clearing post.', 'error'); }
+    } catch(e) { showToast('Error clearing post: ' + e.message, 'error'); }
   }
   function emailMensMinistry() {
     const myEmail = (currentClaims && currentClaims.email) || '';
@@ -5570,7 +5586,7 @@
       await fs_delete('currentPosts/' + id);
       showToast('Post cleared.', 'success');
       loadManageCurrentPost(id);
-    } catch(e) { showToast('Error clearing post.', 'error'); }
+    } catch(e) { showToast('Error clearing post: ' + e.message, 'error'); }
   }
   function emailManageMinistry() {
     const myEmail = (currentClaims && currentClaims.email) || '';
@@ -5782,7 +5798,7 @@
       await fs_delete('announcements/' + id);
       document.querySelectorAll('[data-ann-id="' + id + '"]').forEach(el => el.remove());
       showToast('Announcement deleted.', 'success');
-    } catch(e) { showToast('Error deleting.', 'error'); }
+    } catch(e) { showToast('Error deleting: ' + e.message, 'error'); }
   }
 
   async function loadActivePrayers() {
@@ -5836,7 +5852,7 @@
       await fs_delete('prayerRequests/' + id);
       document.getElementById('apr-' + id)?.remove();
       showToast('Prayer request removed.', 'success');
-    } catch(e) { showToast('Error deleting.', 'error'); }
+    } catch(e) { showToast('Error deleting: ' + e.message, 'error'); }
   }
 
   async function loadPrayerSubmissions() {
