@@ -2733,7 +2733,7 @@
       const familyRegBadge = document.getElementById('familyreg-count');
       if (familyRegBadge) { familyRegBadge.textContent = pendingFamilyRegs.length; familyRegBadge.style.display = pendingFamilyRegs.length > 0 ? '' : 'none'; }
       const approved = (fam.documents||[]).filter(d=>gf(d,'approved')===true);
-      const pending = (fam.documents||[]).filter(d=>gf(d,'approved')===false);
+      const pending = (fam.documents||[]).filter(d=>gf(d,'approved')===false && gf(d,'rejected')!==true);
       const preqs = (parts.documents||[]).filter(d=>!gf(d,'parishApproved'));
       const pendingEventReqs = (eventReqs.documents||[]).filter(d=>gf(d,'status')==='pending');
       const eventReqBadge = document.getElementById('event-req-count');
@@ -3613,7 +3613,7 @@
     list.innerHTML='<div style="color:var(--dusty-rose);font-size:14px;">Loading...</div>';
     try {
       const res=await fs_get('parishFamily');
-      const pending=(res.documents||[]).filter(d=>gf(d,'approved')===false);
+      const pending=(res.documents||[]).filter(d=>gf(d,'approved')===false && gf(d,'rejected')!==true);
       if(pending.length===0){list.innerHTML=`<div class="empty-state"><div class="empty-icon">✓</div><div class="empty-title">All caught up</div><div class="empty-sub">No pending approvals.</div></div>`;return;}
       list.innerHTML=pending.map(doc=>{
         const id=docId(doc),name=gf(doc,'name'),email=gf(doc,'email'),bio=gf(doc,'bio'),ministries=gf(doc,'ministries'),photo=gf(doc,'photoUrl');
