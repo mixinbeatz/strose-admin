@@ -1188,6 +1188,11 @@
           <div class="form-group"><label class="form-label">Contact Person Name</label><input type="text" class="form-input" id="council-pastoral-contactname" placeholder="e.g. Jane Smith" /></div>
           <div class="form-group"><label class="form-label">Contact Person Email</label><input type="email" class="form-input" id="council-pastoral-contactemail" placeholder="e.g. jsmith@example.com" /></div>
           <div class="form-group">
+            <label class="form-label">Paste to Add</label>
+            <textarea class="form-input" id="council-pastoral-paste" rows="3" placeholder="Paste a member's info -- name on the first line, bio below. Review/correct the card it creates before saving."></textarea>
+            <button class="btn btn-outline btn-sm" onclick="parseAndAddCouncilMemberPaste('pastoral')" style="margin-top:8px;">Parse &amp; Add</button>
+          </div>
+          <div class="form-group">
             <label class="form-label">Members</label>
             <div id="council-pastoral-members"></div>
             <button class="btn btn-outline btn-sm" onclick="addCouncilMemberRow('pastoral')" style="margin-top:8px;">+ Add Member</button>
@@ -1200,6 +1205,11 @@
           <div class="form-group"><label class="form-label">Contact Person Name</label><input type="text" class="form-input" id="council-finance-contactname" placeholder="e.g. Jane Smith" /></div>
           <div class="form-group"><label class="form-label">Contact Person Email</label><input type="email" class="form-input" id="council-finance-contactemail" placeholder="e.g. jsmith@example.com" /></div>
           <div class="form-group">
+            <label class="form-label">Paste to Add</label>
+            <textarea class="form-input" id="council-finance-paste" rows="3" placeholder="Paste a member's info -- name on the first line, bio below. Review/correct the card it creates before saving."></textarea>
+            <button class="btn btn-outline btn-sm" onclick="parseAndAddCouncilMemberPaste('finance')" style="margin-top:8px;">Parse &amp; Add</button>
+          </div>
+          <div class="form-group">
             <label class="form-label">Members</label>
             <div id="council-finance-members"></div>
             <button class="btn btn-outline btn-sm" onclick="addCouncilMemberRow('finance')" style="margin-top:8px;">+ Add Member</button>
@@ -1211,6 +1221,11 @@
           <div class="form-group"><label class="form-label">Meeting Schedule</label><input type="text" class="form-input" id="council-development-schedule" placeholder="e.g. First Wednesday of the month, 6:00 PM" /></div>
           <div class="form-group"><label class="form-label">Contact Person Name</label><input type="text" class="form-input" id="council-development-contactname" placeholder="e.g. Jane Smith" /></div>
           <div class="form-group"><label class="form-label">Contact Person Email</label><input type="email" class="form-input" id="council-development-contactemail" placeholder="e.g. jsmith@example.com" /></div>
+          <div class="form-group">
+            <label class="form-label">Paste to Add</label>
+            <textarea class="form-input" id="council-development-paste" rows="3" placeholder="Paste a member's info -- name on the first line, bio below. Review/correct the card it creates before saving."></textarea>
+            <button class="btn btn-outline btn-sm" onclick="parseAndAddCouncilMemberPaste('development')" style="margin-top:8px;">Parse &amp; Add</button>
+          </div>
           <div class="form-group">
             <label class="form-label">Members</label>
             <div id="council-development-members"></div>
@@ -4678,23 +4693,70 @@
   const councilMembers = { pastoral: [], finance: [], development: [] };
   const COUNCIL_DOC_IDS = { pastoral: 'pastoralCouncil', finance: 'financeCouncil', development: 'developmentCouncil' };
   const COUNCIL_LABELS = { pastoral: 'Pastoral', finance: 'Finance', development: 'Development' };
+  // Member array order is the array's own position -- add/remove/move all
+  // operate directly on councilMembers[which] in visual order, and
+  // saveCouncil() writes each member's `order` as its index at save time.
+  // No separate order bookkeeping to keep in sync while editing.
   function renderCouncilMemberRows(which) {
     const container = document.getElementById('council-' + which + '-members');
-    container.innerHTML = councilMembers[which].map((m, i) =>
-      '<div style="display:flex;gap:8px;margin-bottom:6px;align-items:center;">' +
-        '<input type="text" class="form-input" style="flex:1;" placeholder="Name" value="' + escHtml(m.name) + '" oninput="councilMembers.' + which + '[' + i + '].name=this.value" />' +
-        '<input type="text" class="form-input" style="flex:1;" placeholder="Role" value="' + escHtml(m.role) + '" oninput="councilMembers.' + which + '[' + i + '].role=this.value" />' +
-        '<button class="btn btn-outline btn-sm" onclick="removeCouncilMemberRow(\'' + which + '\',' + i + ')">Remove</button>' +
+    const list = councilMembers[which];
+    container.innerHTML = list.map((m, i) =>
+      '<div style="border:1px solid var(--linen);border-radius:8px;padding:12px;margin-bottom:10px;">' +
+        '<div style="display:flex;gap:8px;margin-bottom:8px;">' +
+          '<input type="text" class="form-input" style="flex:1;" placeholder="Name" value="' + escHtml(m.name) + '" oninput="councilMembers.' + which + '[' + i + '].name=this.value" />' +
+          '<input type="text" class="form-input" style="flex:1;" placeholder="Role" value="' + escHtml(m.role) + '" oninput="councilMembers.' + which + '[' + i + '].role=this.value" />' +
+        '</div>' +
+        '<textarea class="form-input" rows="5" placeholder="Bio (optional)" style="margin-bottom:8px;" oninput="councilMembers.' + which + '[' + i + '].bio=this.value">' + escHtml(m.bio) + '</textarea>' +
+        '<div style="display:flex;gap:6px;justify-content:flex-end;">' +
+          '<button class="btn btn-outline btn-sm" title="Move up" ' + (i === 0 ? 'disabled style="opacity:0.4;"' : '') + ' onclick="moveCouncilMemberRow(\'' + which + '\',' + i + ',-1)">↑</button>' +
+          '<button class="btn btn-outline btn-sm" title="Move down" ' + (i === list.length - 1 ? 'disabled style="opacity:0.4;"' : '') + ' onclick="moveCouncilMemberRow(\'' + which + '\',' + i + ',1)">↓</button>' +
+          '<button class="btn btn-outline btn-sm" onclick="removeCouncilMemberRow(\'' + which + '\',' + i + ')">Remove</button>' +
+        '</div>' +
       '</div>'
     ).join('') || '<div style="color:var(--dusty-rose);font-size:13px;">No members added yet.</div>';
   }
-  function addCouncilMemberRow(which) {
-    councilMembers[which].push({ name: '', role: '' });
+  function addCouncilMemberRow(which, prefill) {
+    councilMembers[which].push({ name: (prefill && prefill.name) || '', role: '', bio: (prefill && prefill.bio) || '' });
     renderCouncilMemberRows(which);
   }
   function removeCouncilMemberRow(which, i) {
+    const name = councilMembers[which][i]?.name;
+    if (!confirm('Remove ' + (name || 'this member') + ' from the council?')) return;
     councilMembers[which].splice(i, 1);
     renderCouncilMemberRows(which);
+  }
+  function moveCouncilMemberRow(which, i, dir) {
+    const list = councilMembers[which];
+    const j = i + dir;
+    if (j < 0 || j >= list.length) return;
+    [list[i], list[j]] = [list[j], list[i]];
+    renderCouncilMemberRows(which);
+  }
+  // "Paste to Add" quick-import: best-effort split of a pasted block into
+  // name/bio so staff don't have to retype rosters copied from elsewhere.
+  // Never writes directly into councilMembers -- it prefills a fresh card
+  // via addCouncilMemberRow so staff review/correct it like any other
+  // entry before Save Members actually persists anything.
+  function parseCouncilMemberPaste(text) {
+    text = (text || '').trim();
+    if (!text) return { name: '', bio: '' };
+    const newlineIdx = text.indexOf('\n');
+    if (newlineIdx !== -1) {
+      return { name: text.slice(0, newlineIdx).trim(), bio: text.slice(newlineIdx + 1).trim() };
+    }
+    const m = text.match(/[,—]/);
+    if (m) {
+      return { name: text.slice(0, m.index).trim(), bio: text.slice(m.index + 1).trim() };
+    }
+    return { name: text, bio: '' };
+  }
+  function parseAndAddCouncilMemberPaste(which) {
+    const el = document.getElementById('council-' + which + '-paste');
+    const prefill = parseCouncilMemberPaste(el.value);
+    if (!prefill.name && !prefill.bio) { showToast('Paste something to parse first.', 'error'); return; }
+    addCouncilMemberRow(which, prefill);
+    el.value = '';
+    showToast('Added -- review the name/role/bio below before saving.', 'success');
   }
   async function loadCouncils() {
     for (const which of ['pastoral', 'finance', 'development']) {
@@ -4704,10 +4766,14 @@
         document.getElementById('council-' + which + '-schedule').value = gf(res, 'meetingSchedule');
         document.getElementById('council-' + which + '-contactname').value = gf(res, 'contactName');
         document.getElementById('council-' + which + '-contactemail').value = gf(res, 'contactEmail');
-        councilMembers[which] = (res.fields?.members?.arrayValue?.values || []).map(v => ({
+        councilMembers[which] = (res.fields?.members?.arrayValue?.values || []).map((v, idx) => ({
           name: v.mapValue?.fields?.name?.stringValue || '',
           role: v.mapValue?.fields?.role?.stringValue || '',
-        }));
+          bio: v.mapValue?.fields?.bio?.stringValue || '',
+          // Backward-compat: older entries saved before `order` existed
+          // fall back to their position in the stored array.
+          order: v.mapValue?.fields?.order?.integerValue !== undefined ? parseInt(v.mapValue.fields.order.integerValue, 10) : idx,
+        })).sort((a, b) => a.order - b.order);
       } catch(e) {
         councilMembers[which] = [];
       }
@@ -4721,8 +4787,13 @@
       contactName: { stringValue: document.getElementById('council-' + which + '-contactname').value.trim() },
       contactEmail: { stringValue: document.getElementById('council-' + which + '-contactemail').value.trim() },
       members: { arrayValue: { values: councilMembers[which]
-        .filter(m => m.name.trim() || m.role.trim())
-        .map(m => ({ mapValue: { fields: { name: { stringValue: m.name.trim() }, role: { stringValue: m.role.trim() } } } })) } },
+        .filter(m => m.name.trim() || m.role.trim() || (m.bio || '').trim())
+        .map((m, i) => ({ mapValue: { fields: {
+          name: { stringValue: m.name.trim() },
+          role: { stringValue: m.role.trim() },
+          bio: { stringValue: (m.bio || '').trim() },
+          order: { integerValue: String(i) },
+        } } })) } },
       updatedAt: { stringValue: new Date().toISOString() },
     };
     try {
