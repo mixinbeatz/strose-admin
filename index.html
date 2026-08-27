@@ -314,6 +314,7 @@
         <div class="nav-item staff-only cheyanne-only" onclick="showPage('approvals',this)"><span class="nav-icon">👥</span> Parish Family Approvals <span class="nav-badge" id="approval-count">0</span></div>
         <div class="nav-item staff-only" onclick="showPage('event-requests',this)"><span class="nav-icon">📋</span> Event Requests <span class="nav-badge" id="event-req-count" style="display:none">0</span></div>
         <div class="nav-item staff-only" onclick="showPage('contact-requests',this);loadContactRequests()"><span class="nav-icon">✉️</span> Contact Requests <span class="nav-badge" id="contact-req-count" style="display:none">0</span></div>
+        <div class="nav-item staff-only" onclick="showPage('council-inquiries',this);loadCouncilInquiries()"><span class="nav-icon">🗳️</span> Council Inquiries <span class="nav-badge" id="council-inq-count" style="display:none">0</span></div>
         <div class="nav-item staff-only" onclick="showPage('family-registrations',this);loadFamilyRegistrations();loadReviewedFamilies()"><span class="nav-icon">📝</span> Family Registrations <span class="nav-badge" id="familyreg-count" style="display:none">0</span></div>
         <div class="nav-item staff-only" onclick="showPage('directory',this)"><span class="nav-icon">📋</span> Parish Family Directory</div>
       </div>
@@ -362,7 +363,7 @@
         <div class="nav-item staff-only cheyanne-only" onclick="showPage('daily',this)"><span class="nav-icon">✝</span> Daily Reflection</div>
         <div class="nav-item staff-only cheyanne-only" onclick="showPage('intention',this)"><span class="nav-icon">🕯️</span> Mass Intentions</div>
         <div class="nav-item staff-only cheyanne-only" onclick="showPage('welcome',this)"><span class="nav-icon">🌹</span> Welcome Message</div>
-        <div class="nav-item staff-only" onclick="showPage('councils',this);loadCouncils()"><span class="nav-icon">⛪</span> Pastoral &amp; Finance Council</div>
+        <div class="nav-item staff-only" onclick="showPage('councils',this);loadCouncils()"><span class="nav-icon">⛪</span> Pastoral, Finance &amp; Development Council</div>
       </div>
 
       <div class="nav-section-toggle collapsed staff-only" onclick="toggleNavSection(this)"><span>Website Media</span><span class="nav-chevron">▾</span></div>
@@ -1177,13 +1178,15 @@
       </div>
       <div class="page" id="page-councils">
         <div class="card">
-          <div class="card-title">⛪ Pastoral &amp; Finance Council</div>
-          <div class="info-box">Public-read content shown in the app's Parish tab (Council section). Each council's mission, roster, and meeting schedule are edited separately below.</div>
+          <div class="card-title">⛪ Pastoral, Finance &amp; Development Council</div>
+          <div class="info-box">Public-read content shown in the app's Parish tab (Council section). Each council's mission, roster, meeting schedule, and contact person are edited separately below. Contact Person Email is where a "Contact this council" question from the app will eventually be routed once that's wired up -- for now those questions show up in the Council Inquiries tab as a push notification to staff.</div>
         </div>
         <div class="card">
           <div class="card-title">Pastoral Council</div>
           <div class="form-group"><label class="form-label">Mission</label><textarea class="form-input" id="council-pastoral-mission" rows="3"></textarea></div>
           <div class="form-group"><label class="form-label">Meeting Schedule</label><input type="text" class="form-input" id="council-pastoral-schedule" placeholder="e.g. Second Tuesday of the month, 6:30 PM" /></div>
+          <div class="form-group"><label class="form-label">Contact Person Name</label><input type="text" class="form-input" id="council-pastoral-contactname" placeholder="e.g. Jane Smith" /></div>
+          <div class="form-group"><label class="form-label">Contact Person Email</label><input type="email" class="form-input" id="council-pastoral-contactemail" placeholder="e.g. jsmith@example.com" /></div>
           <div class="form-group">
             <label class="form-label">Members</label>
             <div id="council-pastoral-members"></div>
@@ -1194,6 +1197,8 @@
           <div class="card-title">Finance Council</div>
           <div class="form-group"><label class="form-label">Mission</label><textarea class="form-input" id="council-finance-mission" rows="3"></textarea></div>
           <div class="form-group"><label class="form-label">Meeting Schedule</label><input type="text" class="form-input" id="council-finance-schedule" placeholder="e.g. Third Monday of the month, 6:00 PM" /></div>
+          <div class="form-group"><label class="form-label">Contact Person Name</label><input type="text" class="form-input" id="council-finance-contactname" placeholder="e.g. Jane Smith" /></div>
+          <div class="form-group"><label class="form-label">Contact Person Email</label><input type="email" class="form-input" id="council-finance-contactemail" placeholder="e.g. jsmith@example.com" /></div>
           <div class="form-group">
             <label class="form-label">Members</label>
             <div id="council-finance-members"></div>
@@ -1201,8 +1206,21 @@
           </div>
         </div>
         <div class="card">
+          <div class="card-title">Development Council</div>
+          <div class="form-group"><label class="form-label">Mission</label><textarea class="form-input" id="council-development-mission" rows="3"></textarea></div>
+          <div class="form-group"><label class="form-label">Meeting Schedule</label><input type="text" class="form-input" id="council-development-schedule" placeholder="e.g. First Wednesday of the month, 6:00 PM" /></div>
+          <div class="form-group"><label class="form-label">Contact Person Name</label><input type="text" class="form-input" id="council-development-contactname" placeholder="e.g. Jane Smith" /></div>
+          <div class="form-group"><label class="form-label">Contact Person Email</label><input type="email" class="form-input" id="council-development-contactemail" placeholder="e.g. jsmith@example.com" /></div>
+          <div class="form-group">
+            <label class="form-label">Members</label>
+            <div id="council-development-members"></div>
+            <button class="btn btn-outline btn-sm" onclick="addCouncilMemberRow('development')" style="margin-top:8px;">+ Add Member</button>
+          </div>
+        </div>
+        <div class="card">
           <button class="btn btn-primary" onclick="saveCouncil('pastoral')">Save Pastoral Council</button>
           <button class="btn btn-primary" onclick="saveCouncil('finance')" style="margin-left:8px;">Save Finance Council</button>
+          <button class="btn btn-primary" onclick="saveCouncil('development')" style="margin-left:8px;">Save Development Council</button>
           <button class="btn btn-outline" onclick="loadCouncils()" style="margin-left:8px;">Reload Current</button>
           <span id="councils-success" style="display:none;color:var(--success);margin-left:12px;">Saved!</span>
         </div>
@@ -1925,6 +1943,13 @@
           <div id="contact-requests-list"><p style="opacity:0.5;font-size:14px">Loading...</p></div>
         </div>
       </div>
+      <div class="page" id="page-council-inquiries">
+        <div class="card">
+          <div class="card-title">🗳️ Council Inquiries</div>
+          <div class="info-box">Submitted from the "Do you have a question or suggestion for the [Council]?" form on each council's detail view in the app. Staff get a push notification the moment one comes in (same as Contact Requests); this list is the backup audit trail. Mark an inquiry handled once you've followed up.</div>
+          <div id="council-inquiries-list"><p style="opacity:0.5;font-size:14px">Loading...</p></div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -2150,7 +2175,7 @@
     if(el) el.classList.add('active');
     window.scrollTo(0,0);
     closeSidebar();
-    const titles = {dashboard:'Dashboard',events:'Events',announcement:'Post Announcement',fastblast:'Fast Blast',reflection:'Weekly Reflection','parish-development':'Parish Development',daily:'Daily Reflection',songsheet:'Mass Songsheet',welcome:'Welcome Message','hero-media':'Hero Section','welcome-media':'Welcome Section',gallery:'Homepage Gallery','around-parish':'Around the Parish','parish-dev-media':'Parish Development','mass-schedule':'Mass Schedule',councils:'Pastoral & Finance Council','music-ministry':'Music Ministry','music-members':'Music Ministry Members',approvals:'Parish Family Approvals',partners:'Partner Requests',directory:'Parish Family Directory','ministry-post':'Post to Members','cda-members':'My Members','prayer-chain':'Prayer Chain','prayer-submissions':'Prayer Submissions','submit-event':'Submit Event','event-requests':'Event Requests','contact-requests':'Contact Requests',intention:'Mass Intentions','my-ministry':'My Ministry','onboard-leader':'Onboard Ministry Leader','leader-tracker':'Ministry Leaders'};
+    const titles = {dashboard:'Dashboard',events:'Events',announcement:'Post Announcement',fastblast:'Fast Blast',reflection:'Weekly Reflection','parish-development':'Parish Development',daily:'Daily Reflection',songsheet:'Mass Songsheet',welcome:'Welcome Message','hero-media':'Hero Section','welcome-media':'Welcome Section',gallery:'Homepage Gallery','around-parish':'Around the Parish','parish-dev-media':'Parish Development','mass-schedule':'Mass Schedule',councils:'Pastoral, Finance & Development Council','council-inquiries':'Council Inquiries','music-ministry':'Music Ministry','music-members':'Music Ministry Members',approvals:'Parish Family Approvals',partners:'Partner Requests',directory:'Parish Family Directory','ministry-post':'Post to Members','cda-members':'My Members','prayer-chain':'Prayer Chain','prayer-submissions':'Prayer Submissions','submit-event':'Submit Event','event-requests':'Event Requests','contact-requests':'Contact Requests',intention:'Mass Intentions','my-ministry':'My Ministry','onboard-leader':'Onboard Ministry Leader','leader-tracker':'Ministry Leaders'};
     document.getElementById('page-title').textContent = titles[id]||id;
     var mpt = document.getElementById('mobile-page-title'); if(mpt) mpt.textContent = titles[id]||id;
     if(id==='approvals') loadApprovals();
@@ -2725,7 +2750,7 @@
 
   async function loadDashboard() {
     try {
-      const [fam,parts,ref,prayerSubs,eventReqs,dailyRef,familyRegs,contactReqs] = await Promise.all([fs_get('parishFamily'),fs_get('partnerRequests'),fs_get('weeklyReflection'),fs_get('prayerSubmissions'),fs_get('eventRequests'),fs_get('dailyReflection'),fs_get('familyRegistrations'),fs_get('contactRequests')]);
+      const [fam,parts,ref,prayerSubs,eventReqs,dailyRef,familyRegs,contactReqs,councilInqs] = await Promise.all([fs_get('parishFamily'),fs_get('partnerRequests'),fs_get('weeklyReflection'),fs_get('prayerSubmissions'),fs_get('eventRequests'),fs_get('dailyReflection'),fs_get('familyRegistrations'),fs_get('contactRequests'),fs_get('councilInquiries')]);
       const pendingPrayers = (prayerSubs.documents||[]).filter(d=>gf(d,'status')==='pending');
       const prayerBadge = document.getElementById('prayer-sub-count');
       if (prayerBadge) { prayerBadge.textContent = pendingPrayers.length; prayerBadge.style.display = pendingPrayers.length > 0 ? '' : 'none'; }
@@ -2741,6 +2766,9 @@
       const pendingContactReqs = (contactReqs.documents||[]).filter(d=>gf(d,'status')==='pending');
       const contactReqBadge = document.getElementById('contact-req-count');
       if (contactReqBadge) { contactReqBadge.textContent = pendingContactReqs.length; contactReqBadge.style.display = pendingContactReqs.length > 0 ? '' : 'none'; }
+      const pendingCouncilInqs = (councilInqs.documents||[]).filter(d=>gf(d,'status')==='pending');
+      const councilInqBadge = document.getElementById('council-inq-count');
+      if (councilInqBadge) { councilInqBadge.textContent = pendingCouncilInqs.length; councilInqBadge.style.display = pendingCouncilInqs.length > 0 ? '' : 'none'; }
       document.getElementById('stat-members').textContent = approved.length;
       document.getElementById('stat-pending').textContent = pending.length;
       document.getElementById('stat-partners').textContent = preqs.length;
@@ -4646,9 +4674,10 @@
       showToast('Mass schedule saved!', 'success');
     } catch(e) { showToast('Error saving.', 'error'); }
   }
-  // ── PASTORAL & FINANCE COUNCIL ──
-  const councilMembers = { pastoral: [], finance: [] };
-  const COUNCIL_DOC_IDS = { pastoral: 'pastoralCouncil', finance: 'financeCouncil' };
+  // ── PASTORAL, FINANCE & DEVELOPMENT COUNCIL ──
+  const councilMembers = { pastoral: [], finance: [], development: [] };
+  const COUNCIL_DOC_IDS = { pastoral: 'pastoralCouncil', finance: 'financeCouncil', development: 'developmentCouncil' };
+  const COUNCIL_LABELS = { pastoral: 'Pastoral', finance: 'Finance', development: 'Development' };
   function renderCouncilMemberRows(which) {
     const container = document.getElementById('council-' + which + '-members');
     container.innerHTML = councilMembers[which].map((m, i) =>
@@ -4668,11 +4697,13 @@
     renderCouncilMemberRows(which);
   }
   async function loadCouncils() {
-    for (const which of ['pastoral', 'finance']) {
+    for (const which of ['pastoral', 'finance', 'development']) {
       try {
         const res = await fs_get('siteContent/' + COUNCIL_DOC_IDS[which]);
         document.getElementById('council-' + which + '-mission').value = gf(res, 'mission');
         document.getElementById('council-' + which + '-schedule').value = gf(res, 'meetingSchedule');
+        document.getElementById('council-' + which + '-contactname').value = gf(res, 'contactName');
+        document.getElementById('council-' + which + '-contactemail').value = gf(res, 'contactEmail');
         councilMembers[which] = (res.fields?.members?.arrayValue?.values || []).map(v => ({
           name: v.mapValue?.fields?.name?.stringValue || '',
           role: v.mapValue?.fields?.role?.stringValue || '',
@@ -4687,6 +4718,8 @@
     const fields = {
       mission: { stringValue: document.getElementById('council-' + which + '-mission').value.trim() },
       meetingSchedule: { stringValue: document.getElementById('council-' + which + '-schedule').value.trim() },
+      contactName: { stringValue: document.getElementById('council-' + which + '-contactname').value.trim() },
+      contactEmail: { stringValue: document.getElementById('council-' + which + '-contactemail').value.trim() },
       members: { arrayValue: { values: councilMembers[which]
         .filter(m => m.name.trim() || m.role.trim())
         .map(m => ({ mapValue: { fields: { name: { stringValue: m.name.trim() }, role: { stringValue: m.role.trim() } } } })) } },
@@ -4696,7 +4729,7 @@
       await fs_patch('siteContent/' + COUNCIL_DOC_IDS[which], fields);
       document.getElementById('councils-success').style.display = 'inline';
       setTimeout(() => document.getElementById('councils-success').style.display = 'none', 3000);
-      showToast((which === 'pastoral' ? 'Pastoral' : 'Finance') + ' Council saved!', 'success');
+      showToast(COUNCIL_LABELS[which] + ' Council saved!', 'success');
     } catch(e) { showToast('Error saving.', 'error'); }
   }
   function clearBulletinPaste() {
@@ -5959,6 +5992,46 @@
       document.getElementById('creq-' + id)?.remove();
       showToast('Marked handled.', 'success');
       loadContactRequests();
+    } catch(e) { showToast('Error updating.', 'error'); }
+  }
+
+  // ── COUNCIL INQUIRIES ──
+  const COUNCIL_ID_LABELS = { pastoralCouncil: 'Pastoral Council', financeCouncil: 'Finance Council', developmentCouncil: 'Development Council' };
+  async function loadCouncilInquiries() {
+    const list = document.getElementById('council-inquiries-list');
+    list.innerHTML = '<div style="color:var(--dusty-rose);font-size:14px;">Loading...</div>';
+    try {
+      const res = await fs_get('councilInquiries');
+      const docs = (res.documents||[]).filter(d => gf(d,'status') === 'pending')
+        .sort((a,b) => gf(b,'createdAt').localeCompare(gf(a,'createdAt')));
+      const badge = document.getElementById('council-inq-count');
+      if (docs.length > 0) { badge.style.display = ''; badge.textContent = docs.length; }
+      else { badge.style.display = 'none'; }
+      if (docs.length === 0) { list.innerHTML = '<div style="color:var(--dusty-rose);font-size:14px;padding:12px;">No pending council inquiries.</div>'; return; }
+      list.innerHTML = docs.map(doc => {
+        const id = docId(doc);
+        const name = gf(doc, 'name') || 'Anonymous';
+        const contact = gf(doc, 'contact');
+        const message = gf(doc, 'message');
+        const councilLabel = COUNCIL_ID_LABELS[gf(doc, 'councilId')] || gf(doc, 'councilId') || 'Unknown council';
+        const date = new Date(gf(doc,'createdAt')||'').toLocaleDateString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
+        return '<div id="cinq-' + id + '" style="padding:16px;border-bottom:1px solid var(--linen);">' +
+          '<div style="font-family:\'Cinzel\',serif;font-size:13px;color:var(--burgundy);margin-bottom:2px;">' + escHtml(name) + ' — ' + escHtml(councilLabel) + '</div>' +
+          (contact ? '<div style="font-size:11px;color:var(--dusty-rose);margin-bottom:2px;">' + escHtml(contact) + '</div>' : '') +
+          '<div style="font-size:11px;color:var(--dusty-rose);margin-bottom:10px;">' + date + '</div>' +
+          '<div style="font-size:13px;color:var(--soil);line-height:1.6;margin-bottom:12px;padding:8px;background:var(--sand);border-radius:6px;">' + escHtml(message) + '</div>' +
+          '<button class="btn btn-primary btn-sm" onclick="markCouncilInquiryHandled(\'' + id + '\')">Mark Handled</button>' +
+        '</div>';
+      }).join('');
+    } catch(e) { list.innerHTML = '<div style="color:var(--dusty-rose);font-size:14px;">Error loading.</div>'; }
+  }
+
+  async function markCouncilInquiryHandled(id) {
+    try {
+      await fs_patch('councilInquiries/' + id, {status: {stringValue: 'handled'}});
+      document.getElementById('cinq-' + id)?.remove();
+      showToast('Marked handled.', 'success');
+      loadCouncilInquiries();
     } catch(e) { showToast('Error updating.', 'error'); }
   }
 
