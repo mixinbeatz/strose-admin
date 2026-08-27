@@ -4752,7 +4752,7 @@
       councilMembers[which][i].photoUrl = url;
       renderCouncilMemberRows(which);
       showToast('Photo uploaded — click Save Members to keep it.', 'success');
-    } catch(e) { showToast('Upload failed.', 'error'); }
+    } catch(e) { console.error('Council member photo upload error:', e); showToast('Upload failed: ' + (e && e.message || e), 'error'); }
   }
   // Clears the field only -- doesn't delete the file from Storage. No
   // pattern for that cleanup exists anywhere else in this portal today
