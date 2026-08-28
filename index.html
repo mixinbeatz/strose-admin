@@ -316,6 +316,7 @@
         <div class="nav-item staff-only" onclick="showPage('contact-requests',this);loadContactRequests()"><span class="nav-icon">✉️</span> Contact Requests <span class="nav-badge" id="contact-req-count" style="display:none">0</span></div>
         <div class="nav-item staff-only" onclick="showPage('council-inquiries',this);loadCouncilInquiries()"><span class="nav-icon">🗳️</span> Council Inquiries <span class="nav-badge" id="council-inq-count" style="display:none">0</span></div>
         <div class="nav-item staff-only" onclick="showPage('family-registrations',this);loadFamilyRegistrations();loadReviewedFamilies()"><span class="nav-icon">📝</span> Family Registrations <span class="nav-badge" id="familyreg-count" style="display:none">0</span></div>
+        <div class="nav-item staff-only" onclick="showPage('funeral-planning',this);loadFuneralPlanning()"><span class="nav-icon">🕊️</span> Funeral Planning <span class="nav-badge" id="funeral-plan-count" style="display:none">0</span></div>
         <div class="nav-item staff-only" onclick="showPage('directory',this)"><span class="nav-icon">📋</span> Parish Family Directory</div>
       </div>
 
@@ -1965,6 +1966,13 @@
           <div id="council-inquiries-list"><p style="opacity:0.5;font-size:14px">Loading...</p></div>
         </div>
       </div>
+      <div class="page" id="page-funeral-planning">
+        <div class="card">
+          <div class="card-title">🕊️ Funeral Planning Forms</div>
+          <div class="info-box">Submitted from the Funeral Planning Form on the website (linked from the app's Funeral Guide). That form's main job is to open a pre-filled email straight to the Funeral Ministry (Chris Bosn) — this list is a backup copy in case the family never presses send. Mark a form handled once the Funeral Ministry has it.</div>
+          <div id="funeral-planning-list"><p style="opacity:0.5;font-size:14px">Loading...</p></div>
+        </div>
+      </div>
     </div>
   </div>
 </div>
@@ -2190,7 +2198,7 @@
     if(el) el.classList.add('active');
     window.scrollTo(0,0);
     closeSidebar();
-    const titles = {dashboard:'Dashboard',events:'Events',announcement:'Post Announcement',fastblast:'Fast Blast',reflection:'Weekly Reflection','parish-development':'Parish Development',daily:'Daily Reflection',songsheet:'Mass Songsheet',welcome:'Welcome Message','hero-media':'Hero Section','welcome-media':'Welcome Section',gallery:'Homepage Gallery','around-parish':'Around the Parish','parish-dev-media':'Parish Development','mass-schedule':'Mass Schedule',councils:'Pastoral, Finance & Development Council','council-inquiries':'Council Inquiries','music-ministry':'Music Ministry','music-members':'Music Ministry Members',approvals:'Parish Family Approvals',partners:'Partner Requests',directory:'Parish Family Directory','ministry-post':'Post to Members','cda-members':'My Members','prayer-chain':'Prayer Chain','prayer-submissions':'Prayer Submissions','submit-event':'Submit Event','event-requests':'Event Requests','contact-requests':'Contact Requests',intention:'Mass Intentions','my-ministry':'My Ministry','onboard-leader':'Onboard Ministry Leader','leader-tracker':'Ministry Leaders'};
+    const titles = {dashboard:'Dashboard',events:'Events',announcement:'Post Announcement',fastblast:'Fast Blast',reflection:'Weekly Reflection','parish-development':'Parish Development',daily:'Daily Reflection',songsheet:'Mass Songsheet',welcome:'Welcome Message','hero-media':'Hero Section','welcome-media':'Welcome Section',gallery:'Homepage Gallery','around-parish':'Around the Parish','parish-dev-media':'Parish Development','mass-schedule':'Mass Schedule',councils:'Pastoral, Finance & Development Council','council-inquiries':'Council Inquiries','funeral-planning':'Funeral Planning Forms','music-ministry':'Music Ministry','music-members':'Music Ministry Members',approvals:'Parish Family Approvals',partners:'Partner Requests',directory:'Parish Family Directory','ministry-post':'Post to Members','cda-members':'My Members','prayer-chain':'Prayer Chain','prayer-submissions':'Prayer Submissions','submit-event':'Submit Event','event-requests':'Event Requests','contact-requests':'Contact Requests',intention:'Mass Intentions','my-ministry':'My Ministry','onboard-leader':'Onboard Ministry Leader','leader-tracker':'Ministry Leaders'};
     document.getElementById('page-title').textContent = titles[id]||id;
     var mpt = document.getElementById('mobile-page-title'); if(mpt) mpt.textContent = titles[id]||id;
     if(id==='approvals') loadApprovals();
@@ -2765,7 +2773,7 @@
 
   async function loadDashboard() {
     try {
-      const [fam,parts,ref,prayerSubs,eventReqs,dailyRef,familyRegs,contactReqs,councilInqs] = await Promise.all([fs_get('parishFamily'),fs_get('partnerRequests'),fs_get('weeklyReflection'),fs_get('prayerSubmissions'),fs_get('eventRequests'),fs_get('dailyReflection'),fs_get('familyRegistrations'),fs_get('contactRequests'),fs_get('councilInquiries')]);
+      const [fam,parts,ref,prayerSubs,eventReqs,dailyRef,familyRegs,contactReqs,councilInqs,funeralPlans] = await Promise.all([fs_get('parishFamily'),fs_get('partnerRequests'),fs_get('weeklyReflection'),fs_get('prayerSubmissions'),fs_get('eventRequests'),fs_get('dailyReflection'),fs_get('familyRegistrations'),fs_get('contactRequests'),fs_get('councilInquiries'),fs_get('funeralPlanningSubmissions')]);
       const pendingPrayers = (prayerSubs.documents||[]).filter(d=>gf(d,'status')==='pending');
       const prayerBadge = document.getElementById('prayer-sub-count');
       if (prayerBadge) { prayerBadge.textContent = pendingPrayers.length; prayerBadge.style.display = pendingPrayers.length > 0 ? '' : 'none'; }
@@ -2784,6 +2792,9 @@
       const pendingCouncilInqs = (councilInqs.documents||[]).filter(d=>gf(d,'status')==='pending');
       const councilInqBadge = document.getElementById('council-inq-count');
       if (councilInqBadge) { councilInqBadge.textContent = pendingCouncilInqs.length; councilInqBadge.style.display = pendingCouncilInqs.length > 0 ? '' : 'none'; }
+      const pendingFuneralPlans = (funeralPlans.documents||[]).filter(d=>gf(d,'status')==='pending');
+      const funeralPlanBadge = document.getElementById('funeral-plan-count');
+      if (funeralPlanBadge) { funeralPlanBadge.textContent = pendingFuneralPlans.length; funeralPlanBadge.style.display = pendingFuneralPlans.length > 0 ? '' : 'none'; }
       document.getElementById('stat-members').textContent = approved.length;
       document.getElementById('stat-pending').textContent = pending.length;
       document.getElementById('stat-partners').textContent = preqs.length;
@@ -6152,6 +6163,60 @@
       showToast('Marked handled.', 'success');
       loadCouncilInquiries();
     } catch(e) { showToast('Error updating.', 'error'); }
+  }
+
+  // ── FUNERAL PLANNING FORMS ──
+  async function loadFuneralPlanning() {
+    const list = document.getElementById('funeral-planning-list');
+    list.innerHTML = '<div style="color:var(--dusty-rose);font-size:14px;">Loading...</div>';
+    try {
+      const res = await fs_get('funeralPlanningSubmissions');
+      const docs = (res.documents||[]).filter(d => gf(d,'status') === 'pending')
+        .sort((a,b) => gf(b,'createdAt').localeCompare(gf(a,'createdAt')));
+      const badge = document.getElementById('funeral-plan-count');
+      if (docs.length > 0) { badge.style.display = ''; badge.textContent = docs.length; }
+      else { badge.style.display = 'none'; }
+      if (docs.length === 0) { list.innerHTML = '<div style="color:var(--dusty-rose);font-size:14px;padding:12px;">No pending funeral planning forms.</div>'; return; }
+      list.innerHTML = docs.map(doc => {
+        const id = docId(doc);
+        const name = gf(doc, 'deceasedName') || 'Unnamed';
+        const contactPerson = gf(doc, 'contactPerson');
+        const contactEmail = gf(doc, 'contactEmail');
+        const contactPhone = gf(doc, 'contactPhone');
+        const summary = gf(doc, 'summary') || '(no details captured)';
+        const date = new Date(gf(doc,'createdAt')||'').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'});
+        const contactLine = [contactPerson, contactEmail, contactPhone].filter(Boolean).map(escHtml).join(' · ');
+        return '<div id="fplan-' + id + '" style="padding:16px;border-bottom:1px solid var(--linen);">' +
+          '<div style="font-family:\'Cinzel\',serif;font-size:14px;color:var(--burgundy);margin-bottom:2px;">Funeral of ' + escHtml(name) + '</div>' +
+          (contactLine ? '<div style="font-size:11px;color:var(--dusty-rose);margin-bottom:2px;">' + contactLine + '</div>' : '') +
+          '<div style="font-size:11px;color:var(--dusty-rose);margin-bottom:10px;">' + date + '</div>' +
+          '<pre style="font-family:\'Faustina\',serif;font-size:13px;color:var(--soil);line-height:1.6;margin-bottom:12px;padding:12px;background:var(--sand);border-radius:6px;white-space:pre-wrap;word-break:break-word;">' + escHtml(summary) + '</pre>' +
+          '<div style="display:flex;gap:8px;">' +
+          '<button class="btn btn-primary btn-sm" onclick="markFuneralPlanningHandled(\'' + id + '\')">Mark Handled</button>' +
+          '<button class="btn btn-outline btn-sm" onclick="deleteFuneralPlanning(\'' + id + '\',\'' + escAttr(name) + '\')">Delete</button>' +
+          '</div>' +
+        '</div>';
+      }).join('');
+    } catch(e) { list.innerHTML = '<div style="color:var(--dusty-rose);font-size:14px;">Error loading.</div>'; }
+  }
+
+  async function markFuneralPlanningHandled(id) {
+    try {
+      await fs_patch('funeralPlanningSubmissions/' + id, {status: {stringValue: 'handled'}});
+      document.getElementById('fplan-' + id)?.remove();
+      showToast('Marked handled.', 'success');
+      loadFuneralPlanning();
+    } catch(e) { showToast('Error updating.', 'error'); }
+  }
+
+  async function deleteFuneralPlanning(id, name) {
+    if (!confirm('Delete the funeral planning form for ' + name + '? This cannot be undone.')) return;
+    try {
+      await fs_delete('funeralPlanningSubmissions/' + id);
+      document.getElementById('fplan-' + id)?.remove();
+      showToast('Deleted.', 'success');
+      loadFuneralPlanning();
+    } catch(e) { showToast('Error deleting.', 'error'); }
   }
 
   async function saveWelcomeMessage() {
