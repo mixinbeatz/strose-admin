@@ -379,6 +379,7 @@
       <div class="nav-section-toggle collapsed owner-admin-only" style="display:none" onclick="toggleNavSection(this)"><span>Staff &amp; Access</span><span class="nav-chevron">▾</span></div>
       <div class="nav-group collapsed">
         <div class="nav-item owner-admin-only" style="display:none" onclick="showPage('onboard-leader',this)"><span class="nav-icon">🔑</span> Onboard Ministry Leader</div>
+        <div class="nav-item owner-admin-only" style="display:none" onclick="showPage('onboard-council',this)"><span class="nav-icon">🏛️</span> Onboard Council Lead</div>
         <div class="nav-item owner-admin-only" style="display:none" onclick="showPage('leader-tracker',this);loadLeaderTracker()"><span class="nav-icon">📋</span> Ministry Leaders</div>
       </div>
     </nav>
@@ -1291,6 +1292,37 @@
           </div>
         </div>
       </div>
+
+      <!-- ONBOARD COUNCIL LEAD -->
+      <div class="page" id="page-onboard-council">
+        <div class="card">
+          <div class="card-title">🏛️ Onboard Council Lead</div>
+          <div class="info-box">Gives one person "lead" access to a single council's inquiries -- they'll see and reply to questions for that council from the app's Me tab. This looks the person up by email first: if they already have an account (member, ministry leader, staff...), it just <strong>adds</strong> council-lead access on top of what they have (no new invite). If they don't, it creates an account and sends a password-set invite, same as Onboard Ministry Leader.</div>
+          <div class="form-group">
+            <label class="form-label">Email *</label>
+            <input type="email" class="form-input" id="oc-email" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Council *</label>
+            <select class="form-select" id="oc-council">
+              <option value="pastoralCouncil">Pastoral Council</option>
+              <option value="financeCouncil">Finance Council</option>
+              <option value="developmentCouncil">Development Council</option>
+            </select>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-primary" id="oc-submit-btn" onclick="onboardCouncilLead()">Grant Council-Lead Access</button>
+            <button class="btn btn-outline" onclick="clearOnboardCouncilForm()">Clear</button>
+          </div>
+          <div class="post-success" id="oc-success" style="display:none;"></div>
+          <div id="oc-letter-box" style="display:none;margin-top:16px;padding:16px;background:var(--sand);border-radius:8px;">
+            <div style="font-family:'Cinzel',serif;font-size:13px;color:var(--burgundy);margin-bottom:8px;" id="oc-letter-title">Heads-up note</div>
+            <div style="font-size:13px;color:var(--soil);margin-bottom:10px;" id="oc-letter-sub">Drafted in Gmail -- review it, then send it yourself.</div>
+            <button class="btn btn-outline" id="oc-letter-btn">📧 Open in Gmail</button>
+          </div>
+        </div>
+      </div>
+
       <!-- MINISTRY LEADER TRACKER -->
       <div class="page" id="page-leader-tracker">
         <div class="card">
@@ -2198,7 +2230,7 @@
     if(el) el.classList.add('active');
     window.scrollTo(0,0);
     closeSidebar();
-    const titles = {dashboard:'Dashboard',events:'Events',announcement:'Post Announcement',fastblast:'Fast Blast',reflection:'Weekly Reflection','parish-development':'Parish Development',daily:'Daily Reflection',songsheet:'Mass Songsheet',welcome:'Welcome Message','hero-media':'Hero Section','welcome-media':'Welcome Section',gallery:'Homepage Gallery','around-parish':'Around the Parish','parish-dev-media':'Parish Development','mass-schedule':'Mass Schedule',councils:'Pastoral, Finance & Development Council','council-inquiries':'Council Inquiries','funeral-planning':'Funeral Planning Forms','music-ministry':'Music Ministry','music-members':'Music Ministry Members',approvals:'Parish Family Approvals',partners:'Partner Requests',directory:'Parish Family Directory','ministry-post':'Post to Members','cda-members':'My Members','prayer-chain':'Prayer Chain','prayer-submissions':'Prayer Submissions','submit-event':'Submit Event','event-requests':'Event Requests','contact-requests':'Contact Requests',intention:'Mass Intentions','my-ministry':'My Ministry','onboard-leader':'Onboard Ministry Leader','leader-tracker':'Ministry Leaders'};
+    const titles = {dashboard:'Dashboard',events:'Events',announcement:'Post Announcement',fastblast:'Fast Blast',reflection:'Weekly Reflection','parish-development':'Parish Development',daily:'Daily Reflection',songsheet:'Mass Songsheet',welcome:'Welcome Message','hero-media':'Hero Section','welcome-media':'Welcome Section',gallery:'Homepage Gallery','around-parish':'Around the Parish','parish-dev-media':'Parish Development','mass-schedule':'Mass Schedule',councils:'Pastoral, Finance & Development Council','council-inquiries':'Council Inquiries','funeral-planning':'Funeral Planning Forms','onboard-council':'Onboard Council Lead','music-ministry':'Music Ministry','music-members':'Music Ministry Members',approvals:'Parish Family Approvals',partners:'Partner Requests',directory:'Parish Family Directory','ministry-post':'Post to Members','cda-members':'My Members','prayer-chain':'Prayer Chain','prayer-submissions':'Prayer Submissions','submit-event':'Submit Event','event-requests':'Event Requests','contact-requests':'Contact Requests',intention:'Mass Intentions','my-ministry':'My Ministry','onboard-leader':'Onboard Ministry Leader','leader-tracker':'Ministry Leaders'};
     document.getElementById('page-title').textContent = titles[id]||id;
     var mpt = document.getElementById('mobile-page-title'); if(mpt) mpt.textContent = titles[id]||id;
     if(id==='approvals') loadApprovals();
@@ -3434,6 +3466,107 @@
   function ministryDisplayName(id) {
     return MINISTRY_NAME_MAP[id] || (id.charAt(0).toUpperCase() + id.slice(1) + ' Ministry');
   }
+
+  // ── ONBOARD COUNCIL LEAD ──
+  const ONBOARD_COUNCIL_LABELS = { pastoralCouncil: 'Pastoral Council', financeCouncil: 'Finance Council', developmentCouncil: 'Development Council' };
+  function clearOnboardCouncilForm() {
+    document.getElementById('oc-email').value = '';
+    document.getElementById('oc-council').value = 'pastoralCouncil';
+    document.getElementById('oc-success').style.display = 'none';
+    document.getElementById('oc-letter-box').style.display = 'none';
+  }
+  async function onboardCouncilLead() {
+    const email = document.getElementById('oc-email').value.trim();
+    const councilId = document.getElementById('oc-council').value;
+    const councilLabel = ONBOARD_COUNCIL_LABELS[councilId] || councilId;
+    if (!email) { showToast('Please enter an email.', 'error'); return; }
+
+    const btn = document.getElementById('oc-submit-btn');
+    btn.disabled = true;
+    btn.textContent = 'Looking up account...';
+    try {
+      const res = await fetch(FUNCTIONS_BASE + '/grantCouncilLead', {
+        method: 'POST',
+        headers: await authHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ email, councilId })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Could not grant council-lead access.');
+
+      const successEl = document.getElementById('oc-success');
+      const letterBox = document.getElementById('oc-letter-box');
+      const letterTitle = document.getElementById('oc-letter-title');
+      const letterSub = document.getElementById('oc-letter-sub');
+      const letterBtn = document.getElementById('oc-letter-btn');
+      const NL = String.fromCharCode(10);
+
+      if (data.mode === 'merged') {
+        // Existing account -- access added on top. No invite, just a heads-up.
+        successEl.innerHTML = escHtml(data.email) + ' already had an account -- <strong>' + escHtml(councilLabel) + '</strong> lead access has been added on top of their existing access. Send them a quick heads-up below.';
+        successEl.style.display = 'block';
+        showToast('Council-lead access added.', 'success');
+        const subject = "You're now a " + councilLabel + " lead in the Saint Rose app";
+        const lines = [
+          'Hi,',
+          '',
+          "I've just given your Saint Rose account lead access for the " + councilLabel + ".",
+          '',
+          'Nothing to set up -- next time you open the app and go to the Me tab, you\'ll see a "Council Inquiries" panel with any questions parishioners have sent to the ' + councilLabel + '. You can reply with a one-tap "we\'ll discuss this at the next meeting" or type a custom answer, and the person who asked gets your reply in the app.',
+          '',
+          'Let me know if you have any questions.',
+          '',
+          'Thanks!',
+          'Mark'
+        ];
+        letterTitle.textContent = 'Heads-up note';
+        letterSub.textContent = 'Drafted in Gmail -- review it, then send it yourself.';
+        const gmailUrl = 'https://mail.google.com/mail/?view=cm&fs=1&to=' + encodeURIComponent(data.email) + '&su=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(lines.join(NL));
+        letterBtn.onclick = () => window.open(gmailUrl, '_blank');
+        letterBox.style.display = 'block';
+      } else {
+        // New account -- send the password-set invite, then draft the welcome letter.
+        btn.textContent = 'Sending invite...';
+        const inviteRes = await fetch('https://identitytoolkit.googleapis.com/v1/accounts:sendOobCode?key=' + API_KEY, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ requestType: 'PASSWORD_RESET', email: email })
+        });
+        const inviteData = await inviteRes.json();
+        if (!inviteRes.ok) throw new Error((inviteData.error && inviteData.error.message) || 'Account created, but the invite email failed to send.');
+
+        successEl.innerHTML = 'A new account was created for ' + escHtml(email) + ' as a <strong>' + escHtml(councilLabel) + '</strong> lead. A password-set email has been sent automatically.';
+        successEl.style.display = 'block';
+        showToast('Account created and invite sent!', 'success');
+
+        const subject = 'Welcome as a ' + councilLabel + ' lead — Saint Rose app';
+        const lines = [
+          'Hi,',
+          '',
+          'Welcome aboard as a ' + councilLabel + ' lead. We are glad to have you.',
+          '',
+          'In a separate email from Firebase (noreply@saint-rose-anthem.firebaseapp.com), you will get a link to set a password for the account we just created for you (' + email + '). That is not spam.',
+          '',
+          'Once your password is set, sign in with that email inside the Saint Rose app (Me tab). You will then see a "Council Inquiries" panel with questions parishioners have sent to the ' + councilLabel + ', where you can reply -- either with a one-tap "we will discuss this at the next meeting" or a custom answer.',
+          '',
+          'Let me know if you have any trouble getting in.',
+          '',
+          'Welcome to the team!',
+          'Mark'
+        ];
+        letterTitle.textContent = 'Welcome letter';
+        letterSub.textContent = 'Drafted and ready in Gmail -- review it, then hit send yourself.';
+        const gmailUrl = 'https://mail.google.com/mail/?view=cm&fs=1&to=' + encodeURIComponent(email) + '&su=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(lines.join(NL));
+        letterBtn.onclick = () => window.open(gmailUrl, '_blank');
+        letterBox.style.display = 'block';
+      }
+    } catch (err) {
+      showToast(err.message || 'Something went wrong.', 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = 'Grant Council-Lead Access';
+    }
+  }
+
   async function onboardLeader() {
     const name = document.getElementById('ol-name').value.trim();
     const email = document.getElementById('ol-email').value.trim();
