@@ -1924,6 +1924,11 @@
           <div class="info-box">Review each business and approve or decline on behalf of Saint Rose Parish. Your approval means this business is a good fit for the community. Sacred Apps will handle payment and final activation after your approval.</div>
           <div id="partners-list"><div style="color:var(--dusty-rose);font-size:14px;">Loading...</div></div>
         </div>
+        <div class="card">
+          <div class="card-title">📇 Published Advertisers</div>
+          <div class="info-box">Approving a request above publishes the business into the public Advertiser Directory on the website. Pause a listing to hide it from the site without deleting it (e.g. a lapsed subscription); reactivate or edit its details any time.</div>
+          <div id="advertisers-list"><div style="color:var(--dusty-rose);font-size:14px;">Loading...</div></div>
+        </div>
       </div>
       <!-- FAMILY REGISTRATIONS -->
       <div class="page" id="page-family-registrations">
@@ -3837,6 +3842,7 @@
 
   // ── PARTNERS ──
   async function loadPartners() {
+    loadAdvertisers();
     const list=document.getElementById('partners-list');
     list.innerHTML='<div style="color:var(--dusty-rose);font-size:14px;">Loading...</div>';
     try {
@@ -3860,14 +3866,133 @@
     } catch(e){list.innerHTML='<div style="color:var(--danger);">Error loading.</div>';}
   }
 
+  // Maps an approved partnerRequests doc onto the canonical `advertisers`
+  // collection that advertisers.html (public website) reads. Field names are
+  // chosen so the website's card renderer needs no rewrite: name/category/tier/
+  // tagline/description/discount/phone/website line up 1:1 with what it expects.
+  // Business-facing contact (phone, website, address) plus image URLs and badges
+  // are carried for the directory's use. The submitter's personal name + email
+  // are deliberately NOT copied here — this collection is world-readable; that
+  // PII stays on the staff-only partnerRequests doc, reachable via
+  // sourceRequestId. `tier` is normalised to premium|standard — the only two
+  // tiers the website renders (Parish Pro maps to standard).
+  function advertiserFieldsFromRequest(doc, requestId){
+    const s=k=>{const v=gf(doc,k);return typeof v==='string'?v:'';};
+    const b=k=>gf(doc,k)===true;
+    const rawTier=s('tier')||'standard';
+    const tier=rawTier.toLowerCase().includes('premium')?'premium':'standard';
+    return {
+      name:{stringValue:s('businessName')},
+      category:{stringValue:s('category')},
+      tier:{stringValue:tier},
+      tierPlan:{stringValue:rawTier},
+      tagline:{stringValue:s('tagline')},
+      description:{stringValue:s('description')},
+      discount:{stringValue:s('discount')},
+      phone:{stringValue:s('phone')},
+      website:{stringValue:s('website')},
+      address:{stringValue:s('address')},
+      smsNumber:{stringValue:s('smsNumber')},
+      specialties:{stringValue:s('specialties')},
+      parishionerOwned:{booleanValue:b('parishionerOwned')},
+      afterHours:{booleanValue:b('afterHours')},
+      acceptTexts:{booleanValue:b('acceptTexts')},
+      logoUrl:{stringValue:s('logoUrl')},
+      modalHeroUrl:{stringValue:s('modalHeroUrl')},
+      modalLogoUrl:{stringValue:s('modalLogoUrl')},
+      photoUrl:{stringValue:s('photoUrl')},
+      active:{booleanValue:true},
+      publishedAt:{stringValue:new Date().toISOString()},
+      sourceRequestId:{stringValue:requestId}
+    };
+  }
+
   async function approvePartner(id,name){
-    try{await fs_patch(`partnerRequests/${id}`,{parishApproved:{booleanValue:true},parishApprovedAt:{stringValue:new Date().toISOString()},status:{stringValue:'parish_approved'}});document.getElementById(`partner-${id}`)?.remove();showToast(`${name} approved — Sacred Apps will handle activation.`,'success');loadDashboard();}
-    catch(e){showToast('Error.','error');}
+    try{
+      const doc=await fs_get_doc(`partnerRequests/${id}`);
+      await fs_post('advertisers',advertiserFieldsFromRequest(doc,id));
+      await fs_patch(`partnerRequests/${id}`,{parishApproved:{booleanValue:true},parishApprovedAt:{stringValue:new Date().toISOString()},status:{stringValue:'parish_approved'}});
+      document.getElementById(`partner-${id}`)?.remove();
+      showToast(`${name} approved and published to the directory.`,'success');
+      loadDashboard();loadAdvertisers();
+    }
+    catch(e){showToast('Error approving partner.','error');}
   }
   async function declinePartner(id,name){
     if(!confirm(`Decline ${name}'s request?`))return;
     try{await fs_patch(`partnerRequests/${id}`,{parishApproved:{booleanValue:false},status:{stringValue:'parish_declined'}});document.getElementById(`partner-${id}`)?.remove();showToast(`${name} declined.`,'success');}
     catch(e){showToast('Error.','error');}
+  }
+
+  // ── PUBLISHED ADVERTISERS (canonical `advertisers` collection) ──
+  async function loadAdvertisers() {
+    const list=document.getElementById('advertisers-list');
+    if(!list) return;
+    list.innerHTML='<div style="color:var(--dusty-rose);font-size:14px;">Loading...</div>';
+    try {
+      const res=await fs_get('advertisers');
+      const docs=res.documents||[];
+      if(docs.length===0){list.innerHTML=`<div class="empty-state"><div class="empty-icon">📇</div><div class="empty-title">No published advertisers yet</div><div class="empty-sub">Approving a partner request above publishes it here.</div></div>`;return;}
+      docs.sort((a,b)=>String(gf(a,'name')).localeCompare(String(gf(b,'name'))));
+      const av=s=>escHtml(s).replace(/"/g,'&quot;');  // value="" attribute escape
+      list.innerHTML=docs.map(doc=>{
+        const id=docId(doc);
+        const name=gf(doc,'name'),cat=gf(doc,'category'),tier=(gf(doc,'tier')||'standard');
+        const active=gf(doc,'active')!==false;
+        const tagline=gf(doc,'tagline'),desc=gf(doc,'description'),discount=gf(doc,'discount'),phone=gf(doc,'phone'),website=gf(doc,'website');
+        const isPremium=String(tier).toLowerCase()==='premium';
+        return `<div class="partner-card" id="advertiser-${id}" style="${active?'':'opacity:0.55;'}">
+          <div class="partner-card-header">
+            <div class="partner-name">${escHtml(name)}${active?'':' <span style="font-size:12px;color:var(--danger);">· paused</span>'}</div>
+            <span class="tier-badge ${isPremium?'tier-premium':'tier-standard'}">${isPremium?'Premium':'Standard'}</span>
+          </div>
+          <div class="partner-meta">${escHtml(cat)}${phone?' · '+escHtml(phone):''}${website?' · '+escHtml(website):''}</div>
+          ${desc?`<div class="partner-desc">${escHtml(desc)}</div>`:''}
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn btn-outline btn-sm" onclick="toggleAdvertiserActive('${id}',${active})">${active?'⏸ Pause':'▶ Reactivate'}</button>
+            <button class="btn btn-outline btn-sm" onclick="const b=document.getElementById('adedit-${id}');b.style.display=b.style.display==='none'?'block':'none';">✎ Edit details</button>
+          </div>
+          <div id="adedit-${id}" style="display:none;margin-top:12px;border-top:1px solid var(--linen);padding-top:12px;">
+            <div class="form-group"><label class="form-label">Business Name</label><input class="form-input" id="ad-${id}-name" value="${av(name)}"></div>
+            <div class="form-group"><label class="form-label">Category</label><input class="form-input" id="ad-${id}-category" value="${av(cat)}"></div>
+            <div class="form-group"><label class="form-label">Tier</label><select class="form-select" id="ad-${id}-tier"><option value="premium"${isPremium?' selected':''}>Premium</option><option value="standard"${isPremium?'':' selected'}>Standard</option></select></div>
+            <div class="form-group"><label class="form-label">Tagline (premium)</label><input class="form-input" id="ad-${id}-tagline" value="${av(tagline)}"></div>
+            <div class="form-group"><label class="form-label">Description</label><textarea class="form-textarea" id="ad-${id}-description">${escHtml(desc)}</textarea></div>
+            <div class="form-group"><label class="form-label">Special Offer (premium)</label><input class="form-input" id="ad-${id}-discount" value="${av(discount)}"></div>
+            <div class="form-group"><label class="form-label">Phone</label><input class="form-input" id="ad-${id}-phone" value="${av(phone)}"></div>
+            <div class="form-group"><label class="form-label">Website</label><input class="form-input" id="ad-${id}-website" value="${av(website)}"></div>
+            <button class="btn btn-success btn-sm" onclick="saveAdvertiser('${id}')">Save changes</button>
+          </div>
+        </div>`;
+      }).join('');
+    } catch(e){list.innerHTML='<div style="color:var(--danger);">Error loading advertisers.</div>';}
+  }
+
+  async function toggleAdvertiserActive(id,cur){
+    try{
+      await fs_patch(`advertisers/${id}`,{active:{booleanValue:!cur}});
+      showToast(cur?'Advertiser paused — now hidden from the website directory.':'Advertiser reactivated — now visible on the website.','success');
+      loadAdvertisers();
+    }catch(e){showToast('Error updating advertiser.','error');}
+  }
+
+  async function saveAdvertiser(id){
+    try{
+      const v=k=>document.getElementById(`ad-${id}-${k}`).value.trim();
+      await fs_patch(`advertisers/${id}`,{
+        name:{stringValue:v('name')},
+        category:{stringValue:v('category')},
+        tier:{stringValue:v('tier')},
+        tagline:{stringValue:v('tagline')},
+        description:{stringValue:v('description')},
+        discount:{stringValue:v('discount')},
+        phone:{stringValue:v('phone')},
+        website:{stringValue:v('website')},
+        updatedAt:{stringValue:new Date().toISOString()}
+      });
+      showToast('Advertiser updated.','success');
+      loadAdvertisers();
+    }catch(e){showToast('Error saving advertiser.','error');}
   }
 
   // ── FAMILY REGISTRATIONS ──
