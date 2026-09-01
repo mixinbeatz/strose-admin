@@ -347,8 +347,6 @@
         <div class="nav-item ministry-only" style="display:none" onclick="showPage('my-ministry',this);loadMyMinistry()"><span class="nav-icon">⛪</span> My Ministry</div>
         <div class="nav-item ministry-only" style="display:none" onclick="showPage('ministry-post',this);loadMinistryPosts()"><span class="nav-icon">✝️</span> Post to Members</div>
         <div class="nav-item ministry-only" style="display:none" onclick="showPage('cda-members',this)"><span class="nav-icon">👥</span> My Members</div>
-        <div class="nav-item ministry-only" style="display:none" onclick="showPage('prayer-chain',this)"><span class="nav-icon">🙏</span> Prayer Chain</div>
-        <div class="nav-item ministry-only" style="display:none" onclick="showPage('prayer-submissions',this)"><span class="nav-icon">📬</span> Submissions <span class="nav-badge" id="prayer-sub-count" style="display:none">0</span></div>
         <div class="nav-item ministry-only" style="display:none" onclick="showPage('submit-event',this)"><span class="nav-icon">📅</span> Submit Event</div>
         </div>
       </div>
@@ -1846,69 +1844,6 @@
         </div>
       </div>
 
-      <!-- PRAYER CHAIN -->
-      <div class="page" id="page-prayer-chain">
-        <div class="card">
-          <div class="card-title">🙏 Prayer Chain</div>
-          <div class="info-box">Post an active prayer request to the app Home screen. Parishioners will see it when they open the app.</div>
-          <div class="form-group">
-            <label class="form-label">Title <span style="color:#8B2635">*</span></label>
-            <input type="text" class="form-input" id="pr-title" placeholder="e.g. Prayer for Kit Lee" />
-          </div>
-          <div class="form-group">
-            <label class="form-label">Prayer Request <span style="color:#8B2635">*</span></label>
-            <textarea class="form-input" id="pr-body" rows="8" placeholder="Full prayer request text..."></textarea>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Expires</label>
-            <div style="display:flex;gap:8px;flex-wrap:wrap;">
-              <button class="btn btn-outline btn-sm pr-expiry" onclick="setPrExpiry(this,'3d')">3 Days</button>
-              <button class="btn btn-outline btn-sm pr-expiry active-expiry" onclick="setPrExpiry(this,'7d')">7 Days</button>
-              <button class="btn btn-outline btn-sm pr-expiry" onclick="setPrExpiry(this,'30d')">30 Days</button>
-            </div>
-          </div>
-          <div class="btn-row">
-            <button class="btn btn-primary" onclick="postPrayerRequest()">Post to App</button>
-            <button class="btn btn-outline" onclick="emailPrayerChain()">📧 Email Prayer Chain</button>
-          </div>
-          <div class="post-success" id="pr-success">✓ Prayer request posted to app.</div>
-        </div>
-        <div class="card" style="margin-top:16px;">
-          <div class="card-title">📋 Active Prayer Requests</div>
-          <div class="info-box">Currently live on the app Home screen. You can delete or update the expiry.</div>
-          <div style="margin-bottom:8px;">
-            <button class="btn btn-outline btn-sm" onclick="loadActivePrayers()">🔄 Refresh</button>
-          </div>
-          <div id="active-prayers-list"><div style="color:var(--dusty-rose);font-size:13px;">Click Refresh to load.</div></div>
-        </div>
-        <div class="card" style="margin-top:16px;">
-          <div class="card-title">📬 Email Prayer Chain</div>
-          <div class="info-box">Opens Gmail with the prayer chain list in BCC. Members reply only to you.</div>
-          <div class="form-group">
-            <label class="form-label">Subject</label>
-            <input type="text" class="form-input" id="pc-subject" placeholder="e.g. Urgent Prayer Request" />
-          </div>
-          <div class="form-group">
-            <label class="form-label">Message</label>
-            <textarea class="form-input" id="pc-body" rows="8" placeholder="Prayer request text..."></textarea>
-          </div>
-          <div class="btn-row">
-            <button class="btn btn-outline" onclick="emailPrayerChain()">📧 Open in Gmail</button>
-          </div>
-        </div>
-      </div>
-
-      <!-- ACTIVE PRAYERS card added to prayer-chain page -->
-
-      <!-- PRAYER SUBMISSIONS -->
-      <div class="page" id="page-prayer-submissions">
-        <div class="card">
-          <div class="card-title">🙏 Pending Prayer Requests</div>
-          <div class="info-box">Prayer requests submitted through the app. Review and post to the app, or dismiss.</div>
-          <div id="prayer-submissions-list"><div style="color:var(--dusty-rose);font-size:14px;">Loading...</div></div>
-        </div>
-      </div>
-
       <!-- APPROVALS -->
       <div class="page" id="page-approvals">
         <div class="card">
@@ -2235,14 +2170,12 @@
     if(el) el.classList.add('active');
     window.scrollTo(0,0);
     closeSidebar();
-    const titles = {dashboard:'Dashboard',events:'Events',announcement:'Post Announcement',fastblast:'Fast Blast',reflection:'Weekly Reflection','parish-development':'Parish Development',daily:'Daily Reflection',songsheet:'Mass Songsheet',welcome:'Welcome Message','hero-media':'Hero Section','welcome-media':'Welcome Section',gallery:'Homepage Gallery','around-parish':'Around the Parish','parish-dev-media':'Parish Development','mass-schedule':'Mass Schedule',councils:'Pastoral, Finance & Development Council','council-inquiries':'Council Inquiries','funeral-planning':'Funeral Planning Forms','onboard-council':'Onboard Council Lead','music-ministry':'Music Ministry','music-members':'Music Ministry Members',approvals:'Parish Family Approvals',partners:'Partner Requests',directory:'Parish Family Directory','ministry-post':'Post to Members','cda-members':'My Members','prayer-chain':'Prayer Chain','prayer-submissions':'Prayer Submissions','submit-event':'Submit Event','event-requests':'Event Requests','contact-requests':'Contact Requests',intention:'Mass Intentions','my-ministry':'My Ministry','onboard-leader':'Onboard Ministry Leader','leader-tracker':'Ministry Leaders'};
+    const titles = {dashboard:'Dashboard',events:'Events',announcement:'Post Announcement',fastblast:'Fast Blast',reflection:'Weekly Reflection','parish-development':'Parish Development',daily:'Daily Reflection',songsheet:'Mass Songsheet',welcome:'Welcome Message','hero-media':'Hero Section','welcome-media':'Welcome Section',gallery:'Homepage Gallery','around-parish':'Around the Parish','parish-dev-media':'Parish Development','mass-schedule':'Mass Schedule',councils:'Pastoral, Finance & Development Council','council-inquiries':'Council Inquiries','funeral-planning':'Funeral Planning Forms','onboard-council':'Onboard Council Lead','music-ministry':'Music Ministry','music-members':'Music Ministry Members',approvals:'Parish Family Approvals',partners:'Partner Requests',directory:'Parish Family Directory','ministry-post':'Post to Members','cda-members':'My Members','submit-event':'Submit Event','event-requests':'Event Requests','contact-requests':'Contact Requests',intention:'Mass Intentions','my-ministry':'My Ministry','onboard-leader':'Onboard Ministry Leader','leader-tracker':'Ministry Leaders'};
     document.getElementById('page-title').textContent = titles[id]||id;
     var mpt = document.getElementById('mobile-page-title'); if(mpt) mpt.textContent = titles[id]||id;
     if(id==='approvals') loadApprovals();
     if(id==='partners') loadPartners();
     if(id==='directory') loadDirectory();
-    if(id==='prayer-submissions') loadPrayerSubmissions();
-    if(id==='prayer-chain') loadActivePrayers();
     if(id==='announcement') loadActiveAnnouncements();
     if(id==='fastblast') loadScheduledFastBlasts();
     if(id==='reflection') loadCurrentReflection();
@@ -2810,10 +2743,7 @@
 
   async function loadDashboard() {
     try {
-      const [fam,parts,ref,prayerSubs,eventReqs,dailyRef,familyRegs,contactReqs,councilInqs,funeralPlans] = await Promise.all([fs_get('parishFamily'),fs_get('partnerRequests'),fs_get('weeklyReflection'),fs_get('prayerSubmissions'),fs_get('eventRequests'),fs_get('dailyReflection'),fs_get('familyRegistrations'),fs_get('contactRequests'),fs_get('councilInquiries'),fs_get('funeralPlanningSubmissions')]);
-      const pendingPrayers = (prayerSubs.documents||[]).filter(d=>gf(d,'status')==='pending');
-      const prayerBadge = document.getElementById('prayer-sub-count');
-      if (prayerBadge) { prayerBadge.textContent = pendingPrayers.length; prayerBadge.style.display = pendingPrayers.length > 0 ? '' : 'none'; }
+      const [fam,parts,ref,eventReqs,dailyRef,familyRegs,contactReqs,councilInqs,funeralPlans] = await Promise.all([fs_get('parishFamily'),fs_get('partnerRequests'),fs_get('weeklyReflection'),fs_get('eventRequests'),fs_get('dailyReflection'),fs_get('familyRegistrations'),fs_get('contactRequests'),fs_get('councilInquiries'),fs_get('funeralPlanningSubmissions')]);
       const pendingFamilyRegs = (familyRegs.documents||[]).filter(d=>!gf(d,'reviewed'));
       const familyRegBadge = document.getElementById('familyreg-count');
       if (familyRegBadge) { familyRegBadge.textContent = pendingFamilyRegs.length; familyRegBadge.style.display = pendingFamilyRegs.length > 0 ? '' : 'none'; }
@@ -5590,7 +5520,6 @@
 
   // Ministry expiry state
   let mpExpiry = 7;
-  let prExpiry = '7d';
   function updateMpExpiryLabel(val) {
     mpExpiry = parseInt(val, 10);
     document.getElementById('mp-expiry-days-label').textContent = mpExpiry;
@@ -5603,7 +5532,6 @@
   } else {
     updateMpExpiryLabel(7);
   }
-  function setPrExpiry(el, val) { prExpiry = val; document.querySelectorAll('.pr-expiry').forEach(b=>b.classList.remove('active-expiry')); el.classList.add('active-expiry'); }
 
   function getExpiryDate(code) {
     const d = new Date();
@@ -5639,28 +5567,6 @@
       document.getElementById('mp-body').value = '';
       showToast('Message posted!', 'success');
       loadMinistryPosts();
-    } catch(e) { showToast('Error posting.', 'error'); }
-  }
-
-  async function postPrayerRequest() {
-    const title = document.getElementById('pr-title').value.trim();
-    const body = document.getElementById('pr-body').value.trim();
-    if (!title || !body) { showToast('Title and message required.', 'error'); return; }
-    try {
-      const data = await fs_post('prayerRequests', {
-        title: {stringValue: title},
-        body: {stringValue: body},
-        postedBy: {stringValue: 'Nancy Poniatowski'},
-        expiresAt: {stringValue: getExpiryDate(prExpiry)},
-        createdAt: {stringValue: new Date().toISOString()}
-      });
-      if (data.name) {
-        document.getElementById('pr-success').style.display = 'block';
-        setTimeout(()=>document.getElementById('pr-success').style.display='none',3000);
-        document.getElementById('pr-title').value = '';
-        document.getElementById('pr-body').value = '';
-        showToast('Prayer request posted!', 'success');
-      } else { showToast('Error posting.', 'error'); }
     } catch(e) { showToast('Error posting.', 'error'); }
   }
 
@@ -6161,14 +6067,6 @@
     window.open(url, '_blank');
   }
 
-  function emailPrayerChain() {
-    const subject = document.getElementById('pc-subject')?.value.trim() || document.getElementById('pr-title')?.value.trim() || 'Prayer Chain Request';
-    const body = document.getElementById('pc-body')?.value.trim() || document.getElementById('pr-body')?.value.trim() || '';
-    const bcc = 'nponiato@gmail.com';
-    const url = 'https://mail.google.com/mail/?view=cm&fs=1&to=nponiato@gmail.com&bcc=' + encodeURIComponent(bcc) + '&su=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
-    window.open(url, '_blank');
-  }
-
   async function loadActiveAnnouncements(targetId) {
     targetId = targetId || 'active-announcements-list';
     const list = document.getElementById(targetId);
@@ -6220,129 +6118,6 @@
       document.querySelectorAll('[data-ann-id="' + id + '"]').forEach(el => el.remove());
       showToast('Announcement deleted.', 'success');
     } catch(e) { showToast('Error deleting: ' + e.message, 'error'); }
-  }
-
-  async function loadActivePrayers() {
-    const list = document.getElementById('active-prayers-list');
-    list.innerHTML = '<div style="color:var(--dusty-rose);font-size:13px;">Loading...</div>';
-    try {
-      const res = await fs_get('prayerRequests');
-      const now = new Date().toISOString();
-      const docs = (res.documents||[])
-        .filter(d => (d.fields?.expiresAt?.stringValue||'') > now)
-        .sort((a,b) => (b.fields?.createdAt?.stringValue||'').localeCompare(a.fields?.createdAt?.stringValue||''));
-      if (docs.length === 0) { list.innerHTML = '<div style="color:var(--dusty-rose);font-size:13px;padding:8px;">No active prayer requests.</div>'; return; }
-      list.innerHTML = docs.map(doc => {
-        const id = doc.name.split('/').pop();
-        const title = doc.fields?.title?.stringValue || '';
-        const body = doc.fields?.body?.stringValue || '';
-        const expires = new Date(doc.fields?.expiresAt?.stringValue||'').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
-        return `<div id="apr-${id}" style="padding:14px;border-bottom:1px solid var(--linen);">
-          <div style="font-family:'Cinzel',serif;font-size:13px;color:var(--burgundy);margin-bottom:4px;">${title}</div>
-          <div style="font-size:13px;color:var(--soil);line-height:1.5;margin-bottom:8px;">${body.substring(0,120)}${body.length>120?'...':''}</div>
-          <div style="font-size:11px;color:var(--dusty-rose);margin-bottom:8px;">Expires ${expires}</div>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">
-            <select id="apr-expiry-${id}" class="form-input" style="width:auto;font-size:12px;padding:4px 8px;">
-              <option value="1">Extend 1 day</option>
-              <option value="3">Extend 3 days</option>
-              <option value="7" selected>Extend 7 days</option>
-              <option value="14">Extend 14 days</option>
-              <option value="30">Extend 30 days</option>
-            </select>
-            <button class="btn btn-outline btn-sm" onclick="extendPrayer('${id}')">Extend</button>
-            <button class="btn btn-sm" style="background:#8B2635;color:#E8DDD0;border:none;border-radius:6px;padding:4px 12px;cursor:pointer;" onclick="deletePrayer('${id}')">Delete</button>
-          </div>
-        </div>`;
-      }).join('');
-    } catch(e) { list.innerHTML = '<div style="color:var(--dusty-rose);font-size:13px;">Error loading.</div>'; }
-  }
-
-  async function extendPrayer(id) {
-    const days = parseInt(document.getElementById('apr-expiry-' + id)?.value || '7');
-    const newExpiry = new Date(Date.now() + days*24*60*60*1000).toISOString();
-    try {
-      await fs_patch('prayerRequests/' + id, {expiresAt: {stringValue: newExpiry}});
-      showToast('Expiry updated!', 'success');
-      loadActivePrayers();
-    } catch(e) { showToast('Error updating.', 'error'); }
-  }
-
-  async function deletePrayer(id) {
-    if (!confirm('Delete this prayer request from the app?')) return;
-    try {
-      await fs_delete('prayerRequests/' + id);
-      document.getElementById('apr-' + id)?.remove();
-      showToast('Prayer request removed.', 'success');
-    } catch(e) { showToast('Error deleting: ' + e.message, 'error'); }
-  }
-
-  async function loadPrayerSubmissions() {
-    const list = document.getElementById('prayer-submissions-list');
-    list.innerHTML = '<div style="color:var(--dusty-rose);font-size:14px;">Loading...</div>';
-    try {
-      const res = await fs_get('prayerSubmissions');
-      const docs = (res.documents||[]).filter(d => d.fields?.status?.stringValue === 'pending')
-        .sort((a,b) => (b.fields?.createdAt?.stringValue||'').localeCompare(a.fields?.createdAt?.stringValue||''));
-      const badge = document.getElementById('prayer-sub-count');
-      if (docs.length > 0) {
-        badge.style.display = '';
-        badge.textContent = docs.length;
-      } else {
-        badge.style.display = 'none';
-      }
-      if (docs.length === 0) { list.innerHTML = '<div style="color:var(--dusty-rose);font-size:14px;padding:12px;">No pending submissions.</div>'; return; }
-      list.innerHTML = docs.map(doc => {
-        const id = doc.name.split('/').pop();
-        const name = doc.fields?.name?.stringValue || 'Anonymous';
-        const request = doc.fields?.request?.stringValue || '';
-        const date = new Date(doc.fields?.createdAt?.stringValue||'').toLocaleDateString('en-US',{month:'short',day:'numeric',hour:'2-digit',minute:'2-digit'});
-        const escapedRequest = escHtml(request).replace(/`/g,'\`').replace(/\\$/g,'\$');
-        const defaultTitle = 'Prayer Request \u2014 ' + escAttr(name);
-        return `<div id="psub-${id}" style="padding:16px;border-bottom:1px solid var(--linen);">
-          <div style="font-family:'Cinzel',serif;font-size:13px;color:var(--burgundy);margin-bottom:2px;">${escHtml(name)}</div>
-          <div style="font-size:11px;color:var(--dusty-rose);margin-bottom:10px;">${date}</div>
-          <div style="font-size:12px;color:var(--soil);opacity:0.6;margin-bottom:6px;">ORIGINAL REQUEST</div>
-          <div style="font-size:13px;color:var(--soil);line-height:1.6;margin-bottom:12px;padding:8px;background:var(--sand);border-radius:6px;">${escHtml(request)}</div>
-          <div style="font-size:12px;color:var(--burgundy);margin-bottom:4px;">TITLE FOR APP</div>
-          <input type="text" id="psub-title-${id}" value="${defaultTitle}" class="form-input" style="margin-bottom:8px;font-size:13px;" />
-          <div style="font-size:12px;color:var(--burgundy);margin-bottom:4px;">MESSAGE FOR APP</div>
-          <textarea id="psub-body-${id}" class="form-input" rows="4" style="font-size:13px;margin-bottom:12px;">${escapedRequest}</textarea>
-          <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <button class="btn btn-primary btn-sm" onclick="approvePrayerSubmission('${id}')">Post to App</button>
-            <button class="btn btn-outline btn-sm" onclick="dismissPrayerSubmission('${id}')">Dismiss</button>
-          </div>
-        </div>`;
-      }).join('');
-    } catch(e) { list.innerHTML = '<div style="color:var(--dusty-rose);font-size:14px;">Error loading.</div>'; }
-  }
-
-  async function approvePrayerSubmission(id) {
-    try {
-      const title = document.getElementById('psub-title-' + id)?.value.trim() || 'Prayer Request';
-      const body = document.getElementById('psub-body-' + id)?.value.trim() || '';
-      // Post to prayerRequests
-      await fs_post('prayerRequests', {
-        title: {stringValue: title},
-        body: {stringValue: body},
-        postedBy: {stringValue: 'Prayer Chain'},
-        expiresAt: {stringValue: new Date(Date.now() + 7*24*60*60*1000).toISOString()},
-        createdAt: {stringValue: new Date().toISOString()}
-      });
-      // Mark submission as approved
-      await fs_patch('prayerSubmissions/' + id, {status: {stringValue: 'approved'}});
-      document.getElementById('psub-' + id)?.remove();
-      showToast('Posted to app!', 'success');
-      loadPrayerSubmissions();
-    } catch(e) { showToast('Error posting.', 'error'); }
-  }
-
-  async function dismissPrayerSubmission(id) {
-    try {
-      await fs_patch('prayerSubmissions/' + id, {status: {stringValue: 'dismissed'}});
-      document.getElementById('psub-' + id)?.remove();
-      showToast('Dismissed.', 'success');
-      loadPrayerSubmissions();
-    } catch(e) { showToast('Error dismissing.', 'error'); }
   }
 
   async function loadContactRequests() {
