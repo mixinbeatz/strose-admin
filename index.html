@@ -372,6 +372,7 @@
         <div class="nav-item staff-only" onclick="showPage('gallery',this);loadGallery()"><span class="nav-icon">🖼️</span> Homepage Gallery</div>
         <div class="nav-item staff-only" onclick="showPage('around-parish',this);loadAroundParish()"><span class="nav-icon">📸</span> Around the Parish</div>
         <div class="nav-item staff-only" onclick="showPage('parish-dev-media',this);loadParishDevMedia()"><span class="nav-icon">🏗️</span> Parish Development</div>
+        <div class="nav-item staff-only" onclick="showPage('bulletin-images',this);loadBulletinImages()"><span class="nav-icon">🗞️</span> Bulletin Images</div>
         <div class="nav-item staff-only" onclick="showPage('mass-schedule',this);loadMassSchedule()"><span class="nav-icon">⏰</span> Mass Schedule</div>
       </div>
       <div class="nav-section-toggle collapsed owner-admin-only" style="display:none" onclick="toggleNavSection(this)"><span>Staff &amp; Access</span><span class="nav-chevron">▾</span></div>
@@ -1115,6 +1116,47 @@
               Add Photo
               <input type="file" accept="image/*" style="display:none;" onchange="handleParishDevMediaAddPhoto(this)" />
             </label>
+          </div>
+        </div>
+      </div>
+      <div class="page" id="page-bulletin-images">
+        <div class="card">
+          <div class="card-title">🗞️ Bulletin Center Image</div>
+          <div class="info-box">Controls the rotating center image on the printed bulletin. Each week's image is locked in on Friday and never changes after that. Normally the image just advances one step through the rotation pool each week — the two override lists below let you pin a specific image to a recurring feast date or to one particular week. An override never advances the pool, so no rotation slot is skipped.</div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">🔁 Sequential Rotation Pool</div>
+          <div class="info-box">Read-only here — the pool and its position are set by the bulletin page itself. Shown so you can see what's in rotation without opening Firestore.</div>
+          <div id="bi-pool"></div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">📅 Recurring Feast-Date Images</div>
+          <div class="info-box">Pin an image to a month + day (no year). Any week whose Sunday–Saturday span contains that date uses this image. Example: <strong>08-15</strong> for the Assumption.</div>
+          <div id="bi-recurring-list"></div>
+          <div style="border-top:1px solid var(--linen);margin-top:16px;padding-top:16px;">
+            <div style="font-family:'Cinzel',serif;font-size:13px;color:var(--burgundy);margin-bottom:10px;">Add a recurring date</div>
+            <div class="form-group" style="max-width:240px;">
+              <label class="form-label">Month &amp; day</label>
+              <input type="text" class="form-input" id="bi-rec-md" placeholder="MM-DD (e.g. 08-15)" maxlength="5" />
+            </div>
+            <div id="bi-rec-stage"></div>
+          </div>
+        </div>
+
+        <div class="card">
+          <div class="card-title">📌 Manual Per-Week Overrides</div>
+          <div class="info-box">Pin an image to one specific week. Pick <em>any</em> day inside the target week — it's stored against that week's Sunday.</div>
+          <div id="bi-manual-list"></div>
+          <div style="border-top:1px solid var(--linen);margin-top:16px;padding-top:16px;">
+            <div style="font-family:'Cinzel',serif;font-size:13px;color:var(--burgundy);margin-bottom:10px;">Add a week override</div>
+            <div class="form-group" style="max-width:240px;">
+              <label class="form-label">Any day in the target week</label>
+              <input type="date" class="form-input" id="bi-man-date" oninput="renderBiManHint()" />
+              <div id="bi-man-hint" style="font-size:12px;color:var(--dusty-rose);margin-top:6px;"></div>
+            </div>
+            <div id="bi-man-stage"></div>
           </div>
         </div>
       </div>
@@ -2170,7 +2212,7 @@
     if(el) el.classList.add('active');
     window.scrollTo(0,0);
     closeSidebar();
-    const titles = {dashboard:'Dashboard',events:'Events',announcement:'Post Announcement',fastblast:'Fast Blast',reflection:'Weekly Reflection','parish-development':'Parish Development',daily:'Daily Reflection',songsheet:'Mass Songsheet',welcome:'Welcome Message','hero-media':'Hero Section','welcome-media':'Welcome Section',gallery:'Homepage Gallery','around-parish':'Around the Parish','parish-dev-media':'Parish Development','mass-schedule':'Mass Schedule',councils:'Pastoral, Finance & Development Council','council-inquiries':'Council Inquiries','funeral-planning':'Funeral Planning Forms','onboard-council':'Onboard Council Lead','music-ministry':'Music Ministry','music-members':'Music Ministry Members',approvals:'Parish Family Approvals',partners:'Partner Requests',directory:'Parish Family Directory','ministry-post':'Post to Members','cda-members':'My Members','submit-event':'Submit Event','event-requests':'Event Requests','contact-requests':'Contact Requests',intention:'Mass Intentions','my-ministry':'My Ministry','onboard-leader':'Onboard Ministry Leader','leader-tracker':'Ministry Leaders'};
+    const titles = {dashboard:'Dashboard',events:'Events',announcement:'Post Announcement',fastblast:'Fast Blast',reflection:'Weekly Reflection','parish-development':'Parish Development',daily:'Daily Reflection',songsheet:'Mass Songsheet',welcome:'Welcome Message','hero-media':'Hero Section','welcome-media':'Welcome Section',gallery:'Homepage Gallery','around-parish':'Around the Parish','parish-dev-media':'Parish Development','bulletin-images':'Bulletin Images','mass-schedule':'Mass Schedule',councils:'Pastoral, Finance & Development Council','council-inquiries':'Council Inquiries','funeral-planning':'Funeral Planning Forms','onboard-council':'Onboard Council Lead','music-ministry':'Music Ministry','music-members':'Music Ministry Members',approvals:'Parish Family Approvals',partners:'Partner Requests',directory:'Parish Family Directory','ministry-post':'Post to Members','cda-members':'My Members','submit-event':'Submit Event','event-requests':'Event Requests','contact-requests':'Contact Requests',intention:'Mass Intentions','my-ministry':'My Ministry','onboard-leader':'Onboard Ministry Leader','leader-tracker':'Ministry Leaders'};
     document.getElementById('page-title').textContent = titles[id]||id;
     var mpt = document.getElementById('mobile-page-title'); if(mpt) mpt.textContent = titles[id]||id;
     if(id==='approvals') loadApprovals();
@@ -7064,6 +7106,301 @@
       loadEventRequests();
     } catch(e) { showToast('Error denying event.', 'error'); }
   }
+  // ── BULLETIN CENTER IMAGE — rotation pool (read-only) + override lists ─────
+  // Reads/writes parishes/saint-rose-anthem/bulletinConfig/imageOverrides:
+  //   { recurringDates: { "MM-DD": url }, manualWeeks: { "YYYY-MM-DD": url } }
+  // bulletin.html's resolveWeekImage() applies them at Friday-lock time in the
+  // order recurring-date -> manual -> sequential rotation. An override freezes
+  // its image into that week's snapshot and does NOT advance the rotation
+  // pointer, so a pool slot is never skipped. The sequential pool itself lives
+  // at bulletinConfig/imageRotation and is shown here read-only.
+  const BI_STORAGE_BUCKET = 'saint-rose-anthem.firebasestorage.app';
+  let biRecurring = {};   // { "MM-DD": url }
+  let biManual = {};      // { "YYYY-MM-DD": url } keyed by that week's Sunday
+  let biRotation = { images: [], currentIndex: 0 };
+  let biPool = [];        // [{ name, url }] listed from bulletinImages/ in Storage
+  let biStaged = { rec: '', man: '' };
+  let biPickerOpen = { rec: false, man: false };
+
+  function biMapFromFields(mapField) {
+    const out = {};
+    const entries = mapField?.mapValue?.fields || {};
+    Object.keys(entries).forEach(k => {
+      const v = (entries[k]?.stringValue || '').trim();
+      if (v) out[k] = v;
+    });
+    return out;
+  }
+
+  async function loadBulletinImages() {
+    biStaged = { rec: '', man: '' };
+    biPickerOpen = { rec: false, man: false };
+    const mdEl = document.getElementById('bi-rec-md'); if (mdEl) mdEl.value = '';
+    const dEl = document.getElementById('bi-man-date'); if (dEl) dEl.value = '';
+    const hEl = document.getElementById('bi-man-hint'); if (hEl) hEl.textContent = '';
+    try {
+      const res = await fs_get_doc('bulletinConfig/imageOverrides');
+      biRecurring = biMapFromFields(res.fields?.recurringDates);
+      biManual = biMapFromFields(res.fields?.manualWeeks);
+    } catch (e) { biRecurring = {}; biManual = {}; }
+    try {
+      const res = await fs_get_doc('bulletinConfig/imageRotation');
+      const imgs = (res.fields?.images?.arrayValue?.values || [])
+        .map(v => (v.stringValue || '').trim()).filter(Boolean);
+      let ci = parseInt(res.fields?.currentIndex?.integerValue ?? '0', 10);
+      if (!Number.isInteger(ci) || ci < 0) ci = 0;
+      biRotation = { images: imgs, currentIndex: ci };
+    } catch (e) { biRotation = { images: [], currentIndex: 0 }; }
+    await loadBiStoragePool();
+    renderBiPool();
+    renderBiRecurringList();
+    renderBiManualList();
+    renderBiStage('rec');
+    renderBiStage('man');
+  }
+
+  async function loadBiStoragePool() {
+    biPool = [];
+    try {
+      const token = await getValidIdToken();
+      const url = 'https://firebasestorage.googleapis.com/v0/b/' + BI_STORAGE_BUCKET +
+        '/o?prefix=' + encodeURIComponent('bulletinImages/') + '&maxResults=200&key=' + API_KEY;
+      const res = await fetch(url, { headers: token ? { Authorization: 'Bearer ' + token } : {} });
+      if (!res.ok) return;
+      const data = await res.json();
+      biPool = (data.items || [])
+        .filter(it => it.name && !it.name.endsWith('/'))
+        .map(it => ({
+          name: it.name.split('/').pop(),
+          url: 'https://firebasestorage.googleapis.com/v0/b/' + BI_STORAGE_BUCKET +
+            '/o/' + encodeURIComponent(it.name) + '?alt=media',
+        }))
+        .sort((a, b) => b.name.localeCompare(a.name));
+    } catch (e) { biPool = []; }
+  }
+
+  // Union of the Storage pool and anything already in imageRotation.images
+  // (an image can be in rotation but predate this folder listing). Deduped on
+  // the Storage object path, since the two sources spell the same file's
+  // download URL differently (tokened vs. tokenless).
+  function biObjectKey(url) {
+    const seg = url.split('/o/')[1];
+    return seg ? seg.split('?')[0] : url;
+  }
+  function biPoolUnion() {
+    const seen = new Set(), out = [];
+    biPool.forEach(p => { const k = biObjectKey(p.url); if (!seen.has(k)) { seen.add(k); out.push(p); } });
+    biRotation.images.forEach(u => {
+      const k = biObjectKey(u);
+      if (!seen.has(k)) { seen.add(k); out.push({ name: decodeURIComponent(k).split('/').pop(), url: u }); }
+    });
+    return out;
+  }
+
+  function biMdLabel(md) {
+    const p = md.split('-').map(Number);
+    const dt = new Date(2000, (p[0] || 1) - 1, p[1] || 1);
+    return dt.toLocaleDateString('en-US', { month: 'long', day: 'numeric' }) + '  (' + md + ')';
+  }
+  function biWeekLabel(iso) {
+    const p = iso.split('-').map(Number);
+    const sun = new Date(p[0], p[1] - 1, p[2]);
+    const sat = new Date(p[0], p[1] - 1, p[2] + 6);
+    const f = dt => dt.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
+    return f(sun) + ' – ' + f(sat) + ', ' + sat.getFullYear();
+  }
+  function biValidMd(md) { return /^(0[1-9]|1[0-2])-(0[1-9]|[12][0-9]|3[01])$/.test(md); }
+  function biSundayISO(dateStr) {
+    const p = String(dateStr).split('-').map(Number);
+    if (p.length !== 3 || p.some(isNaN)) return '';
+    const d = new Date(p[0], p[1] - 1, p[2]);
+    if (isNaN(d)) return '';
+    d.setDate(d.getDate() - d.getDay());
+    return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0');
+  }
+  function renderBiManHint() {
+    const el = document.getElementById('bi-man-hint');
+    if (!el) return;
+    const iso = biSundayISO(document.getElementById('bi-man-date').value);
+    el.textContent = iso ? ('→ stored as the week of ' + iso + ' (' + biWeekLabel(iso) + ')') : '';
+  }
+
+  function renderBiPool() {
+    const el = document.getElementById('bi-pool');
+    if (!el) return;
+    if (!biRotation.images.length) {
+      el.innerHTML = '<div class="empty-state" style="padding:12px 0;color:var(--dusty-rose);font-size:13px;">No rotation pool is set yet.</div>';
+      return;
+    }
+    const nextIdx = (biRotation.currentIndex + 1) % biRotation.images.length;
+    el.innerHTML = '<div style="display:flex;flex-wrap:wrap;gap:12px;">' +
+      biRotation.images.map((u, i) => {
+        const isCur = i === biRotation.currentIndex, isNext = i === nextIdx;
+        const border = isNext ? 'var(--gold)' : (isCur ? 'var(--burgundy)' : 'var(--linen)');
+        const tag = isCur ? 'current' : (isNext ? 'next up' : '');
+        return '<div style="width:110px;">' +
+          '<div style="width:110px;height:78px;border-radius:6px;overflow:hidden;border:2px solid ' + border + ';">' +
+            '<img src="' + u + '" style="width:100%;height:100%;object-fit:cover;cursor:pointer;" onclick="openLightbox(\'' + u + '\')" />' +
+          '</div>' +
+          '<div style="font-size:11px;color:var(--soil);margin-top:4px;text-align:center;">#' + i +
+            (tag ? ' · <span style="color:' + (isNext ? 'var(--gold)' : 'var(--burgundy)') + ';">' + tag + '</span>' : '') +
+          '</div>' +
+        '</div>';
+      }).join('') + '</div>' +
+      '<div style="font-size:12px;color:var(--dusty-rose);margin-top:10px;">Barring an override, the next week locked will normally use image #' + nextIdx + '.</div>';
+  }
+
+  function biEntryRow(which, key, url, label) {
+    const k = escAttr(key);
+    return '<div style="border:1px solid var(--linen);border-radius:10px;padding:14px;margin-bottom:12px;display:flex;gap:14px;align-items:center;">' +
+      '<div class="drop-zone" style="width:100px;height:70px;border-radius:6px;background:var(--linen);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDropUpload(event, (f) => biReplaceEntry(\'' + which + '\',\'' + k + '\', f))">' +
+        (url ? '<img src="' + url + '" style="width:100%;height:100%;object-fit:cover;cursor:pointer;" onclick="openLightbox(\'' + url + '\')" />' : '<span style="font-size:10px;color:var(--dusty-rose);">no image</span>') +
+      '</div>' +
+      '<div style="flex:1;">' +
+        '<div style="font-family:\'Cinzel\',serif;font-size:14px;color:var(--burgundy);margin-bottom:8px;">' + escHtml(label) + '</div>' +
+        '<label class="btn btn-outline btn-sm" style="cursor:pointer;">Replace image<input type="file" accept="image/*" style="display:none;" onchange="biReplaceEntry(\'' + which + '\',\'' + k + '\', this)" /></label> ' +
+        '<button class="btn btn-danger btn-sm" onclick="biDeleteEntry(\'' + which + '\',\'' + k + '\')">Delete</button>' +
+      '</div>' +
+    '</div>';
+  }
+  function renderBiRecurringList() {
+    const el = document.getElementById('bi-recurring-list');
+    if (!el) return;
+    const keys = Object.keys(biRecurring).sort();
+    el.innerHTML = keys.length
+      ? keys.map(k => biEntryRow('rec', k, biRecurring[k], biMdLabel(k))).join('')
+      : '<div class="empty-state" style="padding:10px 0;color:var(--dusty-rose);font-size:13px;">No recurring feast-date images yet.</div>';
+  }
+  function renderBiManualList() {
+    const el = document.getElementById('bi-manual-list');
+    if (!el) return;
+    const keys = Object.keys(biManual).sort();
+    el.innerHTML = keys.length
+      ? keys.map(k => biEntryRow('man', k, biManual[k], biWeekLabel(k) + '  ·  week of ' + k)).join('')
+      : '<div class="empty-state" style="padding:10px 0;color:var(--dusty-rose);font-size:13px;">No manual week overrides yet.</div>';
+  }
+
+  function renderBiStage(which) {
+    const el = document.getElementById(which === 'rec' ? 'bi-rec-stage' : 'bi-man-stage');
+    if (!el) return;
+    const staged = biStaged[which];
+    let html = '<div style="display:flex;gap:14px;align-items:flex-start;flex-wrap:wrap;">' +
+      '<div class="drop-zone" style="width:120px;height:84px;border:2px dashed var(--linen);border-radius:8px;overflow:hidden;display:flex;align-items:center;justify-content:center;text-align:center;" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDropUpload(event, (f) => biStageUpload(\'' + which + '\', f))">' +
+        (staged ? '<img src="' + staged + '" style="width:100%;height:100%;object-fit:cover;" />' : '<span style="font-size:11px;color:var(--dusty-rose);padding:4px;">Drag image here</span>') +
+      '</div>' +
+      '<div>' +
+        '<label class="btn btn-outline btn-sm" style="cursor:pointer;display:inline-block;">Upload image<input type="file" accept="image/*" style="display:none;" onchange="biStageUpload(\'' + which + '\', this)" /></label> ' +
+        '<button class="btn btn-outline btn-sm" onclick="biTogglePicker(\'' + which + '\')">' + (biPickerOpen[which] ? 'Hide pool' : 'Pick from pool') + '</button>' +
+        (staged ? ' <button class="btn btn-outline btn-sm" onclick="biClearStage(\'' + which + '\')">Clear</button>' : '') +
+        '<div style="margin-top:10px;"><button class="btn btn-primary btn-sm" onclick="biAddEntry(\'' + which + '\')">Add entry</button></div>' +
+      '</div>' +
+    '</div>';
+    if (biPickerOpen[which]) {
+      const pool = biPoolUnion();
+      html += '<div style="margin-top:12px;display:flex;flex-wrap:wrap;gap:8px;">' +
+        (pool.length
+          ? pool.map(p => '<img src="' + p.url + '" title="' + escAttr(p.name) + '" style="width:80px;height:56px;object-fit:cover;border-radius:4px;border:2px solid ' + (staged === p.url ? 'var(--gold)' : 'var(--linen)') + ';cursor:pointer;" onclick="biStagePick(\'' + which + '\',\'' + p.url.replace(/'/g, "\\'") + '\')" />').join('')
+          : '<span style="font-size:12px;color:var(--dusty-rose);">Nothing in bulletinImages/ yet — upload an image above.</span>') +
+        '</div>';
+    }
+    el.innerHTML = html;
+  }
+
+  function biReadFileBase64(file) {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onload = e => resolve(e.target.result.split(',')[1]);
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
+  }
+  async function biStageUpload(which, input) {
+    const file = input.files && input.files[0];
+    if (!file) return;
+    try {
+      showToast('Uploading…', 'success');
+      const base64 = await biReadFileBase64(file);
+      const url = await uploadDevFile(base64, file.name, 'bulletinImages', file.type);
+      biStaged[which] = url;
+      await loadBiStoragePool();
+      renderBiStage(which);
+      showToast('Image ready — set the date, then Add entry.', 'success');
+    } catch (e) { showToast('Upload failed.', 'error'); }
+  }
+  function biStagePick(which, url) { biStaged[which] = url; renderBiStage(which); }
+  function biClearStage(which) { biStaged[which] = ''; renderBiStage(which); }
+  function biTogglePicker(which) { biPickerOpen[which] = !biPickerOpen[which]; renderBiStage(which); }
+
+  async function biWriteMap(field, map) {
+    const fields = {};
+    Object.keys(map).forEach(k => { fields[k] = { stringValue: map[k] }; });
+    await fs_patch('bulletinConfig/imageOverrides', { [field]: { mapValue: { fields } } });
+  }
+  const biWriteRecurring = () => biWriteMap('recurringDates', biRecurring);
+  const biWriteManual = () => biWriteMap('manualWeeks', biManual);
+
+  async function biAddEntry(which) {
+    const url = biStaged[which];
+    if (!url) { showToast('Upload or pick an image first.', 'error'); return; }
+    if (which === 'rec') {
+      const md = document.getElementById('bi-rec-md').value.trim();
+      if (!biValidMd(md)) { showToast('Enter the date as MM-DD, e.g. 08-15.', 'error'); return; }
+      if (biRecurring[md] && !confirm('Replace the existing image for ' + md + '?')) return;
+      const prev = biRecurring[md];
+      biRecurring[md] = url;
+      try { await biWriteRecurring(); }
+      catch (e) { if (prev === undefined) delete biRecurring[md]; else biRecurring[md] = prev; showToast('Save failed.', 'error'); return; }
+      document.getElementById('bi-rec-md').value = '';
+      biStaged.rec = '';
+      renderBiRecurringList(); renderBiStage('rec');
+      showToast('Recurring date added.', 'success');
+    } else {
+      const iso = biSundayISO(document.getElementById('bi-man-date').value);
+      if (!iso) { showToast('Pick a valid date.', 'error'); return; }
+      if (biManual[iso] && !confirm('Replace the existing image for the week of ' + iso + '?')) return;
+      const prev = biManual[iso];
+      biManual[iso] = url;
+      try { await biWriteManual(); }
+      catch (e) { if (prev === undefined) delete biManual[iso]; else biManual[iso] = prev; showToast('Save failed.', 'error'); return; }
+      document.getElementById('bi-man-date').value = '';
+      document.getElementById('bi-man-hint').textContent = '';
+      biStaged.man = '';
+      renderBiManualList(); renderBiStage('man');
+      showToast('Week override added.', 'success');
+    }
+  }
+
+  async function biReplaceEntry(which, key, input) {
+    const file = input.files && input.files[0];
+    if (!file) return;
+    const target = which === 'rec' ? biRecurring : biManual;
+    if (!(key in target)) return;
+    try {
+      showToast('Uploading…', 'success');
+      const base64 = await biReadFileBase64(file);
+      const url = await uploadDevFile(base64, file.name, 'bulletinImages', file.type);
+      const prev = target[key];
+      target[key] = url;
+      try { await (which === 'rec' ? biWriteRecurring() : biWriteManual()); }
+      catch (e) { target[key] = prev; showToast('Save failed.', 'error'); return; }
+      await loadBiStoragePool();
+      if (which === 'rec') renderBiRecurringList(); else renderBiManualList();
+      showToast('Image updated.', 'success');
+    } catch (e) { showToast('Upload failed.', 'error'); }
+  }
+
+  async function biDeleteEntry(which, key) {
+    const label = which === 'rec' ? key : ('the week of ' + key);
+    if (!confirm('Delete the override for ' + label + '?')) return;
+    const target = which === 'rec' ? biRecurring : biManual;
+    const prev = target[key];
+    delete target[key];
+    try { await (which === 'rec' ? biWriteRecurring() : biWriteManual()); }
+    catch (e) { target[key] = prev; showToast('Delete failed.', 'error'); return; }
+    if (which === 'rec') renderBiRecurringList(); else renderBiManualList();
+    showToast('Deleted.', 'success');
+  }
+
   function showToast(msg,type='success'){
     const t=document.getElementById('toast');
     t.textContent=msg;t.className=`toast ${type} show`;
