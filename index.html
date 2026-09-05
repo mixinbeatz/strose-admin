@@ -726,6 +726,11 @@
             <input type="text" class="form-input" id="ref-author" value="Fr. Bing Colasito" />
           </div>
           <div class="form-group">
+            <label class="form-label">Import from Word Doc (.docx)</label>
+            <input type="file" id="ref-docx-input" accept=".docx" onchange="importDocxToTextarea(this,'ref-body')" />
+            <div style="font-size:12px;color:var(--dusty-rose);margin-top:4px;">Automatically detects bold text and marks it with ** -- review the result below before saving.</div>
+          </div>
+          <div class="form-group">
             <label class="form-label">Full Reflection Text *</label>
             <div class="textarea-toolbar">
               <button type="button" class="toolbar-btn tb-bold" title="Bold" onclick="wrapSelection('ref-body','**')">B</button>
@@ -1013,7 +1018,7 @@
           <div class="info-box">This text appears in the Welcome modal on the app Home screen when a parishioner taps the Welcome card. Paste Fr. Bing's message here.</div>
           <div class="form-group">
             <label class="form-label">Import from Word Doc (.docx)</label>
-            <input type="file" id="welcome-docx-input" accept=".docx" onchange="importWelcomeDocx(this)" />
+            <input type="file" id="welcome-docx-input" accept=".docx" onchange="importDocxToTextarea(this,'welcome-body')" />
             <div style="font-size:12px;color:var(--dusty-rose);margin-top:4px;">Automatically detects bold text and marks it with ** -- review the result below before saving. Fonts from the Word doc don't carry over (the app always uses its own fonts), so there's nothing to match or convert.</div>
           </div>
           <div class="form-group">
@@ -2313,7 +2318,7 @@
 
   // Wraps (or, on a second click, unwraps) the current selection in a textarea with a markdown-style
   // marker -- '**' for bold, '*' for italic -- matching the convention the Word-doc importer already
-  // writes for bold (see importWelcomeDocx). No selection just drops a marker pair with the cursor between them.
+  // writes for bold (see importDocxToTextarea). No selection just drops a marker pair with the cursor between them.
   function wrapSelection(textareaId, marker) {
     const ta = document.getElementById(textareaId);
     if (!ta) return;
@@ -3282,6 +3287,8 @@
         '<div style="font-family:Cinzel,serif;font-size:13px;color:var(--burgundy);margin-bottom:10px;">' + label + '</div>' +
         '<input type="hidden" id="daily-date-' + i + '" value="' + dateStr + '" />' +
         '<input type="text" class="form-input" id="daily-title-' + i + '" placeholder="Title (optional)" style="margin-bottom:8px;" />' +
+        '<input type="file" accept=".docx" style="margin-bottom:8px;" onchange="importDocxToTextarea(this,\'daily-body-' + i + '\')" />' +
+        '<div style="font-size:11px;color:var(--dusty-rose);margin:-4px 0 8px;">Import from Word Doc (.docx) -- auto-detects bold text as **.</div>' +
         '<div class="textarea-toolbar">' +
           '<button type="button" class="toolbar-btn tb-bold" title="Bold" onclick="wrapSelection(\'daily-body-' + i + '\',\'**\')">B</button>' +
           '<button type="button" class="toolbar-btn tb-italic" title="Italic" onclick="wrapSelection(\'daily-body-' + i + '\',\'*\')">I</button>' +
@@ -6321,8 +6328,9 @@
   // and rebuilds the text as plain paragraphs with **bold** markers around
   // any bold runs. Fonts and other formatting are intentionally dropped --
   // the app always renders with its own fonts, so there's nothing to carry
-  // over there. Reusable for any textarea: pass the file input and the
-  // target textarea's id.
+  // over there. Shared by every reflection-style textarea (Welcome Message,
+  // Weekly Reflection, each Daily Reflection scheduler row) via
+  // importDocxToTextarea below -- add a new one there, not a new copy here.
   async function parseDocxToMarkdown(file) {
     const buffer = await file.arrayBuffer();
     const zip = await JSZip.loadAsync(buffer);
@@ -6360,13 +6368,18 @@
     const paraSep = String.fromCharCode(10) + String.fromCharCode(10);
     return output.join(paraSep);
   }
-  async function importWelcomeDocx(input) {
+  // Generic handler for every ".docx import" file input: reads the chosen
+  // file, converts it to **bold**-marked text via parseDocxToMarkdown, and
+  // drops the result into the given textarea. Pass the file input element
+  // and the target textarea's id, e.g.
+  // onchange="importDocxToTextarea(this,'ref-body')".
+  async function importDocxToTextarea(input, textareaId) {
     const file = input.files && input.files[0];
     if (!file) return;
     try {
       showToast('Reading document...', 'success');
       const text = await parseDocxToMarkdown(file);
-      document.getElementById('welcome-body').value = text;
+      document.getElementById(textareaId).value = text;
       showToast('Imported! Bold text is marked with ** -- review before saving.', 'success');
     } catch (e) {
       showToast('Could not read that file: ' + (e.message || 'unknown error'), 'error');
