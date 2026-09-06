@@ -363,6 +363,7 @@
         <div class="nav-item staff-only cheyanne-only" onclick="showPage('intention',this)"><span class="nav-icon">🕯️</span> Mass Intentions</div>
         <div class="nav-item staff-only cheyanne-only" onclick="showPage('welcome',this)"><span class="nav-icon">🌹</span> Welcome Message</div>
         <div class="nav-item staff-only" onclick="showPage('councils',this);loadCouncils()"><span class="nav-icon">⛪</span> Pastoral, Finance &amp; Development Council</div>
+        <div class="nav-item staff-only" onclick="showPage('signup-forms',this);loadSignupForms()"><span class="nav-icon">📝</span> Forms &amp; Sign-ups</div>
       </div>
 
       <div class="nav-section-toggle collapsed staff-only" onclick="toggleNavSection(this)"><span>Website Media</span><span class="nav-chevron">▾</span></div>
@@ -800,6 +801,31 @@
           <div id="dev-items-list"><div style="color:var(--dusty-rose);font-size:14px;">Loading...</div></div>
         </div>
       </div>
+      <!-- FORMS & REGISTRATION SIGN-UPS -->
+      <div class="page" id="page-signup-forms">
+        <div class="card">
+          <div class="card-title" id="signup-form-title">📝 Add Sign-up Form</div>
+          <div class="info-box">
+            The "Forms &amp; Registration Sign-up" card on the app's Parish screen (just below Parish Registration).
+            Each entry is an external link parishioners tap to open a registration form. Reorder with the ↑ / ↓ buttons below.
+            <br><br>
+            <button class="btn btn-outline btn-sm" onclick="seedFaithFormationSignup()">Add "Faith Formation Registration" entry</button>
+          </div>
+          <div class="form-group"><label class="form-label">Title *</label><input type="text" class="form-input" id="signup-title" placeholder="e.g. Faith Formation Registration" /></div>
+          <div class="form-group"><label class="form-label">Description (short blurb)</label><textarea class="form-textarea" id="signup-description" placeholder="e.g. Register your child for Faith Formation classes, PS–Grade 5."></textarea></div>
+          <div class="form-group"><label class="form-label">Link URL *</label><input type="text" class="form-input" id="signup-url" placeholder="https://..." /></div>
+          <div class="form-group"><label class="form-label">Order (display position)</label><input type="number" class="form-input" id="signup-order" placeholder="e.g. 1" /></div>
+          <div class="btn-row">
+            <button class="btn btn-primary" id="signup-save-btn" onclick="saveSignupForm()">Add Sign-up Form</button>
+            <button class="btn btn-outline" onclick="resetSignupForm()">Clear / New</button>
+          </div>
+        </div>
+        <div class="card" style="margin-top:16px;">
+          <div class="card-title">📋 All Sign-up Forms</div>
+          <div id="signup-forms-list"><div style="color:var(--dusty-rose);font-size:14px;">Loading...</div></div>
+        </div>
+      </div>
+
       <!-- DAILY REFLECTION -->
       <div class="page" id="page-daily">
         <div class="card">
@@ -4797,6 +4823,148 @@
           '</div></div>';
       }).join('');
     } catch (e) { showToast('Error loading opportunities.', 'error'); }
+  }
+
+  // == FORMS & REGISTRATION SIGN-UPS ==
+  // Data-driven list behind the app's Parish-screen "Forms & Registration
+  // Sign-up" card. Collection: parishes/saint-rose-anthem/signupForms.
+  // Doc shape: title (string), description (string), url (string), order (int).
+  var signupEditingId = null;
+
+  function resetSignupForm() {
+    signupEditingId = null;
+    document.getElementById('signup-title').value = '';
+    document.getElementById('signup-description').value = '';
+    document.getElementById('signup-url').value = '';
+    document.getElementById('signup-order').value = '';
+    document.getElementById('signup-form-title').textContent = '📝 Add Sign-up Form';
+    document.getElementById('signup-save-btn').textContent = 'Add Sign-up Form';
+  }
+
+  async function saveSignupForm() {
+    const title = document.getElementById('signup-title').value.trim();
+    const description = document.getElementById('signup-description').value.trim();
+    const url = document.getElementById('signup-url').value.trim();
+    const orderRaw = document.getElementById('signup-order').value.trim();
+    if (!title || !url) { showToast('Please fill in title and link URL.', 'error'); return; }
+    if (!/^https?:\/\//i.test(url)) { showToast('Link URL must start with http:// or https://', 'error'); return; }
+    const order = orderRaw === '' ? 999 : parseInt(orderRaw, 10);
+    const btn = document.getElementById('signup-save-btn');
+    btn.disabled = true; btn.textContent = 'Saving...';
+    try {
+      const fields = {
+        title: { stringValue: title },
+        description: { stringValue: description },
+        url: { stringValue: url },
+        order: { integerValue: String(isNaN(order) ? 999 : order) },
+        updatedAt: { stringValue: new Date().toISOString() }
+      };
+      if (signupEditingId) {
+        await fs_patch('signupForms/' + signupEditingId, fields);
+        showToast('Sign-up form updated!', 'success');
+      } else {
+        fields.createdAt = { stringValue: new Date().toISOString() };
+        await fs_post('signupForms', fields);
+        showToast('Sign-up form added!', 'success');
+      }
+      resetSignupForm();
+      loadSignupForms();
+    } catch (e) {
+      showToast('Error saving sign-up form.', 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = signupEditingId ? 'Save Changes' : 'Add Sign-up Form';
+    }
+  }
+
+  function loadSignupIntoForm(id, item) {
+    signupEditingId = id;
+    document.getElementById('signup-title').value = item.title || '';
+    document.getElementById('signup-description').value = item.description || '';
+    document.getElementById('signup-url').value = item.url || '';
+    document.getElementById('signup-order').value = (item.order === '' || item.order === undefined) ? '' : item.order;
+    document.getElementById('signup-form-title').textContent = '📝 Edit Sign-up Form';
+    document.getElementById('signup-save-btn').textContent = 'Save Changes';
+    window.scrollTo(0, 0);
+  }
+
+  async function deleteSignupForm(id) {
+    if (!confirm('Delete this sign-up form entry permanently?')) return;
+    try {
+      await fs_delete('signupForms/' + id);
+      showToast('Deleted.', 'success');
+      loadSignupForms();
+    } catch (e) { showToast('Error deleting: ' + e.message, 'error'); }
+  }
+
+  // Reorder: swap this entry's `order` with its neighbour in the sorted list.
+  async function moveSignupForm(id, dir) {
+    try {
+      const res = await fs_get('signupForms');
+      const items = (res.documents || []).map(d => ({
+        id: docId(d),
+        order: d.fields?.order?.integerValue !== undefined ? parseInt(d.fields.order.integerValue, 10) : 999
+      })).sort((a, b) => a.order - b.order);
+      const idx = items.findIndex(x => x.id === id);
+      const swapIdx = idx + dir;
+      if (idx < 0 || swapIdx < 0 || swapIdx >= items.length) return;
+      const a = items[idx], b = items[swapIdx];
+      await fs_patch('signupForms/' + a.id, { order: { integerValue: String(b.order) }, updatedAt: { stringValue: new Date().toISOString() } });
+      await fs_patch('signupForms/' + b.id, { order: { integerValue: String(a.order) }, updatedAt: { stringValue: new Date().toISOString() } });
+      loadSignupForms();
+    } catch (e) { showToast('Error reordering.', 'error'); }
+  }
+
+  async function seedFaithFormationSignup() {
+    try {
+      const res = await fs_get('signupForms');
+      const exists = (res.documents || []).some(d => gf(d, 'title') === 'Faith Formation Registration');
+      if (exists) { showToast('Faith Formation entry already exists.', 'error'); return; }
+      const count = (res.documents || []).length;
+      await fs_post('signupForms', {
+        title: { stringValue: 'Faith Formation Registration' },
+        description: { stringValue: 'Register your child for Faith Formation classes, PS–Grade 5.' },
+        url: { stringValue: 'https://mixinbeatz.github.io/strose-website/faith-formation-registration.html' },
+        order: { integerValue: String(count + 1) },
+        createdAt: { stringValue: new Date().toISOString() },
+        updatedAt: { stringValue: new Date().toISOString() }
+      });
+      showToast('Faith Formation entry added.', 'success');
+      loadSignupForms();
+    } catch (e) { showToast('Error adding entry.', 'error'); }
+  }
+
+  async function loadSignupForms() {
+    const el = document.getElementById('signup-forms-list');
+    if (!el) return;
+    try {
+      const res = await fs_get('signupForms');
+      const docs = res.documents || [];
+      if (docs.length === 0) {
+        el.innerHTML = '<div style="color:var(--dusty-rose);font-size:14px;">No sign-up forms yet. The app shows a built-in "Faith Formation Registration" entry until you add one here.</div>';
+        return;
+      }
+      const items = docs.map(d => ({
+        id: docId(d),
+        title: gf(d, 'title'),
+        description: gf(d, 'description'),
+        url: gf(d, 'url'),
+        order: d.fields?.order?.integerValue !== undefined ? parseInt(d.fields.order.integerValue, 10) : 999
+      })).sort((a, b) => a.order - b.order);
+      el.innerHTML = items.map((item, i) => {
+        const payload = JSON.stringify(item).replace(/'/g, '&#39;');
+        return '<div style="padding:14px 0;border-bottom:1px solid var(--linen);">' +
+          '<div style="font-family:Cinzel,serif;font-size:15px;color:var(--burgundy);">' + escHtml(item.title) + '</div>' +
+          (item.description ? '<div style="font-size:13px;color:var(--soil);margin-top:3px;">' + escHtml(item.description) + '</div>' : '') +
+          '<div style="font-size:12px;color:var(--dusty-rose);margin-top:3px;word-break:break-all;">' + escHtml(item.url) + '</div>' +
+          '<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;">' +
+          '<button onclick="moveSignupForm(\'' + item.id + '\',-1)" ' + (i === 0 ? 'disabled style="opacity:0.4;"' : '') + ' style="background:none;border:1px solid var(--linen);border-radius:8px;padding:5px 12px;font-size:12px;cursor:pointer;color:var(--soil);">↑</button>' +
+          '<button onclick="moveSignupForm(\'' + item.id + '\',1)" ' + (i === items.length - 1 ? 'disabled style="opacity:0.4;"' : '') + ' style="background:none;border:1px solid var(--linen);border-radius:8px;padding:5px 12px;font-size:12px;cursor:pointer;color:var(--soil);">↓</button>' +
+          '<button onclick=\'loadSignupIntoForm("' + item.id + '", ' + payload + ')\' style="background:none;border:1px solid var(--linen);border-radius:8px;padding:5px 12px;font-size:12px;cursor:pointer;color:var(--soil);">Edit</button>' +
+          '<button onclick="deleteSignupForm(\'' + item.id + '\')" style="background:none;border:1px solid #CC3333;border-radius:8px;padding:5px 12px;font-size:12px;cursor:pointer;color:#CC3333;">Delete</button>' +
+          '</div></div>';
+      }).join('');
+    } catch (e) { showToast('Error loading sign-up forms.', 'error'); }
   }
 
     // == MASS INTENTIONS ==
