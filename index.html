@@ -837,6 +837,7 @@
           <div class="info-box">
             The Parish Staff grid on the app's Parish screen (tap a card there for the full-screen photo &amp; bio).
             Reorder with the ↑ / ↓ buttons below. Anyone left without a bio shows &ldquo;Bio coming soon.&rdquo; in the app.
+            To set a photo, drag an image straight onto that person's circle in the list below (or click the circle) &mdash; no need to open their entry.
             <br><br>
             <button class="btn btn-outline btn-sm" onclick="seedParishStaffRoster()">Seed from current roster</button>
           </div>
@@ -5704,7 +5705,7 @@
       bio: `Fr. Charles Ouemenga joined our parish family as Parochial Vicar on July 1, 2024, bringing a heart for community, prayer, and pastoral care. His priesthood began in [Fr. Charles's Hometown/Country], where he first felt the call to serve, and he was ordained in [Year of Ordination] after studying at [Name of Seminary]. In addition to the Sacraments, Fr. Charles is deeply involved in our Small Christian Communities ministry, helping parishioners grow closer to Christ through small-group faith-sharing and scripture study.` },
     { id: 'tom-henrich', name: 'Dr. Tom Henrich', role: 'Office Administrator', phone: '6233078265', email: 'thenrich@stroseanthem.com',
       bio: `Dr. Tom Henrich serves St. Rose in a unique dual role — as parish Office Administrator managing daily operations, and as an ordained Permanent Deacon ministering to the community. He works closely with the Small Christian Communities ministry and frequently writes spiritual reflections to encourage the parish's ongoing growth.` },
-    { id: 'dcn-john', name: 'Dcn. John Mezydlo', role: 'Deacon', phone: '6234659740,101', email: 'JMezydlo@stroseanthem.com',
+    { id: 'dcn-john', name: 'Dcn. John Mezydlo', role: 'Deacon', phone: '6234659740', email: 'JMezydlo@stroseanthem.com',
       bio: `Deacon John lived in Arizona from 2000-2006 and moved back in July of 2019. He was ordained as a Permanent Deacon by the Most Reverend Bishop Jerome Listecki in the Archdiocese of Milwaukee on September 6th 2014. He now serves on staff at St. Rose / GSM as the Stewardship / Discipleship Coordinator. Married for the past 41 years to his wife Rita, who is also active in the parish community, they have one son, John Robert married to Heather and two beautiful twins four year old granddaughters, Elly and Jordyn. He is a former Rotary president in both Oconomowoc and Lake Mills Wisconsin and has served on many civic boards and organizations. His family hales from the great state of Wisconsin.` },
     { id: 'cheyanne-bosn', name: 'Cheyanne Bosn', role: 'Executive Assistant', phone: '6233078264', email: 'cbosn@stroseanthem.com', bio: '' },
     { id: 'matt-ficarra', name: 'Matt Ficarra', role: 'Director of Music & Media', phone: '6233078266', email: 'mficarra@stroseanthem.com',
@@ -5768,9 +5769,13 @@
       el.innerHTML = items.map((item, i) => {
         const payload = JSON.stringify(item).replace(/'/g, '&#39;');
         return '<div style="padding:14px 0;border-bottom:1px solid var(--linen);display:flex;gap:12px;align-items:flex-start;">' +
-          (item.photoUrl
-            ? '<img src="' + escHtml(item.photoUrl) + '" style="width:48px;height:48px;border-radius:24px;object-fit:cover;flex-shrink:0;cursor:pointer;" onclick="openLightbox(this.src)" />'
-            : '<div style="width:48px;height:48px;border-radius:24px;background:var(--linen);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px;opacity:0.5;">👤</div>') +
+          '<label class="drop-zone" title="Drag a photo here, or click to upload" style="width:56px;height:56px;border-radius:28px;flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;cursor:pointer;background:var(--linen);" ' +
+            'ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDropUpload(event, (f) => handleStaffRowPhoto(\'' + item.id + '\', f))">' +
+            (item.photoUrl
+              ? '<img src="' + escHtml(item.photoUrl) + '" style="width:100%;height:100%;object-fit:cover;" />'
+              : '<span style="font-size:20px;opacity:0.5;">👤</span>') +
+            '<input type="file" accept="image/*" style="display:none;" onchange="handleStaffRowPhoto(\'' + item.id + '\', this)" />' +
+          '</label>' +
           '<div style="flex:1;">' +
           '<div style="font-family:Cinzel,serif;font-size:15px;color:var(--burgundy);">' + escHtml(item.name) + '</div>' +
           (item.role ? '<div style="font-size:13px;color:var(--soil);margin-top:2px;white-space:pre-line;">' + escHtml(item.role) + '</div>' : '') +
@@ -5783,6 +5788,28 @@
           '</div></div></div>';
       }).join('');
     } catch (e) { showToast('Error loading staff.', 'error'); }
+  }
+
+  // Drop a photo straight onto a row's thumbnail (or click it to pick a file)
+  // -- uploads and patches just that member's photoUrl right away. Unlike the
+  // add/edit form above there are no other unsaved fields in play here, so an
+  // immediate fs_patch is safe (same as the single-image pages elsewhere).
+  async function handleStaffRowPhoto(id, input) {
+    const file = input.files && input.files[0];
+    if (!file) return;
+    showToast('Uploading photo...', 'success');
+    try {
+      const base64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = e => resolve(e.target.result.split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      const url = await uploadDevFile(base64, file.name, 'parishStaff', file.type);
+      await fs_patch('parishStaff/' + id, { photoUrl: { stringValue: url }, updatedAt: { stringValue: new Date().toISOString() } });
+      showToast('Photo updated!', 'success');
+      loadParishStaff();
+    } catch (e) { console.error('Staff row photo error:', e); showToast('Upload failed: ' + (e && e.message || e), 'error'); }
   }
 
     // == MASS INTENTIONS ==
