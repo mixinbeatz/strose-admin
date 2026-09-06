@@ -126,6 +126,19 @@
   .lightbox img { max-width: 80vw; max-height: 80vh; border-radius: 16px; box-shadow: 0 24px 80px rgba(0,0,0,0.5); }
   .lightbox-close { position: absolute; top: 24px; right: 32px; color: white; font-size: 36px; cursor: pointer; opacity: 0.7; }
   .lightbox-close:hover { opacity: 1; }
+  /* ── PHOTO CROPPER ── reusable square crop/zoom/pan editor (openPhotoCropper) */
+  .cropper { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.75); z-index: 10000; align-items: center; justify-content: center; padding: 20px; }
+  .cropper.show { display: flex; }
+  .cropper-card { background: var(--white); border-radius: 14px; padding: 24px; max-width: 380px; width: 100%; }
+  .cropper-title { font-family: 'Cinzel', serif; font-size: 16px; color: var(--burgundy); margin-bottom: 14px; text-align: center; }
+  .cropper-stage { position: relative; width: 300px; height: 300px; max-width: 100%; margin: 0 auto; overflow: hidden; border-radius: 8px; background: var(--linen); touch-action: none; cursor: grab; }
+  .cropper-stage:active { cursor: grabbing; }
+  .cropper-stage img { position: absolute; top: 0; left: 0; max-width: none; user-select: none; -webkit-user-drag: none; }
+  .cropper-mask { position: absolute; inset: 0; pointer-events: none; border-radius: 50%; box-shadow: 0 0 0 999px rgba(255,255,255,0.55) inset; }
+  .cropper-controls { display: flex; align-items: center; gap: 10px; margin-top: 16px; font-size: 12px; color: var(--soil); }
+  .cropper-controls input[type=range] { flex: 1; }
+  .cropper-hint { font-size: 11px; color: var(--dusty-rose); text-align: center; margin-top: 8px; }
+  .cropper-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 16px; }
   .profile-modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.6); z-index: 9999; align-items: center; justify-content: center; padding: 20px; }
   .profile-modal.show { display: flex; }
   .profile-modal-card { background: var(--white); border-radius: 12px; max-width: 480px; width: 100%; max-height: 85vh; overflow-y: auto; padding: 32px; position: relative; }
@@ -2131,6 +2144,25 @@
   <div class="profile-modal-card" onclick="event.stopPropagation()">
     <span class="profile-modal-close" onclick="closeProfileModal()">&times;</span>
     <div id="profile-modal-body"></div>
+  </div>
+</div>
+
+<div class="cropper" id="cropper">
+  <div class="cropper-card">
+    <div class="cropper-title">Position &amp; Zoom Photo</div>
+    <div class="cropper-stage" id="cropper-stage">
+      <img id="cropper-img" alt="" draggable="false" />
+      <div class="cropper-mask"></div>
+    </div>
+    <div class="cropper-controls">
+      <span>Zoom</span>
+      <input type="range" id="cropper-zoom" min="1" max="4" step="0.001" value="1" oninput="cropperSetZoom(parseFloat(this.value))" />
+    </div>
+    <div class="cropper-hint">Drag to reposition &middot; scroll, pinch, or use the slider to zoom</div>
+    <div class="cropper-actions">
+      <button class="btn btn-outline btn-sm" onclick="closeCropper()">Cancel</button>
+      <button class="btn btn-primary btn-sm" onclick="cropperApply()">Use This Framing</button>
+    </div>
   </div>
 </div>
 
@@ -4924,6 +4956,127 @@
   }
   function closeLightbox() { document.getElementById('lightbox').classList.remove('show'); }
 
+  // ── PHOTO CROPPER ──
+  // Reusable square crop / zoom / pan editor. openPhotoCropper(file, onApply):
+  // shows the picked image in a 300px square stage, lets staff drag to
+  // reposition and zoom (slider / mouse wheel / two-finger pinch), then hands
+  // onApply the framed result as { base64, contentType } -- the caller does
+  // whatever upload it already did with that instead of the raw file. Output
+  // is a square JPEG at CROPPER_OUT px: every consumer of these photos (the
+  // app + the website) renders them in a circle with cover fit, so a square
+  // source frames identically everywhere.
+  const CROPPER_OUT = 512;
+  const cropperState = { img: null, natW: 0, natH: 0, zoom: 1, minScale: 1, panX: 0, panY: 0, stage: 300, onApply: null };
+
+  function openPhotoCropper(file, onApply) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      const img = new Image();
+      img.onload = () => {
+        const stageEl = document.getElementById('cropper-stage');
+        cropperState.img = img;
+        cropperState.natW = img.naturalWidth;
+        cropperState.natH = img.naturalHeight;
+        cropperState.onApply = onApply;
+        cropperState.stage = stageEl.clientWidth || 300;
+        cropperState.minScale = cropperState.stage / Math.min(img.naturalWidth, img.naturalHeight);
+        cropperState.zoom = 1;
+        cropperState.panX = 0;
+        cropperState.panY = 0;
+        document.getElementById('cropper-img').src = img.src;
+        document.getElementById('cropper-zoom').value = 1;
+        document.getElementById('cropper').classList.add('show');
+        cropperLayout();
+      };
+      img.onerror = () => showToast('Could not read that image.', 'error');
+      img.src = e.target.result;
+    };
+    reader.onerror = () => showToast('Could not read that file.', 'error');
+    reader.readAsDataURL(file);
+  }
+  function closeCropper() {
+    document.getElementById('cropper').classList.remove('show');
+    cropperState.img = null;
+    cropperState.onApply = null;
+  }
+  function cropperEffScale() { return cropperState.minScale * cropperState.zoom; }
+  function cropperLayout() {
+    const s = cropperState.stage;
+    const eff = cropperEffScale();
+    const w = cropperState.natW * eff, h = cropperState.natH * eff;
+    // Keep the image covering the stage on both axes.
+    const maxX = Math.max(0, (w - s) / 2), maxY = Math.max(0, (h - s) / 2);
+    cropperState.panX = Math.max(-maxX, Math.min(maxX, cropperState.panX));
+    cropperState.panY = Math.max(-maxY, Math.min(maxY, cropperState.panY));
+    const el = document.getElementById('cropper-img');
+    el.style.width = w + 'px';
+    el.style.height = h + 'px';
+    el.style.left = ((s - w) / 2 + cropperState.panX) + 'px';
+    el.style.top = ((s - h) / 2 + cropperState.panY) + 'px';
+  }
+  function cropperSetZoom(z) {
+    cropperState.zoom = Math.max(1, Math.min(4, z || 1));
+    document.getElementById('cropper-zoom').value = cropperState.zoom;
+    cropperLayout();
+  }
+  function cropperApply() {
+    const st = cropperState;
+    if (!st.img || !st.onApply) { closeCropper(); return; }
+    const eff = cropperEffScale();
+    const w = st.natW * eff, h = st.natH * eff;
+    const left = (st.stage - w) / 2 + st.panX;
+    const top = (st.stage - h) / 2 + st.panY;
+    // A stage pixel x maps to natural pixel (x - left) / eff; crop the stage square.
+    const srcX = -left / eff, srcY = -top / eff, srcSize = st.stage / eff;
+    const canvas = document.createElement('canvas');
+    canvas.width = CROPPER_OUT; canvas.height = CROPPER_OUT;
+    const ctx = canvas.getContext('2d');
+    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, CROPPER_OUT, CROPPER_OUT);
+    ctx.drawImage(st.img, srcX, srcY, srcSize, srcSize, 0, 0, CROPPER_OUT, CROPPER_OUT);
+    const dataUrl = canvas.toDataURL('image/jpeg', 0.88);
+    const cb = st.onApply;
+    closeCropper();
+    cb({ base64: dataUrl.split(',')[1], contentType: 'image/jpeg' });
+  }
+  (function wireCropperStage() {
+    const stage = document.getElementById('cropper-stage');
+    if (!stage) return;
+    const pointers = new Map();
+    let pinchDist = 0, pinchZoom = 1;
+    stage.addEventListener('pointerdown', e => {
+      stage.setPointerCapture(e.pointerId);
+      pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (pointers.size === 2) {
+        const p = [...pointers.values()];
+        pinchDist = Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y);
+        pinchZoom = cropperState.zoom;
+      }
+    });
+    stage.addEventListener('pointermove', e => {
+      if (!pointers.has(e.pointerId) || !cropperState.img) return;
+      const prev = pointers.get(e.pointerId);
+      pointers.set(e.pointerId, { x: e.clientX, y: e.clientY });
+      if (pointers.size === 2) {
+        const p = [...pointers.values()];
+        const d = Math.hypot(p[0].x - p[1].x, p[0].y - p[1].y);
+        if (pinchDist > 0) cropperSetZoom(pinchZoom * (d / pinchDist));
+      } else {
+        cropperState.panX += e.clientX - prev.x;
+        cropperState.panY += e.clientY - prev.y;
+        cropperLayout();
+      }
+    });
+    const release = e => { pointers.delete(e.pointerId); if (pointers.size < 2) pinchDist = 0; };
+    stage.addEventListener('pointerup', release);
+    stage.addEventListener('pointercancel', release);
+    stage.addEventListener('wheel', e => {
+      if (!cropperState.img) return;
+      e.preventDefault();
+      cropperSetZoom(cropperState.zoom * (e.deltaY < 0 ? 1.08 : 0.92));
+    }, { passive: false });
+  })();
+
   let songsheetBase64 = '';
   let songsheetFileName = '';
 
@@ -5591,21 +5744,17 @@
   // than fs_patch-ing immediately -- this form has several fields behind one
   // shared Save button, and persisting on photo drop would also save whatever
   // in-progress name/role/bio edits are sitting in the other inputs.
-  async function handleStaffPhotoUpload(input) {
-    const file = input.files[0];
+  function handleStaffPhotoUpload(input) {
+    const file = input.files && input.files[0];
     if (!file) return;
-    try {
-      const base64 = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = e => resolve(e.target.result.split(',')[1]);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-      const url = await uploadDevFile(base64, file.name, 'parishStaff', file.type);
-      staffPhotoUrl = url;
-      renderStaffPhoto();
-      showToast('Photo uploaded — click Save to keep it.', 'success');
-    } catch (e) { console.error('Staff photo upload error:', e); showToast('Upload failed: ' + (e && e.message || e), 'error'); }
+    openPhotoCropper(file, async ({ base64, contentType }) => {
+      try {
+        const url = await uploadDevFile(base64, 'staff-photo.jpg', 'parishStaff', contentType);
+        staffPhotoUrl = url;
+        renderStaffPhoto();
+        showToast('Photo uploaded — click Save to keep it.', 'success');
+      } catch (e) { console.error('Staff photo upload error:', e); showToast('Upload failed: ' + (e && e.message || e), 'error'); }
+    });
   }
 
   // Clears the field only -- doesn't delete the file from Storage, same as
@@ -5799,22 +5948,18 @@
   // -- uploads and patches just that member's photoUrl right away. Unlike the
   // add/edit form above there are no other unsaved fields in play here, so an
   // immediate fs_patch is safe (same as the single-image pages elsewhere).
-  async function handleStaffRowPhoto(id, input) {
+  function handleStaffRowPhoto(id, input) {
     const file = input.files && input.files[0];
     if (!file) return;
-    showToast('Uploading photo...', 'success');
-    try {
-      const base64 = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = e => resolve(e.target.result.split(',')[1]);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-      const url = await uploadDevFile(base64, file.name, 'parishStaff', file.type);
-      await fs_patch('parishStaff/' + id, { photoUrl: { stringValue: url }, updatedAt: { stringValue: new Date().toISOString() } });
-      showToast('Photo updated!', 'success');
-      loadParishStaff();
-    } catch (e) { console.error('Staff row photo error:', e); showToast('Upload failed: ' + (e && e.message || e), 'error'); }
+    openPhotoCropper(file, async ({ base64, contentType }) => {
+      showToast('Uploading photo...', 'success');
+      try {
+        const url = await uploadDevFile(base64, 'staff-photo.jpg', 'parishStaff', contentType);
+        await fs_patch('parishStaff/' + id, { photoUrl: { stringValue: url }, updatedAt: { stringValue: new Date().toISOString() } });
+        showToast('Photo updated!', 'success');
+        loadParishStaff();
+      } catch (e) { console.error('Staff row photo error:', e); showToast('Upload failed: ' + (e && e.message || e), 'error'); }
+    });
   }
 
     // == MASS INTENTIONS ==
@@ -7361,22 +7506,18 @@
       </label>
     </div>`;
   }
-  async function handleWelcomeMsgPhotoUpload(input) {
-    const file = input.files[0];
+  function handleWelcomeMsgPhotoUpload(input) {
+    const file = input.files && input.files[0];
     if (!file) return;
-    try {
-      const base64 = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = e => resolve(e.target.result.split(',')[1]);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-      const url = await uploadDevFile(base64, file.name, 'welcomePhoto', file.type);
-      welcomeMsgPhotoUrl = url;
-      await fs_patch('siteContent/welcome', { photoUrl: { stringValue: url }, updatedAt: { stringValue: new Date().toISOString() } });
-      renderWelcomeMsgPhoto();
-      showToast('Welcome photo updated!', 'success');
-    } catch(e) { console.error('Welcome photo upload error:', e); showToast('Upload failed: ' + (e && e.message || e), 'error'); }
+    openPhotoCropper(file, async ({ base64, contentType }) => {
+      try {
+        const url = await uploadDevFile(base64, 'welcome-photo.jpg', 'welcomePhoto', contentType);
+        welcomeMsgPhotoUrl = url;
+        await fs_patch('siteContent/welcome', { photoUrl: { stringValue: url }, updatedAt: { stringValue: new Date().toISOString() } });
+        renderWelcomeMsgPhoto();
+        showToast('Welcome photo updated!', 'success');
+      } catch(e) { console.error('Welcome photo upload error:', e); showToast('Upload failed: ' + (e && e.message || e), 'error'); }
+    });
   }
   // ── WORD DOC IMPORT ──
   // Unzips a .docx (it's just a ZIP of XML files), walks word/document.xml,
