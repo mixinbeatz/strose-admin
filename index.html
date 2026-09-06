@@ -317,6 +317,7 @@
         <div class="nav-item staff-only" onclick="showPage('council-inquiries',this);loadCouncilInquiries()"><span class="nav-icon">🗳️</span> Council Inquiries <span class="nav-badge" id="council-inq-count" style="display:none">0</span></div>
         <div class="nav-item staff-only" onclick="showPage('family-registrations',this);loadFamilyRegistrations();loadReviewedFamilies()"><span class="nav-icon">📝</span> Family Registrations <span class="nav-badge" id="familyreg-count" style="display:none">0</span></div>
         <div class="nav-item staff-only" onclick="showPage('funeral-planning',this);loadFuneralPlanning()"><span class="nav-icon">🕊️</span> Funeral Planning <span class="nav-badge" id="funeral-plan-count" style="display:none">0</span></div>
+        <div class="nav-item staff-only" onclick="showPage('faith-formation-registrations',this);loadFaithFormationRegs()"><span class="nav-icon">✝️</span> Faith Formation Registrations <span class="nav-badge" id="ffreg-count" style="display:none">0</span></div>
         <div class="nav-item staff-only" onclick="showPage('directory',this)"><span class="nav-icon">📋</span> Parish Family Directory</div>
       </div>
 
@@ -1955,6 +1956,18 @@
         </div>
       </div>
 
+      <!-- FAITH FORMATION REGISTRATIONS -->
+      <div class="page" id="page-faith-formation-registrations">
+        <div class="card">
+          <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;">
+            <span>✝️ Faith Formation Registrations</span>
+            <button class="btn btn-outline btn-sm" onclick="exportFFRegsCSV()">Export CSV</button>
+          </div>
+          <div class="info-box">Children's Ministry (PS&ndash;Grade 5) sign-ups from the website's Faith Formation Registration form, most recent first. Open a card to see the full submission and to record payment in the &ldquo;Parish Office Use&rdquo; box &mdash; the digital equivalent of the paper form's box.</div>
+          <div id="ffreg-list"><div style="color:var(--dusty-rose);font-size:14px;">Loading...</div></div>
+        </div>
+      </div>
+
       <!-- DIRECTORY -->
       <div class="page" id="page-directory">
         <div class="card">
@@ -2816,7 +2829,7 @@
 
   async function loadDashboard() {
     try {
-      const [fam,parts,ref,eventReqs,dailyRef,familyRegs,contactReqs,councilInqs,funeralPlans] = await Promise.all([fs_get('parishFamily'),fs_get('partnerRequests'),fs_get('weeklyReflection'),fs_get('eventRequests'),fs_get('dailyReflection'),fs_get('familyRegistrations'),fs_get('contactRequests'),fs_get('councilInquiries'),fs_get('funeralPlanningSubmissions')]);
+      const [fam,parts,ref,eventReqs,dailyRef,familyRegs,contactReqs,councilInqs,funeralPlans,ffRegs] = await Promise.all([fs_get('parishFamily'),fs_get('partnerRequests'),fs_get('weeklyReflection'),fs_get('eventRequests'),fs_get('dailyReflection'),fs_get('familyRegistrations'),fs_get('contactRequests'),fs_get('councilInquiries'),fs_get('funeralPlanningSubmissions'),fs_get('faithFormationRegistrations')]);
       const pendingFamilyRegs = (familyRegs.documents||[]).filter(d=>!gf(d,'reviewed'));
       const familyRegBadge = document.getElementById('familyreg-count');
       if (familyRegBadge) { familyRegBadge.textContent = pendingFamilyRegs.length; familyRegBadge.style.display = pendingFamilyRegs.length > 0 ? '' : 'none'; }
@@ -2835,6 +2848,9 @@
       const pendingFuneralPlans = (funeralPlans.documents||[]).filter(d=>gf(d,'status')==='pending');
       const funeralPlanBadge = document.getElementById('funeral-plan-count');
       if (funeralPlanBadge) { funeralPlanBadge.textContent = pendingFuneralPlans.length; funeralPlanBadge.style.display = pendingFuneralPlans.length > 0 ? '' : 'none'; }
+      const unpaidFFRegs = (ffRegs.documents||[]).filter(d=>{ const r=d.fields&&d.fields.reconciliation&&d.fields.reconciliation.mapValue&&d.fields.reconciliation.mapValue.fields; return !(r&&r.paymentReceived&&r.paymentReceived.booleanValue); });
+      const ffRegBadge = document.getElementById('ffreg-count');
+      if (ffRegBadge) { ffRegBadge.textContent = unpaidFFRegs.length; ffRegBadge.style.display = unpaidFFRegs.length > 0 ? '' : 'none'; }
       document.getElementById('stat-members').textContent = approved.length;
       document.getElementById('stat-pending').textContent = pending.length;
       document.getElementById('stat-partners').textContent = preqs.length;
@@ -4294,6 +4310,210 @@
     const a = document.createElement('a');
     a.href = url;
     a.download = 'reviewed_families_' + new Date().toISOString().split('T')[0] + '.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+
+  // ── FAITH FORMATION REGISTRATIONS ──
+  // Children's Ministry (PS-Grade 5) sign-ups from the website form
+  // (faith-formation-registration.html -> faithFormationRegistrations).
+  // Staff record payment in each doc's `reconciliation` sub-object -- the
+  // digital "For Parish Office Use Only" box. Mirrors the Family Registrations
+  // tab's list/detail structure.
+  let ffRegsCache = [];
+
+  function ffRecon(doc) {
+    const f = (doc.fields && doc.fields.reconciliation && doc.fields.reconciliation.mapValue && doc.fields.reconciliation.mapValue.fields) || {};
+    const s = k => (f[k] && f[k].stringValue) || '';
+    return {
+      paymentReceived: !!(f.paymentReceived && f.paymentReceived.booleanValue),
+      amountReceived: s('amountReceived'),
+      paymentType: s('paymentType'),
+      checkOrReceiptNumber: s('checkOrReceiptNumber'),
+      balanceDue: s('balanceDue'),
+      receivedBy: s('receivedBy'),
+      receivedDate: s('receivedDate')
+    };
+  }
+
+  function ffChildren(doc) {
+    const arr = (doc.fields && doc.fields.children && doc.fields.children.arrayValue && doc.fields.children.arrayValue.values) || [];
+    return arr.map(function(v) {
+      const f = (v.mapValue && v.mapValue.fields) || {};
+      const s = k => (f[k] && f[k].stringValue) || '';
+      return { name: s('name'), dob: s('dob'), gender: s('gender'), grade: s('grade'), sacramentsReceived: s('sacramentsReceived'), classRegistration: s('classRegistration'), concerns: s('concerns') };
+    });
+  }
+
+  function ffFeeTotal(doc) {
+    const f = (doc.fields && doc.fields.feeEstimate && doc.fields.feeEstimate.mapValue && doc.fields.feeEstimate.mapValue.fields) || {};
+    const t = f.total && (f.total.integerValue || f.total.doubleValue);
+    return t !== undefined && t !== null && t !== '' ? String(t) : '';
+  }
+
+  function ffPaymentBadge(recon) {
+    const bal = parseFloat(String(recon.balanceDue).replace(/[^0-9.]/g, ''));
+    if (recon.paymentReceived && (!recon.balanceDue || bal === 0)) {
+      return '<span style="font-size:11px;font-weight:600;color:#2E7D32;background:#E8F5E9;border-radius:6px;padding:2px 8px;">✓ Paid</span>';
+    }
+    if (recon.paymentReceived) {
+      return '<span style="font-size:11px;font-weight:600;color:#8B6914;background:#FDF3D8;border-radius:6px;padding:2px 8px;">Partial · $' + escHtml(recon.balanceDue) + ' due</span>';
+    }
+    return '<span style="font-size:11px;font-weight:600;color:var(--burgundy);background:var(--linen);border-radius:6px;padding:2px 8px;">Unpaid</span>';
+  }
+
+  async function loadFaithFormationRegs() {
+    const list = document.getElementById('ffreg-list');
+    if (!list) return;
+    list.innerHTML = '<div style="color:var(--dusty-rose);font-size:14px;">Loading...</div>';
+    try {
+      const res = await fs_get('faithFormationRegistrations');
+      const docs = (res.documents || []).sort((a, b) => new Date(gf(b, 'submittedAt') || 0) - new Date(gf(a, 'submittedAt') || 0));
+      ffRegsCache = docs;
+      const badge = document.getElementById('ffreg-count');
+      const unpaid = docs.filter(d => !ffRecon(d).paymentReceived).length;
+      if (badge) { badge.textContent = unpaid; badge.style.display = unpaid > 0 ? '' : 'none'; }
+      if (docs.length === 0) {
+        list.innerHTML = '<div class="empty-state"><div class="empty-icon">✝️</div><div class="empty-title">No registrations yet</div><div class="empty-sub">Faith Formation sign-ups from the website will appear here.</div></div>';
+        return;
+      }
+      list.innerHTML = docs.map(renderFFRegCard).join('');
+    } catch (e) { list.innerHTML = '<div style="color:var(--danger);">Error loading.</div>'; }
+  }
+
+  function renderFFRegCard(doc) {
+    const id = docId(doc);
+    const lastName = gf(doc, 'familyLastName') || '';
+    const submittedAt = gf(doc, 'submittedAt') || '';
+    const submittedDate = submittedAt ? new Date(submittedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : '';
+    const children = ffChildren(doc);
+    const recon = ffRecon(doc);
+    const feeTotal = ffFeeTotal(doc);
+
+    const childSummary = children.map(function(c) {
+      return escHtml(c.name) + (c.grade ? ' (Gr ' + escHtml(c.grade) + ')' : '');
+    }).join(', ');
+
+    let html = '<div class="partner-card" id="ffreg-' + id + '" style="margin-bottom:16px;">';
+    html += '<div class="partner-card-header"><div class="partner-name">' + escHtml(lastName) + ' Family</div><div style="display:flex;gap:8px;align-items:center;">' + ffPaymentBadge(recon) + (submittedDate ? '<span style="font-size:12px;color:var(--dusty-rose);">Submitted ' + submittedDate + '</span>' : '') + '</div></div>';
+    html += '<div class="partner-meta">' + (childSummary || 'No children listed') + (feeTotal ? ' · Est. fees $' + escHtml(feeTotal) : '') + '</div>';
+
+    // Parents
+    html += '<div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--linen);">';
+    html += '<div style="font-family:\'Cinzel\',serif;font-size:12px;color:var(--burgundy);letter-spacing:0.5px;margin-bottom:6px;">PARENTS / GUARDIANS</div>';
+    const mParts = [gf(doc, 'motherName'), gf(doc, 'motherCell'), gf(doc, 'motherEmail')].filter(Boolean).map(escHtml).join(' · ');
+    const fParts = [gf(doc, 'fatherName'), gf(doc, 'fatherCell'), gf(doc, 'fatherEmail')].filter(Boolean).map(escHtml).join(' · ');
+    if (mParts) html += '<div style="font-size:13px;color:var(--soil);">Mother/G1: ' + mParts + '</div>';
+    if (gf(doc, 'motherAddress') || gf(doc, 'motherCityZip')) html += '<div style="font-size:12px;color:var(--dusty-rose);">' + escHtml([gf(doc, 'motherAddress'), gf(doc, 'motherCityZip')].filter(Boolean).join(', ')) + '</div>';
+    if (fParts) html += '<div style="font-size:13px;color:var(--soil);margin-top:4px;">Father/G2: ' + fParts + '</div>';
+    if (gf(doc, 'fatherAddress') || gf(doc, 'fatherCityZip')) html += '<div style="font-size:12px;color:var(--dusty-rose);">' + escHtml([gf(doc, 'fatherAddress'), gf(doc, 'fatherCityZip')].filter(Boolean).join(', ')) + '</div>';
+    const emerg = [gf(doc, 'emergencyName'), gf(doc, 'emergencyPhone'), gf(doc, 'emergencyRelation')].filter(Boolean).map(escHtml).join(' · ');
+    if (emerg) html += '<div style="font-size:13px;color:var(--soil);margin-top:6px;">Emergency: ' + emerg + '</div>';
+    html += '</div>';
+
+    // Children detail
+    if (children.length) {
+      html += '<div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--linen);">';
+      html += '<div style="font-family:\'Cinzel\',serif;font-size:12px;color:var(--burgundy);letter-spacing:0.5px;margin-bottom:8px;">CHILDREN (' + children.length + ')</div>';
+      html += children.map(function(c) {
+        let ch = '<div style="font-size:13px;color:var(--soil);margin-bottom:8px;"><strong>' + escHtml(c.name || '—') + '</strong>' + (c.gender ? ' (' + escHtml(c.gender) + ')' : '') + (c.dob ? ' · b. ' + escHtml(c.dob) : '') + (c.grade ? ' · Grade ' + escHtml(c.grade) : '') + '</div>';
+        ch += '<div style="font-size:12px;color:var(--soil);opacity:0.75;margin-bottom:2px;">Class: ' + escHtml(c.classRegistration || '—') + '</div>';
+        if (c.sacramentsReceived) ch += '<div style="font-size:12px;color:var(--soil);opacity:0.75;margin-bottom:2px;">Sacraments received: ' + escHtml(c.sacramentsReceived) + '</div>';
+        if (c.concerns) ch += '<div style="font-size:12px;color:#8B2635;margin-bottom:2px;">Concerns: ' + escHtml(c.concerns) + '</div>';
+        return '<div style="margin-bottom:10px;">' + ch + '</div>';
+      }).join('');
+      html += '</div>';
+    }
+
+    // Photo / indemnity
+    html += '<div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--linen);font-size:12px;color:var(--soil);opacity:0.8;">';
+    html += 'Photo permission: ' + escHtml(gf(doc, 'photoPermission') || '—') + ' · Indemnity agreed: ' + (gf(doc, 'indemnityAgreed') === true ? 'Yes' : 'No') + (gf(doc, 'signatureName') ? ' · Signed: ' + escHtml(gf(doc, 'signatureName')) : '') + (gf(doc, 'signatureDate') ? ' (' + escHtml(gf(doc, 'signatureDate')) + ')' : '');
+    html += '</div>';
+
+    // For Parish Office Use — editable reconciliation box
+    html += '<div style="margin-top:16px;padding:16px;background:var(--sand);border:1px solid var(--gold);border-radius:10px;">';
+    html += '<div style="font-family:\'Cinzel\',serif;font-size:12px;color:var(--burgundy);letter-spacing:0.5px;margin-bottom:12px;">PARISH OFFICE USE — PAYMENT</div>';
+    html += '<label class="checkbox-item" style="display:flex;align-items:center;gap:8px;font-size:14px;margin-bottom:12px;"><input type="checkbox" id="ff-' + id + '-paymentReceived" ' + (recon.paymentReceived ? 'checked' : '') + ' style="width:18px;height:18px;accent-color:var(--burgundy);"> Payment received</label>';
+    html += '<div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;">';
+    html += '<div><label class="form-label">Amount Received</label><input class="form-input" id="ff-' + id + '-amountReceived" value="' + escAttr(recon.amountReceived) + '" placeholder="e.g. 260"></div>';
+    html += '<div><label class="form-label">Payment Type</label><select class="form-select" id="ff-' + id + '-paymentType">' +
+      ['', 'CC', 'Cash', 'Check'].map(function(o) { return '<option' + (recon.paymentType === o ? ' selected' : '') + '>' + (o || '—') + '</option>'; }).join('') + '</select></div>';
+    html += '<div><label class="form-label">Check / Receipt #</label><input class="form-input" id="ff-' + id + '-checkOrReceiptNumber" value="' + escAttr(recon.checkOrReceiptNumber) + '"></div>';
+    html += '<div><label class="form-label">Balance Due</label><input class="form-input" id="ff-' + id + '-balanceDue" value="' + escAttr(recon.balanceDue) + '" placeholder="0"></div>';
+    html += '<div><label class="form-label">Received By</label><input class="form-input" id="ff-' + id + '-receivedBy" value="' + escAttr(recon.receivedBy) + '"></div>';
+    html += '<div><label class="form-label">Received Date</label><input type="date" class="form-input" id="ff-' + id + '-receivedDate" value="' + escAttr(recon.receivedDate) + '"></div>';
+    html += '</div>';
+    html += '<div style="display:flex;gap:8px;margin-top:14px;">';
+    html += '<button class="btn btn-primary btn-sm" onclick="saveFFReconciliation(\'' + id + '\')">Save Payment Info</button>';
+    html += '<a class="btn btn-outline btn-sm" href="mailto:' + escAttr(gf(doc, 'motherEmail') || gf(doc, 'fatherEmail') || '') + '" style="text-decoration:none;">Email Family</a>';
+    html += '<button class="btn btn-outline btn-sm" onclick="deleteFFReg(\'' + id + '\',\'' + escAttr(lastName) + '\')">Delete</button>';
+    html += '</div></div>';
+
+    html += '</div>';
+    return html;
+  }
+
+  async function saveFFReconciliation(id) {
+    const v = k => { const el = document.getElementById('ff-' + id + '-' + k); return el ? el.value.trim() : ''; };
+    const paymentReceived = document.getElementById('ff-' + id + '-paymentReceived').checked;
+    const pt = v('paymentType');
+    const sOrNull = s => s ? { stringValue: s } : { nullValue: null };
+    try {
+      await fs_patch('faithFormationRegistrations/' + id, {
+        reconciliation: { mapValue: { fields: {
+          paymentReceived: { booleanValue: paymentReceived },
+          amountReceived: sOrNull(v('amountReceived')),
+          paymentType: sOrNull(pt === '—' ? '' : pt),
+          checkOrReceiptNumber: sOrNull(v('checkOrReceiptNumber')),
+          balanceDue: sOrNull(v('balanceDue')),
+          receivedBy: sOrNull(v('receivedBy')),
+          receivedDate: sOrNull(v('receivedDate'))
+        } } },
+        updatedAt: { stringValue: new Date().toISOString() }
+      });
+      showToast('Payment info saved.', 'success');
+      loadFaithFormationRegs();
+    } catch (e) { showToast('Error saving payment info.', 'error'); }
+  }
+
+  async function deleteFFReg(id, name) {
+    if (!confirm('Delete the ' + name + ' family\'s Faith Formation registration? This cannot be undone.')) return;
+    try {
+      await fs_delete('faithFormationRegistrations/' + id);
+      document.getElementById('ffreg-' + id)?.remove();
+      showToast(name + ' registration deleted.', 'success');
+      loadFaithFormationRegs();
+    } catch (e) { showToast('Error deleting: ' + e.message, 'error'); }
+  }
+
+  function exportFFRegsCSV() {
+    if (ffRegsCache.length === 0) { showToast('No registrations to export.', 'error'); return; }
+    const csvEscape = (val) => '"' + String(val || '').replace(/"/g, '""') + '"';
+    const headers = ['Family Last Name', 'Child Name', 'Grade', 'Class', 'Sacraments Received', 'Mother', 'Mother Email', 'Father', 'Father Email', 'Est. Fees', 'Payment Received', 'Amount', 'Type', 'Check/Receipt #', 'Balance Due', 'Received By', 'Received Date', 'Submitted'];
+    const rows = [];
+    ffRegsCache.forEach(doc => {
+      const recon = ffRecon(doc);
+      const submitted = gf(doc, 'submittedAt') ? new Date(gf(doc, 'submittedAt')).toLocaleDateString() : '';
+      const kids = ffChildren(doc);
+      const base = [gf(doc, 'familyLastName')];
+      (kids.length ? kids : [{}]).forEach(c => {
+        rows.push([
+          gf(doc, 'familyLastName'), c.name || '', c.grade || '', c.classRegistration || '', c.sacramentsReceived || '',
+          gf(doc, 'motherName'), gf(doc, 'motherEmail'), gf(doc, 'fatherName'), gf(doc, 'fatherEmail'), ffFeeTotal(doc),
+          recon.paymentReceived ? 'Yes' : 'No', recon.amountReceived, recon.paymentType, recon.checkOrReceiptNumber,
+          recon.balanceDue, recon.receivedBy, recon.receivedDate, submitted
+        ].map(csvEscape).join(','));
+      });
+      void base;
+    });
+    const csv = headers.map(csvEscape).join(',') + '\n' + rows.join('\n');
+    const blob = new Blob([csv], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'faith_formation_registrations_' + new Date().toISOString().split('T')[0] + '.csv';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
