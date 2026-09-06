@@ -366,6 +366,7 @@
         <div class="nav-item staff-only cheyanne-only" onclick="showPage('welcome',this)"><span class="nav-icon">🌹</span> Welcome Message</div>
         <div class="nav-item staff-only" onclick="showPage('councils',this);loadCouncils()"><span class="nav-icon">⛪</span> Pastoral, Finance &amp; Development Council</div>
         <div class="nav-item staff-only" onclick="showPage('signup-forms',this);loadSignupForms()"><span class="nav-icon">📝</span> Forms &amp; Sign-ups</div>
+        <div class="nav-item staff-only" onclick="showPage('parish-staff',this);loadParishStaff()"><span class="nav-icon">👥</span> Parish Staff Directory</div>
       </div>
 
       <div class="nav-section-toggle collapsed staff-only" onclick="toggleNavSection(this)"><span>Website Media</span><span class="nav-chevron">▾</span></div>
@@ -826,6 +827,45 @@
         <div class="card" style="margin-top:16px;">
           <div class="card-title">📋 All Sign-up Forms</div>
           <div id="signup-forms-list"><div style="color:var(--dusty-rose);font-size:14px;">Loading...</div></div>
+        </div>
+      </div>
+
+      <!-- PARISH STAFF DIRECTORY -->
+      <div class="page" id="page-parish-staff">
+        <div class="card">
+          <div class="card-title" id="staff-form-title">👥 Add Staff Member</div>
+          <div class="info-box">
+            The Parish Staff grid on the app's Parish screen (tap a card there for the full-screen photo &amp; bio).
+            Reorder with the ↑ / ↓ buttons below. Anyone left without a bio shows &ldquo;Bio coming soon.&rdquo; in the app.
+            <br><br>
+            <button class="btn btn-outline btn-sm" onclick="seedParishStaffRoster()">Seed from current roster</button>
+          </div>
+          <div style="display:flex;gap:14px;margin-bottom:12px;align-items:flex-start;">
+            <div class="drop-zone" style="width:80px;height:80px;border-radius:40px;background:var(--linen);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDropUpload(event, (f) => handleStaffPhotoUpload(f))">
+              <span id="staff-photo-placeholder" style="font-size:26px;opacity:0.5;">👤</span>
+              <img id="staff-photo-img" style="display:none;width:100%;height:100%;object-fit:cover;cursor:pointer;" onclick="openLightbox(this.src)" />
+            </div>
+            <div style="flex:1;display:flex;flex-wrap:wrap;gap:8px;align-items:flex-start;">
+              <label class="btn btn-outline btn-sm" style="cursor:pointer;">Upload Photo (or drag &amp; drop onto circle)
+                <input type="file" accept="image/*" style="display:none;" onchange="handleStaffPhotoUpload(this)" />
+              </label>
+              <button class="btn btn-outline btn-sm" id="staff-remove-photo-btn" style="display:none;" onclick="removeStaffPhoto()">Remove Photo</button>
+            </div>
+          </div>
+          <div class="form-group"><label class="form-label">Name *</label><input type="text" class="form-input" id="staff-name" placeholder="e.g. Fr. Bing Colasito" /></div>
+          <div class="form-group"><label class="form-label">Role / Title</label><input type="text" class="form-input" id="staff-role" placeholder="e.g. Pastor" /></div>
+          <div class="form-group"><label class="form-label">Phone (Call button)</label><input type="text" class="form-input" id="staff-phone" placeholder="e.g. 6234659740  (add ,101 for an extension)" /></div>
+          <div class="form-group"><label class="form-label">Email (Email button)</label><input type="text" class="form-input" id="staff-email" placeholder="e.g. name@stroseanthem.com" /></div>
+          <div class="form-group"><label class="form-label">Bio</label><textarea class="form-textarea" id="staff-bio" rows="6" placeholder="Leave blank to show &ldquo;Bio coming soon.&rdquo; in the app."></textarea></div>
+          <div class="form-group"><label class="form-label">Order (display position)</label><input type="number" class="form-input" id="staff-order" placeholder="e.g. 1" /></div>
+          <div class="btn-row">
+            <button class="btn btn-primary" id="staff-save-btn" onclick="saveParishStaffMember()">Add Staff Member</button>
+            <button class="btn btn-outline" onclick="resetParishStaffForm()">Clear / New</button>
+          </div>
+        </div>
+        <div class="card" style="margin-top:16px;">
+          <div class="card-title">📋 All Staff</div>
+          <div id="parish-staff-list"><div style="color:var(--dusty-rose);font-size:14px;">Loading...</div></div>
         </div>
       </div>
 
@@ -2298,7 +2338,7 @@
     if(el) el.classList.add('active');
     window.scrollTo(0,0);
     closeSidebar();
-    const titles = {dashboard:'Dashboard',events:'Events',announcement:'Post Announcement',fastblast:'Fast Blast',reflection:'Weekly Reflection','parish-development':'Parish Development',daily:'Daily Reflection',songsheet:'Mass Songsheet',welcome:'Welcome Message','hero-media':'Hero Section','welcome-media':'Welcome Section',gallery:'Homepage Gallery','around-parish':'Around the Parish','parish-dev-media':'Parish Development','bulletin-images':'Bulletin Images','ministry-booklet':'Ministry Booklet','mass-schedule':'Mass Schedule',councils:'Pastoral, Finance & Development Council','council-inquiries':'Council Inquiries','funeral-planning':'Funeral Planning Forms','onboard-council':'Onboard Council Lead','music-ministry':'Music Ministry','music-members':'Music Ministry Members',approvals:'Parish Family Approvals',partners:'Partner Requests',directory:'Parish Family Directory','ministry-post':'Post to Members','cda-members':'My Members','submit-event':'Submit Event','event-requests':'Event Requests','contact-requests':'Contact Requests',intention:'Mass Intentions','my-ministry':'My Ministry','onboard-leader':'Onboard Ministry Leader','leader-tracker':'Ministry Leaders'};
+    const titles = {dashboard:'Dashboard',events:'Events',announcement:'Post Announcement',fastblast:'Fast Blast',reflection:'Weekly Reflection','parish-development':'Parish Development',daily:'Daily Reflection',songsheet:'Mass Songsheet',welcome:'Welcome Message','hero-media':'Hero Section','welcome-media':'Welcome Section',gallery:'Homepage Gallery','around-parish':'Around the Parish','parish-dev-media':'Parish Development','bulletin-images':'Bulletin Images','ministry-booklet':'Ministry Booklet','mass-schedule':'Mass Schedule',councils:'Pastoral, Finance & Development Council','council-inquiries':'Council Inquiries','signup-forms':'Forms & Sign-ups','parish-staff':'Parish Staff Directory','funeral-planning':'Funeral Planning Forms','onboard-council':'Onboard Council Lead','music-ministry':'Music Ministry','music-members':'Music Ministry Members',approvals:'Parish Family Approvals',partners:'Partner Requests',directory:'Parish Family Directory','ministry-post':'Post to Members','cda-members':'My Members','submit-event':'Submit Event','event-requests':'Event Requests','contact-requests':'Contact Requests',intention:'Mass Intentions','my-ministry':'My Ministry','onboard-leader':'Onboard Ministry Leader','leader-tracker':'Ministry Leaders'};
     document.getElementById('page-title').textContent = titles[id]||id;
     var mpt = document.getElementById('mobile-page-title'); if(mpt) mpt.textContent = titles[id]||id;
     if(id==='approvals') loadApprovals();
@@ -5504,6 +5544,245 @@
           '</div></div>';
       }).join('');
     } catch (e) { showToast('Error loading sign-up forms.', 'error'); }
+  }
+
+  // == PARISH STAFF DIRECTORY ==
+  // Data-driven roster behind the app's Parish-screen staff grid + swipeable
+  // profile lightbox. Collection: parishes/saint-rose-anthem/parishStaff.
+  // Doc shape: name, role, phone, email, photoUrl, bio (string), order (int).
+  // The app keeps a hardcoded fallback roster and only switches to this
+  // collection once it has docs -- click "Seed from current roster" once so
+  // the switch-over is seamless.
+  var staffEditingId = null;
+  var staffPhotoUrl = '';
+
+  function renderStaffPhoto() {
+    var img = document.getElementById('staff-photo-img');
+    var ph = document.getElementById('staff-photo-placeholder');
+    var rm = document.getElementById('staff-remove-photo-btn');
+    if (staffPhotoUrl) {
+      img.src = staffPhotoUrl; img.style.display = ''; ph.style.display = 'none'; rm.style.display = '';
+    } else {
+      img.src = ''; img.style.display = 'none'; ph.style.display = ''; rm.style.display = 'none';
+    }
+  }
+
+  function resetParishStaffForm() {
+    staffEditingId = null;
+    staffPhotoUrl = '';
+    document.getElementById('staff-name').value = '';
+    document.getElementById('staff-role').value = '';
+    document.getElementById('staff-phone').value = '';
+    document.getElementById('staff-email').value = '';
+    document.getElementById('staff-bio').value = '';
+    document.getElementById('staff-order').value = '';
+    document.getElementById('staff-form-title').textContent = '👥 Add Staff Member';
+    document.getElementById('staff-save-btn').textContent = 'Add Staff Member';
+    renderStaffPhoto();
+  }
+
+  // Holds the uploaded URL in memory (like the council member cards) rather
+  // than fs_patch-ing immediately -- this form has several fields behind one
+  // shared Save button, and persisting on photo drop would also save whatever
+  // in-progress name/role/bio edits are sitting in the other inputs.
+  async function handleStaffPhotoUpload(input) {
+    const file = input.files[0];
+    if (!file) return;
+    try {
+      const base64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = e => resolve(e.target.result.split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      const url = await uploadDevFile(base64, file.name, 'parishStaff', file.type);
+      staffPhotoUrl = url;
+      renderStaffPhoto();
+      showToast('Photo uploaded — click Save to keep it.', 'success');
+    } catch (e) { console.error('Staff photo upload error:', e); showToast('Upload failed: ' + (e && e.message || e), 'error'); }
+  }
+
+  // Clears the field only -- doesn't delete the file from Storage, same as
+  // every other photo swap in this portal (council members, hero, gallery).
+  function removeStaffPhoto() {
+    staffPhotoUrl = '';
+    renderStaffPhoto();
+  }
+
+  async function saveParishStaffMember() {
+    const name = document.getElementById('staff-name').value.trim();
+    const role = document.getElementById('staff-role').value.trim();
+    const phone = document.getElementById('staff-phone').value.trim();
+    const email = document.getElementById('staff-email').value.trim();
+    const bio = document.getElementById('staff-bio').value.trim();
+    const orderRaw = document.getElementById('staff-order').value.trim();
+    if (!name) { showToast('Please enter a name.', 'error'); return; }
+    const order = orderRaw === '' ? 999 : parseInt(orderRaw, 10);
+    const btn = document.getElementById('staff-save-btn');
+    btn.disabled = true; btn.textContent = 'Saving...';
+    try {
+      const fields = {
+        name: { stringValue: name },
+        role: { stringValue: role },
+        phone: { stringValue: phone },
+        email: { stringValue: email },
+        photoUrl: { stringValue: staffPhotoUrl || '' },
+        bio: { stringValue: bio },
+        order: { integerValue: String(isNaN(order) ? 999 : order) },
+        updatedAt: { stringValue: new Date().toISOString() }
+      };
+      if (staffEditingId) {
+        await fs_patch('parishStaff/' + staffEditingId, fields);
+        showToast('Staff member updated!', 'success');
+      } else {
+        fields.createdAt = { stringValue: new Date().toISOString() };
+        await fs_post('parishStaff', fields);
+        showToast('Staff member added!', 'success');
+      }
+      resetParishStaffForm();
+      loadParishStaff();
+    } catch (e) {
+      showToast('Error saving staff member.', 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = staffEditingId ? 'Save Changes' : 'Add Staff Member';
+    }
+  }
+
+  function loadStaffIntoForm(id, item) {
+    staffEditingId = id;
+    staffPhotoUrl = item.photoUrl || '';
+    document.getElementById('staff-name').value = item.name || '';
+    document.getElementById('staff-role').value = item.role || '';
+    document.getElementById('staff-phone').value = item.phone || '';
+    document.getElementById('staff-email').value = item.email || '';
+    document.getElementById('staff-bio').value = item.bio || '';
+    document.getElementById('staff-order').value = (item.order === '' || item.order === undefined) ? '' : item.order;
+    document.getElementById('staff-form-title').textContent = '👥 Edit Staff Member';
+    document.getElementById('staff-save-btn').textContent = 'Save Changes';
+    renderStaffPhoto();
+    window.scrollTo(0, 0);
+  }
+
+  async function deleteParishStaffMember(id) {
+    if (!confirm('Delete this staff member permanently?')) return;
+    try {
+      await fs_delete('parishStaff/' + id);
+      showToast('Deleted.', 'success');
+      loadParishStaff();
+    } catch (e) { showToast('Error deleting: ' + e.message, 'error'); }
+  }
+
+  // Reorder: swap this entry's `order` with its neighbour in the sorted list
+  // (same approach as moveSignupForm).
+  async function moveParishStaffMember(id, dir) {
+    try {
+      const res = await fs_get('parishStaff');
+      const items = (res.documents || []).map(d => ({
+        id: docId(d),
+        order: d.fields?.order?.integerValue !== undefined ? parseInt(d.fields.order.integerValue, 10) : 999
+      })).sort((a, b) => a.order - b.order);
+      const idx = items.findIndex(x => x.id === id);
+      const swapIdx = idx + dir;
+      if (idx < 0 || swapIdx < 0 || swapIdx >= items.length) return;
+      const a = items[idx], b = items[swapIdx];
+      await fs_patch('parishStaff/' + a.id, { order: { integerValue: String(b.order) }, updatedAt: { stringValue: new Date().toISOString() } });
+      await fs_patch('parishStaff/' + b.id, { order: { integerValue: String(a.order) }, updatedAt: { stringValue: new Date().toISOString() } });
+      loadParishStaff();
+    } catch (e) { showToast('Error reordering.', 'error'); }
+  }
+
+  // The 10 current staff members + the real bios drafted for Fr. Bing,
+  // Fr. Charles, Dr. Tom Henrich, Matt Ficarra and Dcn. John (his pulled
+  // from the Development Council entry); "Bio coming soon." left blank for
+  // the rest so the app shows its placeholder. Photos are uploaded per-member
+  // above after seeding -- the app shows an initial-letter avatar until then.
+  var PARISH_STAFF_SEED = [
+    { id: 'fr-bing', name: 'Fr. Bing Colasito', role: 'Pastor', phone: '6234659740', email: 'frbcolasito@stroseanthem.com',
+      bio: `Fr. Francisco 'Bing' Colasito has shepherded St. Rose Philippine Duchesne since 2015, leading our parish with a vision of unity, community, and joy. Born and raised in the Philippines, he continues a family legacy of Catholic clergy — the fourth in his immediate family to enter the priesthood. He originally trained and worked as a civil engineer before encountering the Focolare Movement, a global spirituality centered on unity and charity, which drew him to leave engineering behind and pursue the priesthood. He was ordained in 1999 and has since served as a professor, spiritual director, and pastor, joining the Diocese of Phoenix presbyterate in 2022. At St. Rose, Fr. Bing's guiding vision is a "community of communities" — small, tight-knit faith groups mirroring the parish life of his homeland. In May 2026, he stood alongside parishioners and Bishop John Dolan to dedicate our new church home after more than two decades of prayer and anticipation.` },
+    { id: 'fr-charles', name: 'Fr. Charles Ouemenga', role: 'Parochial Vicar', phone: '6233078273', email: 'frcharles@stroseanthem.com',
+      bio: `Fr. Charles Ouemenga joined our parish family as Parochial Vicar on July 1, 2024, bringing a heart for community, prayer, and pastoral care. His priesthood began in [Fr. Charles's Hometown/Country], where he first felt the call to serve, and he was ordained in [Year of Ordination] after studying at [Name of Seminary]. In addition to the Sacraments, Fr. Charles is deeply involved in our Small Christian Communities ministry, helping parishioners grow closer to Christ through small-group faith-sharing and scripture study.` },
+    { id: 'tom-henrich', name: 'Dr. Tom Henrich', role: 'Office Administrator', phone: '6233078265', email: 'thenrich@stroseanthem.com',
+      bio: `Dr. Tom Henrich serves St. Rose in a unique dual role — as parish Office Administrator managing daily operations, and as an ordained Permanent Deacon ministering to the community. He works closely with the Small Christian Communities ministry and frequently writes spiritual reflections to encourage the parish's ongoing growth.` },
+    { id: 'dcn-john', name: 'Dcn. John Mezydlo', role: 'Deacon', phone: '6234659740,101', email: 'JMezydlo@stroseanthem.com',
+      bio: `Deacon John lived in Arizona from 2000-2006 and moved back in July of 2019. He was ordained as a Permanent Deacon by the Most Reverend Bishop Jerome Listecki in the Archdiocese of Milwaukee on September 6th 2014. He now serves on staff at St. Rose / GSM as the Stewardship / Discipleship Coordinator. Married for the past 41 years to his wife Rita, who is also active in the parish community, they have one son, John Robert married to Heather and two beautiful twins four year old granddaughters, Elly and Jordyn. He is a former Rotary president in both Oconomowoc and Lake Mills Wisconsin and has served on many civic boards and organizations. His family hales from the great state of Wisconsin.` },
+    { id: 'cheyanne-bosn', name: 'Cheyanne Bosn', role: 'Executive Assistant', phone: '6233078264', email: 'cbosn@stroseanthem.com', bio: '' },
+    { id: 'matt-ficarra', name: 'Matt Ficarra', role: 'Director of Music & Media', phone: '6233078266', email: 'mficarra@stroseanthem.com',
+      bio: `Matt Ficarra has served as Director of Music and Media at Saint Rose since 2004, witnessing the parish's growth firsthand. Before joining Saint Rose, he ministered at Our Lady of Joy in Carefree and Christ the King in Mesa. Over more than 20 years in full-time ministry, he has served in music, youth ministry, evangelization, and media.` },
+    { id: 'cherie-bernstein', name: 'Cherie Bernstein', role: 'Accounting Assistant', phone: '6233078270', email: 'cbernstein@stroseanthem.com', bio: '' },
+    { id: 'chris-bosn', name: 'Chris Bosn', role: 'Youth & Young Adult Minister\nFuneral Coordinator', phone: '6233078269', email: 'chrisbosn@stroseanthem.com', bio: '' },
+    { id: 'renee-hunsaker', name: 'Renee Hunsaker', role: 'Coord. of Religious Education', phone: '6233078268', email: 'rhunsaker@stroseanthem.com', bio: '' },
+    { id: 'ray-lopez', name: 'Ray Lopez', role: 'Maintenance & Custodial', phone: '6234659740', email: 'rlopez@stroseanthem.com', bio: '' }
+  ];
+
+  // Idempotent -- writes each seed entry to a stable doc ID, skipping any that
+  // already exist (same pattern as "Sync All Ministries from App"). Safe to
+  // click repeatedly.
+  async function seedParishStaffRoster() {
+    showToast('Seeding staff roster...', 'success');
+    let added = 0, skipped = 0, failed = 0;
+    for (let i = 0; i < PARISH_STAFF_SEED.length; i++) {
+      const s = PARISH_STAFF_SEED[i];
+      try {
+        const existing = await fs_get_doc('parishStaff/' + s.id);
+        if (existing && existing.fields && Object.keys(existing.fields).length > 0) { skipped++; continue; }
+        await fs_patch('parishStaff/' + s.id, {
+          name: { stringValue: s.name },
+          role: { stringValue: s.role || '' },
+          phone: { stringValue: s.phone || '' },
+          email: { stringValue: s.email || '' },
+          photoUrl: { stringValue: '' },
+          bio: { stringValue: s.bio || '' },
+          order: { integerValue: String(i + 1) },
+          createdAt: { stringValue: new Date().toISOString() },
+          updatedAt: { stringValue: new Date().toISOString() }
+        });
+        added++;
+      } catch (e) { failed++; }
+    }
+    loadParishStaff();
+    showToast('Seed complete: ' + added + ' added, ' + skipped + ' already existed' + (failed ? ', ' + failed + ' failed' : '') + '.', 'success');
+  }
+
+  async function loadParishStaff() {
+    const el = document.getElementById('parish-staff-list');
+    if (!el) return;
+    try {
+      const res = await fs_get('parishStaff');
+      const docs = res.documents || [];
+      if (docs.length === 0) {
+        el.innerHTML = '<div style="color:var(--dusty-rose);font-size:14px;">No staff members yet. The app shows its built-in roster until you add members here — click &ldquo;Seed from current roster&rdquo; above to import the current 10.</div>';
+        return;
+      }
+      const items = docs.map(d => ({
+        id: docId(d),
+        name: gf(d, 'name'),
+        role: gf(d, 'role'),
+        phone: gf(d, 'phone'),
+        email: gf(d, 'email'),
+        photoUrl: gf(d, 'photoUrl'),
+        bio: gf(d, 'bio'),
+        order: d.fields?.order?.integerValue !== undefined ? parseInt(d.fields.order.integerValue, 10) : 999
+      })).sort((a, b) => a.order - b.order);
+      const btnStyle = 'background:none;border:1px solid var(--linen);border-radius:8px;padding:5px 12px;font-size:12px;cursor:pointer;color:var(--soil);';
+      el.innerHTML = items.map((item, i) => {
+        const payload = JSON.stringify(item).replace(/'/g, '&#39;');
+        return '<div style="padding:14px 0;border-bottom:1px solid var(--linen);display:flex;gap:12px;align-items:flex-start;">' +
+          (item.photoUrl
+            ? '<img src="' + escHtml(item.photoUrl) + '" style="width:48px;height:48px;border-radius:24px;object-fit:cover;flex-shrink:0;cursor:pointer;" onclick="openLightbox(this.src)" />'
+            : '<div style="width:48px;height:48px;border-radius:24px;background:var(--linen);display:flex;align-items:center;justify-content:center;flex-shrink:0;font-size:18px;opacity:0.5;">👤</div>') +
+          '<div style="flex:1;">' +
+          '<div style="font-family:Cinzel,serif;font-size:15px;color:var(--burgundy);">' + escHtml(item.name) + '</div>' +
+          (item.role ? '<div style="font-size:13px;color:var(--soil);margin-top:2px;white-space:pre-line;">' + escHtml(item.role) + '</div>' : '') +
+          '<div style="font-size:12px;color:var(--dusty-rose);margin-top:3px;">' + (item.bio ? 'Bio set' : 'Bio coming soon.') + (item.email ? ' · ' + escHtml(item.email) : '') + '</div>' +
+          '<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;">' +
+          '<button onclick="moveParishStaffMember(\'' + item.id + '\',-1)" ' + (i === 0 ? 'disabled style="opacity:0.4;' + btnStyle + '"' : 'style="' + btnStyle + '"') + '>↑</button>' +
+          '<button onclick="moveParishStaffMember(\'' + item.id + '\',1)" ' + (i === items.length - 1 ? 'disabled style="opacity:0.4;' + btnStyle + '"' : 'style="' + btnStyle + '"') + '>↓</button>' +
+          '<button onclick=\'loadStaffIntoForm("' + item.id + '", ' + payload + ')\' style="' + btnStyle + '">Edit</button>' +
+          '<button onclick="deleteParishStaffMember(\'' + item.id + '\')" style="background:none;border:1px solid #CC3333;border-radius:8px;padding:5px 12px;font-size:12px;cursor:pointer;color:#CC3333;">Delete</button>' +
+          '</div></div></div>';
+      }).join('');
+    } catch (e) { showToast('Error loading staff.', 'error'); }
   }
 
     // == MASS INTENTIONS ==
