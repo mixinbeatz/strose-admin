@@ -363,7 +363,7 @@
         <div class="nav-item staff-only cheyanne-only" onclick="showPage('reflection',this)"><span class="nav-icon">📖</span> Weekly Reflection</div>
         <div class="nav-item staff-only cheyanne-only" onclick="showPage('daily',this)"><span class="nav-icon">✝</span> Daily Reflection</div>
         <div class="nav-item staff-only cheyanne-only" onclick="showPage('intention',this)"><span class="nav-icon">🕯️</span> Mass Intentions</div>
-        <div class="nav-item staff-only cheyanne-only" onclick="showPage('welcome',this)"><span class="nav-icon">🌹</span> Welcome Message</div>
+        <div class="nav-item staff-only cheyanne-only" onclick="showPage('welcome',this);loadWelcomeMessage(true)"><span class="nav-icon">🌹</span> Welcome Message</div>
         <div class="nav-item staff-only" onclick="showPage('councils',this);loadCouncils()"><span class="nav-icon">⛪</span> Pastoral, Finance &amp; Development Council</div>
         <div class="nav-item staff-only" onclick="showPage('signup-forms',this);loadSignupForms()"><span class="nav-icon">📝</span> Forms &amp; Sign-ups</div>
         <div class="nav-item staff-only" onclick="showPage('parish-staff',this);loadParishStaff()"><span class="nav-icon">👥</span> Parish Staff Directory</div>
@@ -1085,7 +1085,12 @@
       <div class="page" id="page-welcome">
         <div class="card">
           <div class="card-title">🌹 Welcome Message</div>
-          <div class="info-box">This text appears in the Welcome modal on the app Home screen when a parishioner taps the Welcome card. Paste Fr. Bing's message here.</div>
+          <div class="info-box">This text and photo appear in the Welcome modal on the app Home screen (and on the website's "Father's Welcome" page) when a parishioner taps the Welcome card. Paste Fr. Bing's message here.</div>
+          <div class="form-group">
+            <label class="form-label">Welcome Photo</label>
+            <div id="welcome-msg-photo"></div>
+            <div style="font-size:12px;color:var(--dusty-rose);margin-top:4px;">Shown next to Fr. Bing's name in the app's Welcome modal and on the website. If left unset, the app falls back to its bundled photo.</div>
+          </div>
           <div class="form-group">
             <label class="form-label">Import from Word Doc (.docx)</label>
             <input type="file" id="welcome-docx-input" accept=".docx" onchange="importDocxToTextarea(this,'welcome-body')" />
@@ -7327,14 +7332,51 @@
     } catch(e) { showToast('Error saving.', 'error'); }
   }
 
-  async function loadWelcomeMessage() {
+  // silent=true when called on nav open (just populate the fields); the
+  // "Load Current" button calls it with no arg so it still confirms/warns.
+  let welcomeMsgPhotoUrl = '';
+  async function loadWelcomeMessage(silent) {
     try {
       const res = await fs_get('siteContent/welcome');
+      welcomeMsgPhotoUrl = res.fields?.photoUrl?.stringValue || '';
+      renderWelcomeMsgPhoto();
       if (res.fields?.body?.stringValue) {
         document.getElementById('welcome-body').value = res.fields.body.stringValue;
-        showToast('Current message loaded.', 'success');
-      } else { showToast('No welcome message saved yet.', 'error'); }
-    } catch(e) { showToast('No welcome message saved yet.', 'error'); }
+        if (!silent) showToast('Current message loaded.', 'success');
+      } else if (!silent) { showToast('No welcome message saved yet.', 'error'); }
+    } catch(e) { renderWelcomeMsgPhoto(); if (!silent) showToast('No welcome message saved yet.', 'error'); }
+  }
+  function renderWelcomeMsgPhoto() {
+    const el = document.getElementById('welcome-msg-photo');
+    if (!el) return;
+    el.innerHTML = `<div style="border:1px solid var(--linen);border-radius:10px;padding:16px;display:flex;gap:16px;align-items:center;">
+      <div class="drop-zone" style="width:90px;height:90px;border-radius:45px;background:var(--linen);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDropUpload(event, handleWelcomeMsgPhotoUpload)">
+        ${welcomeMsgPhotoUrl
+          ? `<img src="${welcomeMsgPhotoUrl}" style="width:100%;height:100%;object-fit:cover;cursor:pointer;" onclick="openLightbox('${welcomeMsgPhotoUrl}')" />`
+          : `<span style="font-size:28px;opacity:0.5;">👤</span>`}
+      </div>
+      <label class="btn btn-outline btn-sm" style="cursor:pointer;">
+        ${welcomeMsgPhotoUrl ? 'Replace Photo' : 'Upload Photo'} (or drag &amp; drop onto circle)
+        <input type="file" accept="image/*" style="display:none;" onchange="handleWelcomeMsgPhotoUpload(this)" />
+      </label>
+    </div>`;
+  }
+  async function handleWelcomeMsgPhotoUpload(input) {
+    const file = input.files[0];
+    if (!file) return;
+    try {
+      const base64 = await new Promise((resolve, reject) => {
+        const reader = new FileReader();
+        reader.onload = e => resolve(e.target.result.split(',')[1]);
+        reader.onerror = reject;
+        reader.readAsDataURL(file);
+      });
+      const url = await uploadDevFile(base64, file.name, 'welcomePhoto', file.type);
+      welcomeMsgPhotoUrl = url;
+      await fs_patch('siteContent/welcome', { photoUrl: { stringValue: url }, updatedAt: { stringValue: new Date().toISOString() } });
+      renderWelcomeMsgPhoto();
+      showToast('Welcome photo updated!', 'success');
+    } catch(e) { console.error('Welcome photo upload error:', e); showToast('Upload failed: ' + (e && e.message || e), 'error'); }
   }
   // ── WORD DOC IMPORT ──
   // Unzips a .docx (it's just a ZIP of XML files), walks word/document.xml,
