@@ -376,6 +376,7 @@
         <div class="nav-item staff-only" onclick="showPage('around-parish',this);loadAroundParish()"><span class="nav-icon">📸</span> Around the Parish</div>
         <div class="nav-item staff-only" onclick="showPage('parish-dev-media',this);loadParishDevMedia()"><span class="nav-icon">🏗️</span> Parish Development</div>
         <div class="nav-item staff-only" onclick="showPage('bulletin-images',this);loadBulletinImages()"><span class="nav-icon">🗞️</span> Bulletin Images</div>
+        <div class="nav-item staff-only" onclick="showPage('ministry-booklet',this);loadMinistryBooklet()"><span class="nav-icon">📖</span> Ministry Booklet</div>
         <div class="nav-item staff-only" onclick="showPage('mass-schedule',this);loadMassSchedule()"><span class="nav-icon">⏰</span> Mass Schedule</div>
       </div>
       <div class="nav-section-toggle collapsed owner-admin-only" style="display:none" onclick="toggleNavSection(this)"><span>Staff &amp; Access</span><span class="nav-chevron">▾</span></div>
@@ -1193,6 +1194,23 @@
           </div>
         </div>
       </div>
+
+      <!-- MINISTRY BOOKLET -->
+      <div class="page" id="page-ministry-booklet">
+        <div class="card">
+          <div class="card-title">📖 Ministry Booklet</div>
+          <div class="info-box">The parish ministry booklet PDF. It's shown in the app's Welcome screen (&ldquo;View Our Ministry Book&rdquo;) and linked from the website's <strong>Serving</strong> menu. Drop a new PDF below to replace it &mdash; the app and website pick up the change automatically.</div>
+          <div id="mb-current" style="margin-bottom:16px;"><div style="color:var(--dusty-rose);font-size:14px;">Loading...</div></div>
+          <div class="drop-zone" style="padding:32px;border:2px dashed var(--linen);border-radius:10px;text-align:center;position:relative;background:var(--sand);" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleMinistryBookletDrop(event)">
+            <input type="file" accept="application/pdf" onchange="handleMinistryBookletFile(this.files[0])" style="position:absolute;inset:0;opacity:0;cursor:pointer;" />
+            <div style="font-size:34px;margin-bottom:8px;">📄</div>
+            <div style="font-family:'Cinzel',serif;font-size:14px;color:var(--burgundy);margin-bottom:4px;">Drop the ministry booklet PDF here, or click to choose</div>
+            <div style="font-size:12px;color:var(--dusty-rose);">PDF only.</div>
+            <div id="mb-upload-status" style="margin-top:12px;font-size:13px;display:none;"></div>
+          </div>
+        </div>
+      </div>
+
       <div class="page" id="page-mass-schedule">
         <div class="card">
           <div class="card-title">⏰ Mass Schedule</div>
@@ -2280,7 +2298,7 @@
     if(el) el.classList.add('active');
     window.scrollTo(0,0);
     closeSidebar();
-    const titles = {dashboard:'Dashboard',events:'Events',announcement:'Post Announcement',fastblast:'Fast Blast',reflection:'Weekly Reflection','parish-development':'Parish Development',daily:'Daily Reflection',songsheet:'Mass Songsheet',welcome:'Welcome Message','hero-media':'Hero Section','welcome-media':'Welcome Section',gallery:'Homepage Gallery','around-parish':'Around the Parish','parish-dev-media':'Parish Development','bulletin-images':'Bulletin Images','mass-schedule':'Mass Schedule',councils:'Pastoral, Finance & Development Council','council-inquiries':'Council Inquiries','funeral-planning':'Funeral Planning Forms','onboard-council':'Onboard Council Lead','music-ministry':'Music Ministry','music-members':'Music Ministry Members',approvals:'Parish Family Approvals',partners:'Partner Requests',directory:'Parish Family Directory','ministry-post':'Post to Members','cda-members':'My Members','submit-event':'Submit Event','event-requests':'Event Requests','contact-requests':'Contact Requests',intention:'Mass Intentions','my-ministry':'My Ministry','onboard-leader':'Onboard Ministry Leader','leader-tracker':'Ministry Leaders'};
+    const titles = {dashboard:'Dashboard',events:'Events',announcement:'Post Announcement',fastblast:'Fast Blast',reflection:'Weekly Reflection','parish-development':'Parish Development',daily:'Daily Reflection',songsheet:'Mass Songsheet',welcome:'Welcome Message','hero-media':'Hero Section','welcome-media':'Welcome Section',gallery:'Homepage Gallery','around-parish':'Around the Parish','parish-dev-media':'Parish Development','bulletin-images':'Bulletin Images','ministry-booklet':'Ministry Booklet','mass-schedule':'Mass Schedule',councils:'Pastoral, Finance & Development Council','council-inquiries':'Council Inquiries','funeral-planning':'Funeral Planning Forms','onboard-council':'Onboard Council Lead','music-ministry':'Music Ministry','music-members':'Music Ministry Members',approvals:'Parish Family Approvals',partners:'Partner Requests',directory:'Parish Family Directory','ministry-post':'Post to Members','cda-members':'My Members','submit-event':'Submit Event','event-requests':'Event Requests','contact-requests':'Contact Requests',intention:'Mass Intentions','my-ministry':'My Ministry','onboard-leader':'Onboard Ministry Leader','leader-tracker':'Ministry Leaders'};
     document.getElementById('page-title').textContent = titles[id]||id;
     var mpt = document.getElementById('mobile-page-title'); if(mpt) mpt.textContent = titles[id]||id;
     if(id==='approvals') loadApprovals();
@@ -5047,6 +5065,72 @@
     if (!file) return;
     if (!file.type.startsWith('image/')) { showToast('Please drop an image file.', 'error'); return; }
     callback({ files: [file] });
+  }
+
+  // ── MINISTRY BOOKLET ──
+  // Staff drop a PDF -> uploaded to Storage (ministryBooklets/) -> its URL is
+  // written to siteContent/ministryBooklet.url, which the app ("View Our
+  // Ministry Book") and the website (Serving > Ministry Booklet) both read.
+  async function loadMinistryBooklet() {
+    const el = document.getElementById('mb-current');
+    if (!el) return;
+    try {
+      const doc = await fs_get_doc('siteContent/ministryBooklet');
+      const f = (doc && doc.fields) || {};
+      const url = (f.url && f.url.stringValue) || '';
+      const fileName = (f.fileName && f.fileName.stringValue) || '';
+      const updatedAt = (f.updatedAt && f.updatedAt.stringValue) || '';
+      if (!url) {
+        el.innerHTML = '<div style="font-size:14px;color:var(--dusty-rose);">No booklet uploaded yet. Until you upload one, the app shows a &ldquo;coming soon&rdquo; state and the website&rsquo;s Serving menu stays hidden.</div>';
+        return;
+      }
+      el.innerHTML = '<div style="font-size:14px;color:var(--soil);">Current: <a href="' + escAttr(url) + '" target="_blank" rel="noopener" style="color:var(--burgundy);">' + escHtml(fileName || 'ministry booklet PDF') + '</a>'
+        + (updatedAt ? ' <span style="color:var(--dusty-rose);font-size:12px;">&middot; updated ' + escHtml(new Date(updatedAt).toLocaleDateString()) + '</span>' : '') + '</div>';
+    } catch (e) {
+      el.innerHTML = '<div style="font-size:14px;color:var(--danger);">Error loading current booklet.</div>';
+    }
+  }
+
+  function handleMinistryBookletDrop(event) {
+    event.preventDefault();
+    event.currentTarget.classList.remove('drag-over');
+    const file = event.dataTransfer.files && event.dataTransfer.files[0];
+    handleMinistryBookletFile(file);
+  }
+
+  async function handleMinistryBookletFile(file) {
+    if (!file) return;
+    if (file.type !== 'application/pdf' && !/\.pdf$/i.test(file.name || '')) {
+      showToast('Please choose a PDF file.', 'error');
+      return;
+    }
+    const status = document.getElementById('mb-upload-status');
+    status.style.display = 'block';
+    status.style.color = 'var(--soil)';
+    status.textContent = 'Uploading ' + file.name + '…';
+    try {
+      const base64 = await new Promise((resolve, reject) => {
+        const r = new FileReader();
+        r.onload = e => resolve(e.target.result.split(',')[1]);
+        r.onerror = reject;
+        r.readAsDataURL(file);
+      });
+      const path = 'ministryBooklets/' + Date.now() + '_' + file.name.replace(/\s+/g, '_');
+      const url = await uploadRawFile(base64, 'application/pdf', path);
+      await fs_patch('siteContent/ministryBooklet', {
+        url: { stringValue: url },
+        fileName: { stringValue: file.name },
+        updatedAt: { stringValue: new Date().toISOString() }
+      });
+      status.style.color = 'var(--success)';
+      status.textContent = '✓ Uploaded and published.';
+      showToast('Ministry booklet updated.', 'success');
+      loadMinistryBooklet();
+    } catch (e) {
+      status.style.color = 'var(--danger)';
+      status.textContent = 'Upload failed.';
+      showToast('Upload failed: ' + (e && e.message ? e.message : e), 'error');
+    }
   }
 
   function renderExistingPhotos() {
