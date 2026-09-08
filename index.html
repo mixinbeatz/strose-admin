@@ -380,6 +380,7 @@
         <div class="nav-item staff-only" onclick="showPage('councils',this);loadCouncils()"><span class="nav-icon">⛪</span> Pastoral, Finance &amp; Development Council</div>
         <div class="nav-item staff-only" onclick="showPage('signup-forms',this);loadSignupForms()"><span class="nav-icon">📝</span> Forms &amp; Sign-ups</div>
         <div class="nav-item staff-only" onclick="showPage('parish-staff',this);loadParishStaff()"><span class="nav-icon">👥</span> Parish Staff Directory</div>
+        <div class="nav-item staff-only" onclick="showPage('ministry-documents',this);loadMinistryDocuments()"><span class="nav-icon">📄</span> Ministry Documents</div>
       </div>
 
       <div class="nav-section-toggle collapsed staff-only" onclick="toggleNavSection(this)"><span>Website Media</span><span class="nav-chevron">▾</span></div>
@@ -840,6 +841,35 @@
         <div class="card" style="margin-top:16px;">
           <div class="card-title">📋 All Sign-up Forms</div>
           <div id="signup-forms-list"><div style="color:var(--dusty-rose);font-size:14px;">Loading...</div></div>
+        </div>
+      </div>
+
+      <!-- MINISTRY DOCUMENTS -->
+      <div class="page" id="page-ministry-documents">
+        <div class="card">
+          <div class="card-title">📄 Ministry Documents</div>
+          <div class="info-box">
+            Per-ministry handouts (calendars, forms, registration packets) shown in the app. On a ministry's card in Parish Life &rsaquo; Ministry, parishioners see a <strong>Ministry Documents</strong> list; for Funeral Ministry it also appears on the Parish screen. Each document is a PDF or image parishioners tap to open. Reorder with the ↑ / ↓ buttons.
+          </div>
+          <div class="form-group">
+            <label class="form-label">Ministry *</label>
+            <select class="form-select" id="md-ministry" onchange="loadMinistryDocuments()"></select>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Document title *</label>
+            <input type="text" class="form-input" id="md-title" placeholder="e.g. 2025–26 Youth Ministry Calendar" />
+          </div>
+          <div class="drop-zone" style="padding:32px;border:2px dashed var(--linen);border-radius:10px;text-align:center;position:relative;background:var(--sand);" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleMinistryDocDrop(event)">
+            <input type="file" accept="application/pdf,image/jpeg,image/png,image/webp" onchange="handleMinistryDocFile(this.files[0])" style="position:absolute;inset:0;opacity:0;cursor:pointer;" />
+            <div style="font-size:34px;margin-bottom:8px;">📄</div>
+            <div style="font-family:'Cinzel',serif;font-size:14px;color:var(--burgundy);margin-bottom:4px;">Drop a PDF or image here, or click to choose</div>
+            <div style="font-size:12px;color:var(--dusty-rose);">PDF, JPG, PNG or WebP &middot; 25&nbsp;MB max. Choose a ministry and set the title first.</div>
+            <div id="md-upload-status" style="margin-top:12px;font-size:13px;display:none;"></div>
+          </div>
+        </div>
+        <div class="card" style="margin-top:16px;">
+          <div class="card-title" id="md-list-title">📋 Documents</div>
+          <div id="md-list"><div style="color:var(--dusty-rose);font-size:14px;">Select a ministry above.</div></div>
         </div>
       </div>
 
@@ -2376,7 +2406,7 @@
     if(el) el.classList.add('active');
     window.scrollTo(0,0);
     closeSidebar();
-    const titles = {dashboard:'Dashboard',events:'Events',announcement:'Post Announcement',fastblast:'Fast Blast',reflection:'Weekly Reflection','parish-development':'Parish Development',daily:'Daily Reflection',songsheet:'Mass Songsheet',welcome:'Welcome Message','hero-media':'Hero Section','welcome-media':'Welcome Section',gallery:'Homepage Gallery','around-parish':'Around the Parish','parish-dev-media':'Parish Development','bulletin-images':'Bulletin Images','ministry-booklet':'Ministry Booklet','mass-schedule':'Mass Schedule',councils:'Pastoral, Finance & Development Council','council-inquiries':'Council Inquiries','signup-forms':'Forms & Sign-ups','parish-staff':'Parish Staff Directory','funeral-planning':'Funeral Planning Forms','onboard-council':'Onboard Council Lead','music-ministry':'Music Ministry','music-members':'Music Ministry Members',approvals:'Parish Family Approvals',partners:'Partner Requests',directory:'Parish Family Directory','ministry-post':'Post to Members','cda-members':'My Members','submit-event':'Submit Event','event-requests':'Event Requests','contact-requests':'Contact Requests',intention:'Mass Intentions','my-ministry':'My Ministry','onboard-leader':'Onboard Ministry Leader','leader-tracker':'Ministry Leaders'};
+    const titles = {dashboard:'Dashboard',events:'Events',announcement:'Post Announcement',fastblast:'Fast Blast',reflection:'Weekly Reflection','parish-development':'Parish Development',daily:'Daily Reflection',songsheet:'Mass Songsheet',welcome:'Welcome Message','hero-media':'Hero Section','welcome-media':'Welcome Section',gallery:'Homepage Gallery','around-parish':'Around the Parish','parish-dev-media':'Parish Development','bulletin-images':'Bulletin Images','ministry-booklet':'Ministry Booklet','mass-schedule':'Mass Schedule',councils:'Pastoral, Finance & Development Council','council-inquiries':'Council Inquiries','signup-forms':'Forms & Sign-ups','parish-staff':'Parish Staff Directory','ministry-documents':'Ministry Documents','funeral-planning':'Funeral Planning Forms','onboard-council':'Onboard Council Lead','music-ministry':'Music Ministry','music-members':'Music Ministry Members',approvals:'Parish Family Approvals',partners:'Partner Requests',directory:'Parish Family Directory','ministry-post':'Post to Members','cda-members':'My Members','submit-event':'Submit Event','event-requests':'Event Requests','contact-requests':'Contact Requests',intention:'Mass Intentions','my-ministry':'My Ministry','onboard-leader':'Onboard Ministry Leader','leader-tracker':'Ministry Leaders'};
     document.getElementById('page-title').textContent = titles[id]||id;
     var mpt = document.getElementById('mobile-page-title'); if(mpt) mpt.textContent = titles[id]||id;
     if(id==='approvals') loadApprovals();
@@ -5330,6 +5360,212 @@
       status.textContent = 'Upload failed.';
       showToast('Upload failed: ' + (e && e.message ? e.message : e), 'error');
     }
+  }
+
+  // ── MINISTRY DOCUMENTS ──
+  // Per-ministry PDF/image handouts. Firestore subcollection
+  // parishes/saint-rose-anthem/ministryDocuments/<ministryId>/docs/<docId>
+  // (public read, staff-only write -- rules deployed Sep 2026). Bytes go to
+  // Storage under ministryDocuments/<id>/... . The app renders the list on the
+  // ministry card (EventsScreen) and, for `funeral`, the Parish screen.
+  // Mirrors the signupForms managed-list UI + the Ministry Booklet upload
+  // step above. Parent marker doc (ministryDocuments/<id>) is left implicit --
+  // Firestore doesn't need it for subcollection reads. See
+  // MINISTRY_DOCUMENTS_PLAN.md in the app repo.
+  var MD_ALLOWED_TYPES = ['application/pdf', 'image/jpeg', 'image/png', 'image/webp'];
+  var MD_MAX_BYTES = 25 * 1024 * 1024;
+
+  function mdSelectedMinistry() {
+    const sel = document.getElementById('md-ministry');
+    return sel ? sel.value : '';
+  }
+
+  function renderMdMinistrySelect() {
+    const sel = document.getElementById('md-ministry');
+    if (!sel) return;
+    const prev = sel.value;
+    sel.innerHTML = '<option value="">— choose a ministry —</option>' +
+      ministryRegistry.map(function(m) {
+        return '<option value="' + escAttr(m.id) + '">' + escHtml(m.name) + '</option>';
+      }).join('');
+    if (prev && ministryRegistry.some(function(m) { return m.id === prev; })) sel.value = prev;
+  }
+
+  var mdRegistryLoaded = false;
+  async function loadMinistryDocuments() {
+    // Refresh the registry once per session so a newly-added ministry is
+    // selectable (ministryRegistry starts from a 3-entry hardcoded fallback).
+    // Skipped on subsequent calls -- the select's onchange also lands here.
+    if (!mdRegistryLoaded) {
+      await loadMinistryRegistry();
+      mdRegistryLoaded = true;
+    }
+    renderMdMinistrySelect();
+    const ministryId = mdSelectedMinistry();
+    const listEl = document.getElementById('md-list');
+    const listTitle = document.getElementById('md-list-title');
+    if (!listEl) return;
+    if (!ministryId) {
+      listEl.innerHTML = '<div style="color:var(--dusty-rose);font-size:14px;">Select a ministry above.</div>';
+      if (listTitle) listTitle.textContent = '📋 Documents';
+      return;
+    }
+    const mName = (ministryRegistry.find(function(m) { return m.id === ministryId; }) || {}).name || ministryId;
+    if (listTitle) listTitle.textContent = '📋 ' + mName + ' Documents';
+    listEl.innerHTML = '<div style="color:var(--dusty-rose);font-size:14px;">Loading...</div>';
+    try {
+      const res = await fs_get('ministryDocuments/' + ministryId + '/docs');
+      const docs = res.documents || [];
+      if (!docs.length) {
+        listEl.innerHTML = '<div style="color:var(--dusty-rose);font-size:14px;">No documents yet. Add one above.</div>';
+        return;
+      }
+      const items = docs.map(function(d) {
+        return {
+          id: docId(d),
+          title: gf(d, 'title'),
+          fileUrl: gf(d, 'fileUrl'),
+          fileName: gf(d, 'fileName'),
+          contentType: gf(d, 'contentType'),
+          order: (d.fields && d.fields.order && d.fields.order.integerValue !== undefined) ? parseInt(d.fields.order.integerValue, 10) : 999
+        };
+      }).sort(function(a, b) { return a.order - b.order; });
+      listEl.innerHTML = items.map(function(item, i) {
+        const kind = item.contentType === 'application/pdf' ? 'PDF' : 'Image';
+        return '<div style="padding:14px 0;border-bottom:1px solid var(--linen);">' +
+          '<div style="font-family:Cinzel,serif;font-size:15px;color:var(--burgundy);">' + escHtml(item.title || item.fileName || 'Untitled') + '</div>' +
+          '<div style="font-size:12px;color:var(--dusty-rose);margin-top:3px;">' + kind +
+            (item.fileUrl ? ' · <a href="' + escAttr(item.fileUrl) + '" target="_blank" rel="noopener" style="color:var(--burgundy);">open</a>' : '') + '</div>' +
+          '<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;">' +
+          '<button onclick="moveMinistryDoc(\'' + item.id + '\',-1)" ' + (i === 0 ? 'disabled style="opacity:0.4;"' : '') + ' style="background:none;border:1px solid var(--linen);border-radius:8px;padding:5px 12px;font-size:12px;cursor:pointer;color:var(--soil);">↑</button>' +
+          '<button onclick="moveMinistryDoc(\'' + item.id + '\',1)" ' + (i === items.length - 1 ? 'disabled style="opacity:0.4;"' : '') + ' style="background:none;border:1px solid var(--linen);border-radius:8px;padding:5px 12px;font-size:12px;cursor:pointer;color:var(--soil);">↓</button>' +
+          '<button onclick=\'renameMinistryDoc("' + item.id + '", ' + JSON.stringify(item.title || '').replace(/'/g, '&#39;') + ')\' style="background:none;border:1px solid var(--linen);border-radius:8px;padding:5px 12px;font-size:12px;cursor:pointer;color:var(--soil);">Rename</button>' +
+          '<button onclick="deleteMinistryDoc(\'' + item.id + '\')" style="background:none;border:1px solid #CC3333;border-radius:8px;padding:5px 12px;font-size:12px;cursor:pointer;color:#CC3333;">Delete</button>' +
+          '</div></div>';
+      }).join('');
+    } catch (e) {
+      listEl.innerHTML = '<div style="color:var(--danger);">Error loading documents.</div>';
+    }
+  }
+
+  function handleMinistryDocDrop(event) {
+    event.preventDefault();
+    event.currentTarget.classList.remove('drag-over');
+    const file = event.dataTransfer.files && event.dataTransfer.files[0];
+    handleMinistryDocFile(file);
+  }
+
+  async function handleMinistryDocFile(file) {
+    if (!file) return;
+    const ministryId = mdSelectedMinistry();
+    if (!ministryId) { showToast('Choose a ministry first.', 'error'); return; }
+    const title = document.getElementById('md-title').value.trim();
+    if (!title) { showToast('Enter a document title first.', 'error'); return; }
+    let contentType = file.type;
+    if (!contentType && /\.pdf$/i.test(file.name || '')) contentType = 'application/pdf';
+    if (MD_ALLOWED_TYPES.indexOf(contentType) === -1) {
+      showToast('Please choose a PDF, JPG, PNG or WebP file.', 'error');
+      return;
+    }
+    if (file.size >= MD_MAX_BYTES) {
+      showToast('That file is over the 25 MB limit.', 'error');
+      return;
+    }
+    const status = document.getElementById('md-upload-status');
+    status.style.display = 'block';
+    status.style.color = 'var(--soil)';
+    status.textContent = 'Uploading ' + file.name + '…';
+    try {
+      const base64 = await new Promise(function(resolve, reject) {
+        const r = new FileReader();
+        r.onload = function(e) { resolve(e.target.result.split(',')[1]); };
+        r.onerror = reject;
+        r.readAsDataURL(file);
+      });
+      const ts = Date.now();
+      const storagePath = 'ministryDocuments/' + ministryId + '/' + ts + '_' + file.name.replace(/\s+/g, '_');
+      const fileUrl = await uploadRawFile(base64, contentType, storagePath);
+      // Append to the end of the current list: one past the current max order
+      // (robust to gaps left by deletions, unlike a plain count).
+      let order = 0;
+      try {
+        const existing = await fs_get('ministryDocuments/' + ministryId + '/docs');
+        order = (existing.documents || []).reduce(function(max, d) {
+          const o = (d.fields && d.fields.order && d.fields.order.integerValue !== undefined) ? parseInt(d.fields.order.integerValue, 10) : -1;
+          return o > max ? o : max;
+        }, -1) + 1;
+      } catch (e) { /* first doc -> order 0 */ }
+      await fs_post('ministryDocuments/' + ministryId + '/docs', {
+        title: { stringValue: title },
+        fileUrl: { stringValue: fileUrl },
+        storagePath: { stringValue: storagePath },
+        contentType: { stringValue: contentType },
+        fileName: { stringValue: file.name },
+        order: { integerValue: String(order) },
+        sizeBytes: { integerValue: String(file.size) },
+        uploadedAt: { stringValue: new Date().toISOString() },
+        uploadedBy: { stringValue: STAFF_NAME_MAP[currentUser] || currentUser || 'Staff' }
+      });
+      status.style.color = 'var(--success)';
+      status.textContent = '✓ Uploaded.';
+      document.getElementById('md-title').value = '';
+      showToast('Document added.', 'success');
+      loadMinistryDocuments();
+    } catch (e) {
+      status.style.color = 'var(--danger)';
+      status.textContent = 'Upload failed.';
+      showToast('Upload failed: ' + (e && e.message ? e.message : e), 'error');
+    }
+  }
+
+  async function renameMinistryDoc(id, currentTitle) {
+    const ministryId = mdSelectedMinistry();
+    if (!ministryId) return;
+    const next = prompt('Document title:', currentTitle || '');
+    if (next === null) return;
+    const trimmed = next.trim();
+    if (!trimmed) { showToast('Title cannot be empty.', 'error'); return; }
+    try {
+      await fs_patch('ministryDocuments/' + ministryId + '/docs/' + id, {
+        title: { stringValue: trimmed },
+        updatedAt: { stringValue: new Date().toISOString() }
+      });
+      showToast('Renamed.', 'success');
+      loadMinistryDocuments();
+    } catch (e) { showToast('Error renaming.', 'error'); }
+  }
+
+  async function deleteMinistryDoc(id) {
+    if (!confirm('Delete this document permanently? Parishioners will no longer see it.')) return;
+    const ministryId = mdSelectedMinistry();
+    if (!ministryId) return;
+    try {
+      await fs_delete('ministryDocuments/' + ministryId + '/docs/' + id);
+      showToast('Deleted.', 'success');
+      loadMinistryDocuments();
+    } catch (e) { showToast('Error deleting: ' + e.message, 'error'); }
+  }
+
+  // Reorder: swap this doc's `order` with its neighbour in the sorted list.
+  async function moveMinistryDoc(id, dir) {
+    const ministryId = mdSelectedMinistry();
+    if (!ministryId) return;
+    try {
+      const res = await fs_get('ministryDocuments/' + ministryId + '/docs');
+      const items = (res.documents || []).map(function(d) {
+        return {
+          id: docId(d),
+          order: (d.fields && d.fields.order && d.fields.order.integerValue !== undefined) ? parseInt(d.fields.order.integerValue, 10) : 999
+        };
+      }).sort(function(a, b) { return a.order - b.order; });
+      const idx = items.findIndex(function(x) { return x.id === id; });
+      const swapIdx = idx + dir;
+      if (idx < 0 || swapIdx < 0 || swapIdx >= items.length) return;
+      const a = items[idx], b = items[swapIdx];
+      await fs_patch('ministryDocuments/' + ministryId + '/docs/' + a.id, { order: { integerValue: String(b.order) }, updatedAt: { stringValue: new Date().toISOString() } });
+      await fs_patch('ministryDocuments/' + ministryId + '/docs/' + b.id, { order: { integerValue: String(a.order) }, updatedAt: { stringValue: new Date().toISOString() } });
+      loadMinistryDocuments();
+    } catch (e) { showToast('Error reordering.', 'error'); }
   }
 
   function renderExistingPhotos() {
