@@ -476,6 +476,7 @@
             <div class="inner-tab" onclick="switchInnerTab('recurring',this)">Recurring Events</div>
             <div class="inner-tab" onclick="switchInnerTab('cal',this);loadCalEvents()">Calendar View</div>
             <div class="inner-tab" onclick="switchInnerTab('icsimport',this)">Import from CalendarWiz</div>
+            <div class="inner-tab" onclick="switchInnerTab('csvimport',this)">Import from CalendarWiz (CSV)</div>
           </div>
 
           <!-- SINGLE EVENT -->
@@ -683,6 +684,25 @@
               <button class="btn btn-primary" onclick="submitIcsImport()">Import Selected Events</button>
             </div>
             <div class="post-success" id="ics-import-success" style="margin-top:16px;">✓ Import complete.</div>
+          </div>
+          <!-- CSV IMPORT (CalendarWiz "Export to CSV") -->
+          <div class="inner-panel" id="panel-csvimport">
+            <div class="info-box">In CalendarWiz: Admin Menu &gt; Import/Export &gt; Export, choose <strong>CSV (Outlook)</strong>, then upload the file here. Carries each event's stable <em>Event Id</em> (used to detect and refresh events already imported), plus address and organizer fields the .ics feed doesn't. Recurring series are grouped; each occurrence is checked individually.</div>
+            <div class="form-group">
+              <label class="form-label">CalendarWiz CSV File</label>
+              <input type="file" accept=".csv,text/csv" class="form-input" id="csv-file-input" onchange="handleCsvFile(this)" />
+            </div>
+            <div id="csv-import-status" style="margin:12px 0;font-size:14px;color:var(--dusty-rose);"></div>
+            <div id="csv-import-summary" style="display:none;margin-bottom:12px;"></div>
+            <div id="csv-import-controls" style="display:none;margin-bottom:12px;">
+              <button class="btn btn-outline btn-sm" onclick="csvSelectAllNew()">Select All New</button>
+              <button class="btn btn-outline btn-sm" onclick="csvDeselectAll()">Deselect All</button>
+            </div>
+            <div id="csv-import-table"></div>
+            <div id="csv-import-actions" style="display:none;margin-top:16px;">
+              <button class="btn btn-primary" onclick="submitCsvImport()">Import / Update Selected</button>
+            </div>
+            <div class="post-success" id="csv-import-success" style="margin-top:16px;">✓ Import complete.</div>
           </div>
         </div>
       </div>
@@ -2962,6 +2982,344 @@
     renderIcsImportTable();
   }
 
+  // ═══════════════════════════════════════════════════════════════════════════
+  // CSV IMPORT (CalendarWiz "Export to CSV / Outlook")
+  //
+  // Sibling of the .ics tool above. The CSV carries a stable per-occurrence
+  // `Event Id` (the primary dedup key) plus address + organizer + all-day
+  // fields the iCal feed doesn't expose. See CALENDARWIZ_CSV_IMPORT_PLAN.md.
+  //
+  //  - New rows            -> fs_post a new events doc          (checked by default)
+  //  - Possible duplicate  -> title+date match, no Event Id     (UNCHECKED by default)
+  //  - Already imported    -> Event Id match (direct, or via a
+  //                           33405<9-digit>@www.calendarwiz.com icsUid on an
+  //                           older .ics import); fs_patch the existing doc with
+  //                           the fresh CSV fields                (checked by default)
+  //
+  // Recurring series (a real, non-zero `Repeat Id`) are shown as a collapsible
+  // group; Repeat Id "0" is CalendarWiz's "not recurring" placeholder and those
+  // rows are always standalone. Selection is per-occurrence -- no group toggle.
+  // ═══════════════════════════════════════════════════════════════════════════
+  let csvParsedEvents = [];      // flat list, one entry per event row
+  let csvExpandedGroups = {};    // repeatId -> bool (preview expand state)
+
+  // RFC-4180-ish CSV parser: handles quoted fields, "" escaping, and embedded
+  // newlines inside quoted values (Description/Notes have them).
+  function parseCsvText(text) {
+    if (text.charCodeAt(0) === 0xFEFF) text = text.slice(1); // strip BOM
+    const rows = [];
+    let row = [], field = '', inQuotes = false, i = 0;
+    while (i < text.length) {
+      const ch = text[i];
+      if (inQuotes) {
+        if (ch === '"') {
+          if (text[i + 1] === '"') { field += '"'; i += 2; continue; }
+          inQuotes = false; i++; continue;
+        }
+        field += ch; i++; continue;
+      }
+      if (ch === '"') { inQuotes = true; i++; continue; }
+      if (ch === ',') { row.push(field); field = ''; i++; continue; }
+      if (ch === '\r') { i++; continue; }
+      if (ch === '\n') { row.push(field); rows.push(row); row = []; field = ''; i++; continue; }
+      field += ch; i++;
+    }
+    if (field !== '' || row.length) { row.push(field); rows.push(row); }
+    return rows;
+  }
+
+  function csvRowsToObjects(rows) {
+    if (!rows.length) return [];
+    const header = rows[0].map(h => h.trim());
+    const out = [];
+    for (let r = 1; r < rows.length; r++) {
+      if (rows[r].length === 1 && rows[r][0].trim() === '') continue; // blank line
+      const o = {};
+      header.forEach((h, c) => { o[h] = (rows[r][c] != null ? rows[r][c] : '').trim(); });
+      out.push(o);
+    }
+    return out;
+  }
+
+  function parseCwDate(mdy) {
+    const m = /^(\d{1,2})\/(\d{1,2})\/(\d{4})$/.exec((mdy || '').trim());
+    if (!m) return null;
+    return { y: +m[3], mo: +m[1] - 1, d: +m[2] };
+  }
+  function parseCwTime(t) {
+    const m = /^(\d{1,2}):(\d{2})\s*(AM|PM)$/i.exec((t || '').trim());
+    if (!m) return null;
+    let h = (+m[1]) % 12;
+    if (/pm/i.test(m[3])) h += 12;
+    return { h: h, mi: +m[2] };
+  }
+
+  // CalendarWiz category string -> the events collection's category enum
+  // (Community | Ministry | Sacrament | Youth | Mass | Announcement).
+  // Extends icsMapCategory with the Formation / Special values seen in the
+  // CSV export ("General", "Adult Formation", "Faith Formation",
+  // "Special Events", "Liturgical Events").
+  function csvMapCategory(cat) {
+    const c = (cat || '').toLowerCase();
+    if (c.indexOf('liturg') !== -1) return 'Mass';
+    if (c.indexOf('sacrament') !== -1) return 'Sacrament';
+    if (c.indexOf('formation') !== -1) return 'Ministry';   // Adult / Faith Formation
+    if (c.indexOf('special') !== -1) return 'Community';     // Special Events
+    return icsMapCategory(cat);                              // mass/youth/ministry, else Community ('General')
+  }
+
+  // Derive a CSV-style Event Id from an older .ics import's stored UID.
+  function cwEventIdFromIcsUid(icsUid) {
+    const m = /^33405(\d{6,12})@www\.calendarwiz\.com$/.exec(String(icsUid || ''));
+    return m ? m[1] : null;
+  }
+
+  function csvFmtDate(d) {
+    const days = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
+    const mons = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+    return days[d.getDay()] + ', ' + mons[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear();
+  }
+
+  async function handleCsvFile(input) {
+    const file = input.files && input.files[0];
+    if (!file) return;
+    const set = (t) => document.getElementById('csv-import-status').textContent = t;
+    set('Reading file...');
+    ['csv-import-summary','csv-import-controls','csv-import-actions','csv-import-success'].forEach(id => document.getElementById(id).style.display = 'none');
+    document.getElementById('csv-import-table').innerHTML = '';
+    const reader = new FileReader();
+    reader.onload = async function(e) {
+      try {
+        const objs = csvRowsToObjects(parseCsvText(e.target.result));
+        if (!objs.length) { set('No rows found in this file.'); return; }
+
+        let skipped = 0;
+        const events = [];
+        objs.forEach(function(o) {
+          const dp = parseCwDate(o['Start Date']);
+          const title = (o['Subject'] || '').trim();
+          if (!dp || !title) { skipped++; return; }
+          const allDay = /^true$/i.test((o['All day event'] || '').trim());
+          const stp = allDay ? null : parseCwTime(o['Start Time']);
+          const startDate = new Date(dp.y, dp.mo, dp.d, stp ? stp.h : 0, stp ? stp.mi : 0, 0);
+          let endDate = null;
+          const edp = parseCwDate(o['End Date']);
+          if (edp) {
+            const etp = parseCwTime(o['End Time']);
+            endDate = new Date(edp.y, edp.mo, edp.d, etp ? etp.h : 23, etp ? etp.mi : 59, etp ? 0 : 59);
+          }
+          const repeatRaw = (o['Repeat Id'] || '').trim();
+          const repeatId = (repeatRaw && repeatRaw !== '0') ? repeatRaw : '';
+          events.push({
+            title: title,
+            startDate: startDate,
+            endDate: endDate,
+            allDay: allDay,
+            location: (o['Location'] || '').trim(),
+            description: (o['Description'] || '').trim(),
+            category: (o['Categories'] || '').trim(),
+            street: (o['Street'] || '').trim(),
+            city: (o['City'] || '').trim(),
+            state: (o['State or Province'] || '').trim(),
+            zip: (o['Zip or Postal Code'] || '').trim(),
+            organizerName: (o['Meeting Organizer'] || '').trim(),
+            organizerPhone: (o['Phone'] || '').trim(),
+            organizerEmail: (o['Email'] || '').trim(),
+            eventId: (o['Event Id'] || '').trim(),
+            repeatId: repeatId
+          });
+        });
+        if (!events.length) { set('No rows with a valid Subject + Start Date.'); return; }
+
+        set('Checking against existing events...');
+        const existingDocs = await icsFetchAllEvents();
+        const byCwId = {};                 // calendarWizEventId (real or icsUid-derived) -> docId
+        const existingTitleDateKeys = new Set();
+        existingDocs.forEach(function(doc) {
+          const f = doc.fields || {};
+          const id = docId(doc);
+          const cw = f.calendarWizEventId && f.calendarWizEventId.stringValue;
+          if (cw) byCwId[cw] = id;
+          const fromIcs = cwEventIdFromIcsUid(f.icsUid && f.icsUid.stringValue);
+          if (fromIcs && !byCwId[fromIcs]) byCwId[fromIcs] = id;
+          const t = f.title && f.title.stringValue;
+          const sa = f.startAt && f.startAt.stringValue;
+          if (t && sa) existingTitleDateKeys.add(icsNormalizeTitle(t) + '|' + icsDateKey(new Date(sa)));
+        });
+
+        csvParsedEvents = events.map(function(ev, idx) {
+          let status = 'new', matchDocId = null;
+          if (ev.eventId && byCwId[ev.eventId]) {
+            status = 'already_imported';
+            matchDocId = byCwId[ev.eventId];
+          } else if (existingTitleDateKeys.has(icsNormalizeTitle(ev.title) + '|' + icsDateKey(ev.startDate))) {
+            status = 'possible_duplicate';
+          }
+          const selected = (status === 'new' || status === 'already_imported');
+          return Object.assign({}, ev, { idx: idx, status: status, matchDocId: matchDocId, selected: selected });
+        });
+        csvExpandedGroups = {};
+        set(skipped ? (skipped + ' row(s) skipped (no valid Subject + Start Date).') : '');
+        renderCsvImportTable();
+      } catch (err) {
+        console.log('CSV parse error:', err);
+        set('Error reading file: ' + (err && err.message ? err.message : err));
+      }
+    };
+    reader.readAsText(file);
+  }
+
+  const CSV_STATUS_LABEL = { new: '🆕 New', possible_duplicate: '⚠️ Possible duplicate', already_imported: '✓ Already imported' };
+  const CSV_STATUS_COLOR = { new: '#2E7D32', possible_duplicate: 'var(--gold)', already_imported: 'var(--dusty-rose)' };
+
+  function csvRowLine(ev, compact) {
+    const dn = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'], mn = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+    const d = ev.startDate;
+    const dateStr = dn[d.getDay()] + ' ' + mn[d.getMonth()] + ' ' + d.getDate() + ', ' + d.getFullYear();
+    const timeStr = ev.allDay ? 'All day' : d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    const meta = dateStr + ' · ' + timeStr + (ev.location && !compact ? ' · ' + escHtml(ev.location) : '');
+    return '<div style="display:flex;align-items:center;gap:10px;padding:8px 10px;border-bottom:1px solid var(--linen);' + (compact ? 'padding-left:34px;' : '') + '">' +
+      '<input type="checkbox" ' + (ev.selected ? 'checked' : '') + ' onchange="csvToggleSelect(' + ev.idx + ',this.checked)" />' +
+      '<div style="flex:1;">' +
+        (compact ? '' : '<div style="font-size:14px;color:var(--soil);font-weight:600;">' + escHtml(ev.title) + '</div>') +
+        '<div style="font-size:12px;color:var(--dusty-rose);">' + meta + '</div>' +
+      '</div>' +
+      '<div style="font-size:12px;font-weight:600;color:' + CSV_STATUS_COLOR[ev.status] + ';white-space:nowrap;">' + CSV_STATUS_LABEL[ev.status] + '</div>' +
+    '</div>';
+  }
+
+  function renderCsvImportTable() {
+    const evs = csvParsedEvents;
+    const n = k => evs.filter(e => e.status === k).length;
+    const summary = document.getElementById('csv-import-summary');
+    summary.style.display = 'block';
+    summary.innerHTML = '<div style="font-size:14px;color:var(--soil);"><strong>' + evs.length + '</strong> events — ' +
+      '<span style="color:#2E7D32;">' + n('new') + ' new</span>, ' +
+      '<span style="color:var(--gold);">' + n('possible_duplicate') + ' possible duplicates</span>, ' +
+      '<span style="color:var(--dusty-rose);">' + n('already_imported') + ' already imported</span>. ' +
+      'Already-imported rows will <strong>update</strong> the existing event when checked.</div>';
+    document.getElementById('csv-import-controls').style.display = evs.length ? 'block' : 'none';
+    document.getElementById('csv-import-actions').style.display = evs.length ? 'block' : 'none';
+
+    // Build display entries: one per recurring series, one per standalone row.
+    const groups = {};
+    evs.forEach(function(ev) {
+      if (!ev.repeatId) return;
+      (groups[ev.repeatId] = groups[ev.repeatId] || []).push(ev);
+    });
+    const entries = [];
+    Object.keys(groups).forEach(function(rid) {
+      const rows = groups[rid].slice().sort((a, b) => a.startDate - b.startDate);
+      // A "series" with a single occurrence in the export window is just a
+      // standalone event -- render it as one, not a collapsible group of 1.
+      if (rows.length < 2) { entries.push({ kind: 'single', ev: rows[0], when: rows[0].startDate }); return; }
+      entries.push({ kind: 'series', rid: rid, rows: rows, when: rows[0].startDate });
+    });
+    evs.forEach(function(ev) { if (!ev.repeatId) entries.push({ kind: 'single', ev: ev, when: ev.startDate }); });
+    entries.sort((a, b) => a.when - b.when);
+
+    const html = entries.map(function(en) {
+      if (en.kind === 'single') return csvRowLine(en.ev, false);
+      const rows = en.rows, open = !!csvExpandedGroups[en.rid];
+      const parts = [];
+      ['new', 'possible_duplicate', 'already_imported'].forEach(function(s) {
+        const c = rows.filter(r => r.status === s).length;
+        if (c) parts.push(c + ' ' + { new: 'new', possible_duplicate: 'possible dup', already_imported: 'already imported' }[s]);
+      });
+      const head = '<div onclick="csvToggleGroup(\'' + en.rid + '\')" style="display:flex;align-items:center;gap:10px;padding:10px;background:var(--sand);border-bottom:1px solid var(--linen);cursor:pointer;">' +
+        '<span style="width:14px;color:var(--dusty-rose);">' + (open ? '▾' : '▸') + '</span>' +
+        '<div style="flex:1;font-size:14px;color:var(--soil);font-weight:600;">' + escHtml(rows[0].title) +
+          ' <span style="color:var(--dusty-rose);font-weight:400;">(' + rows.length + ' occurrences' + (parts.length ? ' · ' + parts.join(', ') : '') + ')</span></div>' +
+      '</div>';
+      return head + (open ? rows.map(r => csvRowLine(r, true)).join('') : '');
+    }).join('');
+    document.getElementById('csv-import-table').innerHTML = html;
+  }
+
+  function csvToggleGroup(rid) {
+    csvExpandedGroups[rid] = !csvExpandedGroups[rid];
+    renderCsvImportTable();
+  }
+  function csvToggleSelect(idx, checked) {
+    const ev = csvParsedEvents.find(e => e.idx === idx);
+    if (ev) ev.selected = checked;
+  }
+  function csvSelectAllNew() {
+    csvParsedEvents.forEach(e => { if (e.status === 'new') e.selected = true; });
+    renderCsvImportTable();
+  }
+  function csvDeselectAll() {
+    csvParsedEvents.forEach(e => { e.selected = false; });
+    renderCsvImportTable();
+  }
+
+  // Field set written on both a new import (fs_post) and an update (fs_patch).
+  function csvEventFields(ev, forUpdate) {
+    const d = ev.startDate;
+    const timeStr = ev.allDay ? '' : d.toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' });
+    let expiresAt;
+    if (ev.endDate && ev.endDate.getTime() > d.getTime()) expiresAt = ev.endDate;
+    else expiresAt = new Date(d.getFullYear(), d.getMonth(), d.getDate(), 23, 59, 59);
+    const f = {
+      title: { stringValue: ev.title },
+      date: { stringValue: csvFmtDate(d) },
+      time: { stringValue: timeStr },
+      location: { stringValue: ev.location || '' },
+      description: { stringValue: ev.description || '' },
+      category: { stringValue: csvMapCategory(ev.category) },
+      startAt: { stringValue: d.toISOString() },
+      expiresAt: { stringValue: expiresAt.toISOString() },
+      calendarWizEventId: { stringValue: ev.eventId || '' },
+      allDay: { booleanValue: !!ev.allDay },
+      street: { stringValue: ev.street || '' },
+      city: { stringValue: ev.city || '' },
+      state: { stringValue: ev.state || '' },
+      zip: { stringValue: ev.zip || '' },
+      organizerName: { stringValue: ev.organizerName || '' },
+      organizerPhone: { stringValue: ev.organizerPhone || '' },
+      organizerEmail: { stringValue: ev.organizerEmail || '' }
+    };
+    if (forUpdate) {
+      f.updatedAt = { stringValue: new Date().toISOString() };
+    } else {
+      f.postedBy = { stringValue: 'CalendarWiz Import' };
+      f.source = { stringValue: 'calendarwiz_csv_import' };
+      f.type = { stringValue: 'event' };
+      f.createdAt = { stringValue: new Date().toISOString() };
+    }
+    return f;
+  }
+
+  async function submitCsvImport() {
+    const sel = csvParsedEvents.filter(e => e.selected);
+    if (!sel.length) { showToast('Nothing selected.', 'error'); return; }
+    const newN = sel.filter(e => e.status !== 'already_imported').length;
+    const updN = sel.filter(e => e.status === 'already_imported').length;
+    if (!confirm('Import ' + newN + ' new event(s)' + (updN ? ' and update ' + updN + ' existing' : '') + '?')) return;
+    const set = t => document.getElementById('csv-import-status').textContent = t;
+    set('Writing...');
+    let added = 0, updated = 0, failed = 0;
+    for (const ev of sel) {
+      try {
+        if (ev.status === 'already_imported' && ev.matchDocId) {
+          await fs_patch('events/' + ev.matchDocId, csvEventFields(ev, true));
+          updated++;
+        } else {
+          await fs_post('events', csvEventFields(ev, false));
+          added++;
+        }
+      } catch (e) { console.log('CSV import error for', ev.title, e); failed++; }
+    }
+    set('');
+    const msg = 'Added ' + added + ', updated ' + updated + (failed ? ', ' + failed + ' failed' : '') + '.';
+    document.getElementById('csv-import-success').style.display = 'block';
+    document.getElementById('csv-import-success').textContent = '✓ ' + msg;
+    showToast(msg, failed ? 'error' : 'success');
+    sel.forEach(function(ev) { ev.status = 'already_imported'; ev.selected = false; });
+    renderCsvImportTable();
+    if (typeof loadRecentEvents === 'function') { try { loadRecentEvents(); } catch (e) {} }
+  }
+
   // CALENDAR VIEW
   var calYear = new Date().getFullYear();
   var calMonth = new Date().getMonth();
@@ -3299,7 +3657,7 @@
     try {
       const res = await fs_get('events');
       const now = new Date();
-      const all = (res.documents||[]).filter(d=>gf(d,'source')==='admin'||gf(d,'source')==='ministry'||gf(d,'source')==='calendarwiz_import');
+      const all = (res.documents||[]).filter(d=>gf(d,'source')==='admin'||gf(d,'source')==='ministry'||gf(d,'source')==='calendarwiz_import'||gf(d,'source')==='calendarwiz_csv_import');
       const expired = all.filter(d=>{ const exp=gf(d,'expiresAt'); const sta=gf(d,'startAt'); return (exp && new Date(exp)<=now) || (!exp && sta && new Date(sta)<=now); });
       expired.forEach(d=>fs_delete('events/'+docId(d)).catch(e=>console.warn('Failed to clean up expired event', docId(d), e)));
       const events = all
