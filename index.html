@@ -2505,6 +2505,64 @@
   function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
   function docId(doc) { return doc.name.split('/').pop(); }
 
+  // Parish Family Approvals: lightweight, client-side, flag-ONLY heuristic that
+  // guesses whether a pending profile's bio names a specific minor + age
+  // (e.g. "my daughter Emma is 7", "Jake (5)", "6-year-old"). It never blocks
+  // Approve/Reject -- it just puts a "review bio" badge on the row so a person
+  // reads that bio before approving. False positives are fine (a glance costs
+  // nothing); the aim is to catch the obvious cases. Policy: privacy.html /
+  // terms.html -- the directory lists only the adult account holder.
+  function bioMayNameMinor(bio, holderName) {
+    if (!bio) return false;
+    const raw = String(bio).replace(/\s+/g, ' ').trim();
+    if (!raw) return false;
+    const own = new Set(String(holderName || '').toLowerCase().split(/[^a-z']+/).filter(Boolean));
+    const SAFE = new Set((
+      'saint rose philippine duchesne st anthem arizona az phoenix new river cave creek ' +
+      'faith formation first holy communion eucharist reconciliation confirmation baptism ocia rcia ' +
+      'mass masses bible study rosary adoration novena lent advent easter christmas ' +
+      'knights columbus kofc cda catholic daughters vincent de paul svdp legion mary ' +
+      'church parish ministry ministries choir council committee god jesus christ lord holy spirit ' +
+      'joseph blessed sacrament diocese father deacon monsignor sister ' +
+      'sunday monday tuesday wednesday thursday friday saturday ' +
+      'january february march april may june july august september october november december ' +
+      'vbs edge lifeteen scouts usa ' +
+      'i we our my me married retired proud longtime lifelong active member members family families ' +
+      'parents parent mom mother dad father grandparents grandma grandpa husband wife spouse ' +
+      'been here moved joined raising love enjoy serving volunteer volunteering originally native ' +
+      'the a an this these born raised living live work working teach teaching help helping'
+    ).split(' '));
+    const KIN = /\b(son|sons|daughter|daughters|kid|kids|child|children|boy|boys|girl|girls|twin|twins|toddler|toddlers|baby|babies|grandchild|grandchildren|grandkid|grandkids|grandson|granddaughter)\b/i;
+    const AGE = '(?:\\(?\\b([1-9]|1[0-8])\\b\\)?)';
+    const NOT_AGE_AFTER = /^(?:\s*(?:years?(?!\s*[-\s]?old)|yrs?(?!\s*[-\s]?old)|am|pm|a\.m\.|p\.m\.|st|nd|rd|th|%|k|min|mins|minutes?|hrs?|hours?|weeks?|months?|days?|grade|graders?|kids?\s+ago|decades?))\b/i;
+    const lower = raw.toLowerCase();
+    // Rule C: an explicit "<n>-year-old" phrase, n <= 18
+    if (/\b([1-9]|1[0-8])[\s-]?(?:year|yr)s?[\s-]?old\b/i.test(raw)) return true;
+    // Rule A: kinship word within ~45 chars of an age-like integer
+    const numRe = /\(?\b([1-9]|1[0-8])\b\)?/g;
+    let m;
+    while ((m = numRe.exec(raw))) {
+      if (NOT_AGE_AFTER.test(raw.slice(m.index + m[0].length))) continue;
+      const a = Math.max(0, m.index - 45), b = Math.min(raw.length, m.index + m[0].length + 45);
+      if (KIN.test(lower.slice(a, b))) return true;
+    }
+    // Rule B: "Name (7)" / "Name is 7" / "Name age 7" / "Name, 7" tight pattern
+    const nameAge = new RegExp('\\b([A-Z][a-z]{1,15})\\b[\\s,]*(?:\\(|is\\s+|are\\s+|age[d]?\\s+|just\\s+turned\\s+|turned\\s+|turning\\s+|will\\s+be\\s+)?' + AGE, 'g');
+    while ((m = nameAge.exec(raw))) {
+      const nl = m[1].toLowerCase();
+      if (SAFE.has(nl) || own.has(nl)) continue;
+      if (NOT_AGE_AFTER.test(raw.slice(m.index + m[0].length))) continue;
+      const before = raw.slice(0, m.index).trimEnd();
+      const sentenceInitial = before === '' || /[.!?]$/.test(before);
+      const joiner = m[0].slice(m[1].length).match(/[(,]|is |are |age|turn|will be/i);
+      const gap = m[0].length - m[1].length - 1;
+      if (sentenceInitial && !joiner) continue;
+      if (!joiner && gap > 1) continue;
+      return true;
+    }
+    return false;
+  }
+
   // Wraps (or, on a second click, unwraps) the current selection in a textarea with a markdown-style
   // marker -- '**' for bold, '*' for italic -- matching the convention the Word-doc importer already
   // writes for bold (see importDocxToTextarea). No selection just drops a marker pair with the cursor between them.
@@ -3983,12 +4041,14 @@
       if(pending.length===0){list.innerHTML=`<div class="empty-state"><div class="empty-icon">✓</div><div class="empty-title">All caught up</div><div class="empty-sub">No pending approvals.</div></div>`;return;}
       list.innerHTML=pending.map(doc=>{
         const id=docId(doc),name=gf(doc,'name'),email=gf(doc,'email'),bio=gf(doc,'bio'),ministries=gf(doc,'ministries'),photo=gf(doc,'photoUrl');
+        const bioFlag=bioMayNameMinor(bio,name);
         return `<div class="approval-card" id="approval-${id}">
           <div class="approval-avatar">${photo?`<img src="${photo}" onclick="openLightbox('${photo}')"/>`:(name.charAt(0)||'?')}</div>
           <div class="approval-info">
             <div class="approval-name">${escHtml(name)}</div>
             <div class="approval-meta">${escHtml(email)}${ministries?' · '+escHtml(ministries):''}</div>
             ${bio?`<div class="approval-bio">${escHtml(bio)}</div>`:''}
+            ${bioFlag?`<div style="margin-top:6px;display:inline-block;background:#FDF3E3;border:1px solid var(--gold);color:#8A5A12;font-size:12px;font-weight:600;padding:3px 9px;border-radius:20px;" title="Automated guess: this bio may name a child and their age. The directory lists only the adult account holder (see privacy.html / terms.html). Read the bio and edit or ask the member to trim it if needed. This is a hint only — it does not block approval.">⚠ Review bio — may name a minor</div>`:''}
           </div>
           <div class="approval-actions">
             <button class="btn btn-success btn-sm" onclick="approveFamily('${id}','${escAttr(name)}')">Approve</button>
