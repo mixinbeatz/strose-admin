@@ -381,6 +381,7 @@
         <div class="nav-item staff-only" onclick="showPage('signup-forms',this);loadSignupForms()"><span class="nav-icon">📝</span> Forms &amp; Sign-ups</div>
         <div class="nav-item staff-only" onclick="showPage('parish-staff',this);loadParishStaff()"><span class="nav-icon">👥</span> Parish Staff Directory</div>
         <div class="nav-item staff-only" onclick="showPage('ministry-documents',this);loadMinistryDocuments()"><span class="nav-icon">📄</span> Ministry Documents</div>
+        <div class="nav-item staff-only" onclick="showPage('serving-roles',this);loadServingRoles()"><span class="nav-icon">🙌</span> Serving Roles</div>
       </div>
 
       <div class="nav-section-toggle collapsed staff-only" onclick="toggleNavSection(this)"><span>Website Media</span><span class="nav-chevron">▾</span></div>
@@ -861,6 +862,32 @@
         <div class="card" style="margin-top:16px;">
           <div class="card-title">📋 All Sign-up Forms</div>
           <div id="signup-forms-list"><div style="color:var(--dusty-rose);font-size:14px;">Loading...</div></div>
+        </div>
+      </div>
+
+      <!-- SERVING ROLES -->
+      <div class="page" id="page-serving-roles">
+        <div class="card">
+          <div class="card-title" id="serving-form-title">🙌 Add Serving Role</div>
+          <div class="info-box">
+            The "Serving" tab on the app's Parish screen. Each entry is one liturgical serving role &mdash;
+            just a role name, a contact person, and a phone number parishioners tap to call. No description or
+            schedule. Reorder with the &uarr; / &darr; buttons below.
+            <br><br>
+            <button class="btn btn-outline btn-sm" onclick="seedServingRoles()">Seed the 9 standard roles</button>
+          </div>
+          <div class="form-group"><label class="form-label">Role name *</label><input type="text" class="form-input" id="serving-name" placeholder="e.g. Lectors (Ministers of the Word)" /></div>
+          <div class="form-group"><label class="form-label">Contact name</label><input type="text" class="form-input" id="serving-contact" placeholder="e.g. Jane Smith" /></div>
+          <div class="form-group"><label class="form-label">Phone</label><input type="text" class="form-input" id="serving-phone" placeholder="e.g. 623-555-1234" /></div>
+          <div class="form-group"><label class="form-label">Order (display position)</label><input type="number" class="form-input" id="serving-order" placeholder="e.g. 1" /></div>
+          <div class="btn-row">
+            <button class="btn btn-primary" id="serving-save-btn" onclick="saveServingRole()">Add Serving Role</button>
+            <button class="btn btn-outline" onclick="resetServingRole()">Clear / New</button>
+          </div>
+        </div>
+        <div class="card" style="margin-top:16px;">
+          <div class="card-title">📋 All Serving Roles</div>
+          <div id="serving-roles-list"><div style="color:var(--dusty-rose);font-size:14px;">Loading...</div></div>
         </div>
       </div>
 
@@ -2426,7 +2453,7 @@
     if(el) el.classList.add('active');
     window.scrollTo(0,0);
     closeSidebar();
-    const titles = {dashboard:'Dashboard',events:'Events',announcement:'Post Announcement',fastblast:'Fast Blast',reflection:'Weekly Reflection','parish-development':'Parish Development',daily:'Daily Reflection',songsheet:'Mass Songsheet',welcome:'Welcome Message','hero-media':'Hero Section','welcome-media':'Welcome Section',gallery:'Homepage Gallery','around-parish':'Around the Parish','parish-dev-media':'Parish Development','bulletin-images':'Bulletin Images','ministry-booklet':'Ministry Booklet','mass-schedule':'Mass Schedule',councils:'Pastoral, Finance & Development Council','council-inquiries':'Council Inquiries','signup-forms':'Forms & Sign-ups','parish-staff':'Parish Staff Directory','ministry-documents':'Ministry Documents','funeral-planning':'Funeral Planning Forms','onboard-council':'Onboard Council Lead','music-ministry':'Music Ministry','music-members':'Music Ministry Members',approvals:'Parish Family Approvals',partners:'Partner Requests',directory:'Parish Family Directory','ministry-post':'Post to Members','cda-members':'My Members','submit-event':'Submit Event','event-requests':'Event Requests','contact-requests':'Contact Requests',intention:'Mass Intentions','my-ministry':'My Ministry','onboard-leader':'Onboard Ministry Leader','leader-tracker':'Ministry Leaders'};
+    const titles = {dashboard:'Dashboard',events:'Events',announcement:'Post Announcement',fastblast:'Fast Blast',reflection:'Weekly Reflection','parish-development':'Parish Development',daily:'Daily Reflection',songsheet:'Mass Songsheet',welcome:'Welcome Message','hero-media':'Hero Section','welcome-media':'Welcome Section',gallery:'Homepage Gallery','around-parish':'Around the Parish','parish-dev-media':'Parish Development','bulletin-images':'Bulletin Images','ministry-booklet':'Ministry Booklet','mass-schedule':'Mass Schedule',councils:'Pastoral, Finance & Development Council','council-inquiries':'Council Inquiries','signup-forms':'Forms & Sign-ups','parish-staff':'Parish Staff Directory','ministry-documents':'Ministry Documents','serving-roles':'Serving Roles','funeral-planning':'Funeral Planning Forms','onboard-council':'Onboard Council Lead','music-ministry':'Music Ministry','music-members':'Music Ministry Members',approvals:'Parish Family Approvals',partners:'Partner Requests',directory:'Parish Family Directory','ministry-post':'Post to Members','cda-members':'My Members','submit-event':'Submit Event','event-requests':'Event Requests','contact-requests':'Contact Requests',intention:'Mass Intentions','my-ministry':'My Ministry','onboard-leader':'Onboard Ministry Leader','leader-tracker':'Ministry Leaders'};
     document.getElementById('page-title').textContent = titles[id]||id;
     var mpt = document.getElementById('mobile-page-title'); if(mpt) mpt.textContent = titles[id]||id;
     if(id==='approvals') loadApprovals();
@@ -6357,6 +6384,168 @@
           '</div></div>';
       }).join('');
     } catch (e) { showToast('Error loading sign-up forms.', 'error'); }
+  }
+
+  // == SERVING ROLES ==
+  // Data-driven list behind the app's Parish-screen "Serving" tab. Collection:
+  // parishes/saint-rose-anthem/servingRoles. Doc shape: name (string),
+  // contactName (string), phone (string), order (int). Deliberately minimal --
+  // no description / schedule / email (separate from the `ministries` editor).
+  var servingEditingId = null;
+
+  // The nine standard liturgical serving roles, in display order -- the "Seed"
+  // button creates these as blank rows (no contact/phone) to fill in.
+  var SERVING_ROLE_SEED = [
+    'Greeters',
+    'Lectors (Ministers of the Word)',
+    'Altar Servers',
+    'Ushers',
+    'Sacristans',
+    'Eucharistic Ministers of Holy Communion (EMHC)',
+    'EMHC for the Homebound',
+    'Altar Linen Ministry',
+    'Art & Environment'
+  ];
+
+  function resetServingRole() {
+    servingEditingId = null;
+    document.getElementById('serving-name').value = '';
+    document.getElementById('serving-contact').value = '';
+    document.getElementById('serving-phone').value = '';
+    document.getElementById('serving-order').value = '';
+    document.getElementById('serving-form-title').textContent = '🙌 Add Serving Role';
+    document.getElementById('serving-save-btn').textContent = 'Add Serving Role';
+  }
+
+  async function saveServingRole() {
+    const name = document.getElementById('serving-name').value.trim();
+    const contactName = document.getElementById('serving-contact').value.trim();
+    const phone = document.getElementById('serving-phone').value.trim();
+    const orderRaw = document.getElementById('serving-order').value.trim();
+    if (!name) { showToast('Please fill in the role name.', 'error'); return; }
+    const order = orderRaw === '' ? 999 : parseInt(orderRaw, 10);
+    const btn = document.getElementById('serving-save-btn');
+    btn.disabled = true; btn.textContent = 'Saving...';
+    try {
+      const fields = {
+        name: { stringValue: name },
+        contactName: { stringValue: contactName },
+        phone: { stringValue: phone },
+        order: { integerValue: String(isNaN(order) ? 999 : order) },
+        updatedAt: { stringValue: new Date().toISOString() }
+      };
+      if (servingEditingId) {
+        await fs_patch('servingRoles/' + servingEditingId, fields);
+        showToast('Serving role updated!', 'success');
+      } else {
+        fields.createdAt = { stringValue: new Date().toISOString() };
+        await fs_post('servingRoles', fields);
+        showToast('Serving role added!', 'success');
+      }
+      resetServingRole();
+      loadServingRoles();
+    } catch (e) {
+      showToast('Error saving serving role.', 'error');
+    } finally {
+      btn.disabled = false;
+      btn.textContent = servingEditingId ? 'Save Changes' : 'Add Serving Role';
+    }
+  }
+
+  function loadServingIntoForm(id, item) {
+    servingEditingId = id;
+    document.getElementById('serving-name').value = item.name || '';
+    document.getElementById('serving-contact').value = item.contactName || '';
+    document.getElementById('serving-phone').value = item.phone || '';
+    document.getElementById('serving-order').value = (item.order === '' || item.order === undefined) ? '' : item.order;
+    document.getElementById('serving-form-title').textContent = '🙌 Edit Serving Role';
+    document.getElementById('serving-save-btn').textContent = 'Save Changes';
+    window.scrollTo(0, 0);
+  }
+
+  async function deleteServingRole(id) {
+    if (!confirm('Delete this serving role permanently?')) return;
+    try {
+      await fs_delete('servingRoles/' + id);
+      showToast('Deleted.', 'success');
+      loadServingRoles();
+    } catch (e) { showToast('Error deleting: ' + e.message, 'error'); }
+  }
+
+  // Reorder: swap this entry's `order` with its neighbour in the sorted list.
+  async function moveServingRole(id, dir) {
+    try {
+      const res = await fs_get('servingRoles');
+      const items = (res.documents || []).map(d => ({
+        id: docId(d),
+        order: d.fields?.order?.integerValue !== undefined ? parseInt(d.fields.order.integerValue, 10) : 999
+      })).sort((a, b) => a.order - b.order);
+      const idx = items.findIndex(x => x.id === id);
+      const swapIdx = idx + dir;
+      if (idx < 0 || swapIdx < 0 || swapIdx >= items.length) return;
+      const a = items[idx], b = items[swapIdx];
+      await fs_patch('servingRoles/' + a.id, { order: { integerValue: String(b.order) }, updatedAt: { stringValue: new Date().toISOString() } });
+      await fs_patch('servingRoles/' + b.id, { order: { integerValue: String(a.order) }, updatedAt: { stringValue: new Date().toISOString() } });
+      loadServingRoles();
+    } catch (e) { showToast('Error reordering.', 'error'); }
+  }
+
+  async function seedServingRoles() {
+    try {
+      const res = await fs_get('servingRoles');
+      const existing = (res.documents || []).map(d => gf(d, 'name'));
+      const toAdd = SERVING_ROLE_SEED.filter(n => !existing.includes(n));
+      if (toAdd.length === 0) { showToast('All 9 standard roles already exist.', 'error'); return; }
+      for (let i = 0; i < SERVING_ROLE_SEED.length; i++) {
+        const roleName = SERVING_ROLE_SEED[i];
+        if (existing.includes(roleName)) continue;
+        await fs_post('servingRoles', {
+          name: { stringValue: roleName },
+          contactName: { stringValue: '' },
+          phone: { stringValue: '' },
+          order: { integerValue: String(i + 1) },
+          createdAt: { stringValue: new Date().toISOString() },
+          updatedAt: { stringValue: new Date().toISOString() }
+        });
+      }
+      showToast('Added ' + toAdd.length + ' role' + (toAdd.length === 1 ? '' : 's') + '. Edit each to fill in the contact.', 'success');
+      loadServingRoles();
+    } catch (e) { showToast('Error seeding roles.', 'error'); }
+  }
+
+  async function loadServingRoles() {
+    const el = document.getElementById('serving-roles-list');
+    if (!el) return;
+    try {
+      const res = await fs_get('servingRoles');
+      const docs = res.documents || [];
+      if (docs.length === 0) {
+        el.innerHTML = '<div style="color:var(--dusty-rose);font-size:14px;">No serving roles yet. Use "Seed the 9 standard roles" above, then edit each to add the contact and phone.</div>';
+        return;
+      }
+      const items = docs.map(d => ({
+        id: docId(d),
+        name: gf(d, 'name'),
+        contactName: gf(d, 'contactName'),
+        phone: gf(d, 'phone'),
+        order: d.fields?.order?.integerValue !== undefined ? parseInt(d.fields.order.integerValue, 10) : 999
+      })).sort((a, b) => a.order - b.order);
+      el.innerHTML = items.map((item, i) => {
+        const payload = JSON.stringify(item).replace(/'/g, '&#39;');
+        const contactLine = (item.contactName || item.phone)
+          ? escHtml([item.contactName, item.phone].filter(Boolean).join(' · '))
+          : '<span style="font-style:italic;">no contact yet</span>';
+        return '<div style="padding:14px 0;border-bottom:1px solid var(--linen);">' +
+          '<div style="font-family:Cinzel,serif;font-size:15px;color:var(--burgundy);">' + escHtml(item.name) + '</div>' +
+          '<div style="font-size:13px;color:var(--soil);margin-top:3px;">' + contactLine + '</div>' +
+          '<div style="margin-top:8px;display:flex;gap:8px;flex-wrap:wrap;">' +
+          '<button onclick="moveServingRole(\'' + item.id + '\',-1)" ' + (i === 0 ? 'disabled style="opacity:0.4;"' : '') + ' style="background:none;border:1px solid var(--linen);border-radius:8px;padding:5px 12px;font-size:12px;cursor:pointer;color:var(--soil);">↑</button>' +
+          '<button onclick="moveServingRole(\'' + item.id + '\',1)" ' + (i === items.length - 1 ? 'disabled style="opacity:0.4;"' : '') + ' style="background:none;border:1px solid var(--linen);border-radius:8px;padding:5px 12px;font-size:12px;cursor:pointer;color:var(--soil);">↓</button>' +
+          '<button onclick=\'loadServingIntoForm("' + item.id + '", ' + payload + ')\' style="background:none;border:1px solid var(--linen);border-radius:8px;padding:5px 12px;font-size:12px;cursor:pointer;color:var(--soil);">Edit</button>' +
+          '<button onclick="deleteServingRole(\'' + item.id + '\')" style="background:none;border:1px solid #CC3333;border-radius:8px;padding:5px 12px;font-size:12px;cursor:pointer;color:#CC3333;">Delete</button>' +
+          '</div></div>';
+      }).join('');
+    } catch (e) { showToast('Error loading serving roles.', 'error'); }
   }
 
   // == PARISH STAFF DIRECTORY ==
