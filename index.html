@@ -2847,8 +2847,14 @@
     return d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-' + String(d.getDate()).padStart(2,'0');
   }
 
+  // Normalize for the title+date dedup key (shared by the .ics tool and the CSV
+  // importer below): lowercase, strip decorative punctuation, collapse
+  // whitespace. Punctuation-stripping matters -- a hand-entered "Bingo!" and a
+  // CalendarWiz row "Bingo" on the same night are the same event and must
+  // collide. Before this they didn't: the Sep 2026 CSV import created 9
+  // "Bingo" dupes alongside the existing "Bingo!" ministry series.
   function icsNormalizeTitle(t) {
-    return (t || '').trim().toLowerCase().replace(/\s+/g,' ');
+    return (t || '').toLowerCase().replace(/[!?.,;:'"“”‘’()]/g,'').replace(/\s+/g,' ').trim();
   }
 
   async function icsFetchAllEvents() {
