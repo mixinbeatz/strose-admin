@@ -166,6 +166,9 @@
   .tier-premium { background: var(--burgundy); color: var(--gold); }
   .tier-standard { background: var(--dusty-rose); color: var(--white); }
   .tier-pro { background: var(--soil); color: var(--linen); }
+  /* billingStatus badge -- independent of the tier badge and of `active`. */
+  .billing-comped { background: var(--linen); color: var(--soil); }
+  .billing-paying { background: var(--success); color: var(--white); }
   .partner-meta { font-size: 13px; color: var(--dusty-rose); margin-bottom: 6px; }
   .partner-desc { font-size: 14px; color: var(--soil); margin-bottom: 14px; line-height: 1.5; }
 
@@ -443,10 +446,10 @@
             <div class="stat-value" id="stat-partners">—</div>
             <div class="stat-sub">pending</div>
           </div>
-          <div class="stat-card" style="border-top-color:var(--success)">
+          <div class="stat-card clickable" style="border-top-color:var(--success)" onclick="showPage('partners',navItem('partners'))">
             <div class="stat-label">Active Listings</div>
-            <div class="stat-value">13</div>
-            <div class="stat-sub">in directory</div>
+            <div class="stat-value" id="stat-listings">—</div>
+            <div class="stat-sub" id="stat-listings-sub">in directory</div>
           </div>
         </div>
         <div class="card">
@@ -3428,7 +3431,7 @@
 
   async function loadDashboard() {
     try {
-      const [fam,parts,ref,eventReqs,dailyRef,familyRegs,contactReqs,councilInqs,funeralPlans,ffRegs,ymRegs] = await Promise.all([fs_get('parishFamily'),fs_get('partnerRequests'),fs_get('weeklyReflection'),fs_get('eventRequests'),fs_get('dailyReflection'),fs_get('familyRegistrations'),fs_get('contactRequests'),fs_get('councilInquiries'),fs_get('funeralPlanningSubmissions'),fs_get('faithFormationRegistrations'),fs_get('youthMinistryRegistrations')]);
+      const [fam,parts,ref,eventReqs,dailyRef,familyRegs,contactReqs,councilInqs,funeralPlans,ffRegs,ymRegs,advs] = await Promise.all([fs_get('parishFamily'),fs_get('partnerRequests'),fs_get('weeklyReflection'),fs_get('eventRequests'),fs_get('dailyReflection'),fs_get('familyRegistrations'),fs_get('contactRequests'),fs_get('councilInquiries'),fs_get('funeralPlanningSubmissions'),fs_get('faithFormationRegistrations'),fs_get('youthMinistryRegistrations'),fs_get('advertisers')]);
       const pendingFamilyRegs = (familyRegs.documents||[]).filter(d=>!gf(d,'reviewed'));
       const familyRegBadge = document.getElementById('familyreg-count');
       if (familyRegBadge) { familyRegBadge.textContent = pendingFamilyRegs.length; familyRegBadge.style.display = pendingFamilyRegs.length > 0 ? '' : 'none'; }
@@ -3458,6 +3461,15 @@
       document.getElementById('stat-pending').textContent = pending.length;
       document.getElementById('stat-partners').textContent = preqs.length;
       document.getElementById('approval-count').textContent = pending.length;
+      // Active Listings: total published advertisers, broken down by billingStatus
+      // (comped | paying). billingStatus is independent of `active` -- a paused
+      // listing still counts here; the Partners page shows the paused state.
+      // Any legacy doc without the field counts as 'comped' (the approval default).
+      const advDocs = advs.documents || [];
+      const payingCount = advDocs.filter(d => gf(d,'billingStatus') === 'paying').length;
+      const compedCount = advDocs.length - payingCount;
+      document.getElementById('stat-listings').textContent = advDocs.length;
+      document.getElementById('stat-listings-sub').textContent = compedCount + ' comped · ' + payingCount + ' paying';
       loadActiveAnnouncements('dashboard-announcements-list');
     } catch(e){console.log(e);}
   }
@@ -4527,6 +4539,10 @@
       modalLogoUrl:{stringValue:s('modalLogoUrl')},
       photoUrl:{stringValue:s('photoUrl')},
       active:{booleanValue:true},
+      // Every new approval starts comped -- nobody is billed through the portal
+      // yet. Staff flip this to 'paying' by hand once real billing exists.
+      // Independent of `active` (visibility/pause).
+      billingStatus:{stringValue:'comped'},
       publishedAt:{stringValue:new Date().toISOString()},
       sourceRequestId:{stringValue:requestId}
     };
@@ -4564,12 +4580,18 @@
         const id=docId(doc);
         const name=gf(doc,'name'),cat=gf(doc,'category'),tier=(gf(doc,'tier')||'standard');
         const active=gf(doc,'active')!==false;
+        // billingStatus: comped | paying. Independent of `active`. Legacy docs
+        // without the field render (and save back) as 'comped'.
+        const isPaying=gf(doc,'billingStatus')==='paying';
         const tagline=gf(doc,'tagline'),desc=gf(doc,'description'),discount=gf(doc,'discount'),phone=gf(doc,'phone'),website=gf(doc,'website');
         const isPremium=String(tier).toLowerCase()==='premium';
         return `<div class="partner-card" id="advertiser-${id}" style="${active?'':'opacity:0.55;'}">
           <div class="partner-card-header">
             <div class="partner-name">${escHtml(name)}${active?'':' <span style="font-size:12px;color:var(--danger);">· paused</span>'}</div>
-            <span class="tier-badge ${isPremium?'tier-premium':'tier-standard'}">${isPremium?'Premium':'Standard'}</span>
+            <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;">
+              <span class="tier-badge ${isPremium?'tier-premium':'tier-standard'}">${isPremium?'Premium':'Standard'}</span>
+              <span class="tier-badge ${isPaying?'billing-paying':'billing-comped'}">${isPaying?'Paying':'Comped'}</span>
+            </div>
           </div>
           <div class="partner-meta">${escHtml(cat)}${phone?' · '+escHtml(phone):''}${website?' · '+escHtml(website):''}</div>
           ${desc?`<div class="partner-desc">${escHtml(desc)}</div>`:''}
@@ -4581,6 +4603,7 @@
             <div class="form-group"><label class="form-label">Business Name</label><input class="form-input" id="ad-${id}-name" value="${av(name)}"></div>
             <div class="form-group"><label class="form-label">Category</label><input class="form-input" id="ad-${id}-category" value="${av(cat)}"></div>
             <div class="form-group"><label class="form-label">Tier</label><select class="form-select" id="ad-${id}-tier"><option value="premium"${isPremium?' selected':''}>Premium</option><option value="standard"${isPremium?'':' selected'}>Standard</option></select></div>
+            <div class="form-group"><label class="form-label">Billing status</label><select class="form-select" id="ad-${id}-billingStatus"><option value="comped"${isPaying?'':' selected'}>Comped — not billed</option><option value="paying"${isPaying?' selected':''}>Paying</option></select><div style="font-size:12px;color:var(--dusty-rose);margin-top:4px;">Separate from Pause. A comped listing still shows on the website.</div></div>
             <div class="form-group"><label class="form-label">Tagline (premium)</label><input class="form-input" id="ad-${id}-tagline" value="${av(tagline)}"></div>
             <div class="form-group"><label class="form-label">Description</label><textarea class="form-textarea" id="ad-${id}-description">${escHtml(desc)}</textarea></div>
             <div class="form-group"><label class="form-label">Special Offer (premium)</label><input class="form-input" id="ad-${id}-discount" value="${av(discount)}"></div>
@@ -4608,6 +4631,7 @@
         name:{stringValue:v('name')},
         category:{stringValue:v('category')},
         tier:{stringValue:v('tier')},
+        billingStatus:{stringValue:v('billingStatus')},
         tagline:{stringValue:v('tagline')},
         description:{stringValue:v('description')},
         discount:{stringValue:v('discount')},
@@ -4617,6 +4641,7 @@
       });
       showToast('Advertiser updated.','success');
       loadAdvertisers();
+      loadDashboard(); // keep the Active Listings comped/paying breakdown current
     }catch(e){showToast('Error saving advertiser.','error');}
   }
 
