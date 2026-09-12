@@ -2553,6 +2553,16 @@
   function escAttr(s) { return String(s).replace(/\\/g,'\\\\').replace(/'/g,"\\'").replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
   // Safely embed user-entered text as HTML content (prevents stray < > & from breaking layout/markup).
   function escHtml(s) { return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+  // Inline **bold** / *italic* / ***bold-italic*** markdown -> HTML, matching
+  // the website's mdInline and the app's renderFormattedWelcomeText, so a
+  // reflection-style preview here shows real bold/italic instead of literal
+  // asterisks. Run AFTER escHtml so the source text is already HTML-safe.
+  function mdInline(safe) {
+    return safe
+      .replace(/\*\*\*(.+?)\*\*\*/g, '<strong><em>$1</em></strong>')
+      .replace(/\*\*(.+?)\*\*/g, '<strong>$1</strong>')
+      .replace(/\*(.+?)\*/g, '<em>$1</em>');
+  }
   function docId(doc) { return doc.name.split('/').pop(); }
 
   // Parish Family Approvals: lightweight, client-side, flag-ONLY heuristic that
@@ -3788,7 +3798,7 @@
       statusBadge +
       '<div style="font-family:Cinzel,serif;font-size:14px;color:var(--burgundy);margin-bottom:4px;">' + escHtml(title) + '</div>' +
       '<div style="font-size:13px;color:var(--dusty-rose);margin-bottom:8px;">' + escHtml(author) + (updatedLabel?' &middot; Updated '+updatedLabel:'') + '</div>' +
-      '<div style="font-size:14px;color:var(--soil);line-height:1.6;">' + escHtml(body.substring(0,300)) + (body.length>300?'...':'') + '</div>' +
+      '<div style="font-size:14px;color:var(--soil);line-height:1.6;">' + mdInline(escHtml(body.substring(0,300))) + (body.length>300?'...':'') + '</div>' +
       '<button onclick="loadReflectionIntoForm(' + isLive + ')" style="margin-top:12px;background:none;border:1px solid var(--linen);border-radius:8px;padding:6px 14px;font-size:13px;cursor:pointer;color:var(--soil);">Load into form to edit</button>' +
       '</div>';
   }
