@@ -4287,6 +4287,88 @@
     }
   }
   // ---- MINISTRY LEADER TRACKER ----
+  // Accounts from the last loadLeaderTracker() fetch, keyed by uid, so the
+  // Edit Role / Revoke action handlers below can look up an account's email
+  // and current role/ministry from just the uid embedded in their onclick
+  // (avoids putting raw email strings inside HTML attributes).
+  let leaderTrackerAccounts = [];
+  const EDITABLE_ROLES = ['ministry', 'staff', 'clergy', 'admin', 'owner'];
+  // Edit Role / Revoke buttons for one account row. Hidden entirely for the
+  // row matching the logged-in user's own email -- can't edit or revoke
+  // yourself from this screen (self-lockout risk; revokeRole and grantRole
+  // are still owner/admin-gated server-side regardless).
+  function accountRowButtonsHtml(a) {
+    if ((a.email || '').toLowerCase() === (currentUser || '').toLowerCase()) return '';
+    return '<div style="display:flex;gap:6px;flex-shrink:0;">' +
+      '<button class="btn btn-outline btn-sm" onclick="toggleEditRoleForm(\'' + a.uid + '\')">Edit Role</button>' +
+      '<button class="btn btn-outline btn-sm" style="color:var(--danger);border-color:var(--danger);" onclick="revokeAccountRole(\'' + a.uid + '\')">Revoke</button>' +
+      '</div>';
+  }
+  function accountRowEditFormHtml(a) {
+    if ((a.email || '').toLowerCase() === (currentUser || '').toLowerCase()) return '';
+    const roleOptions = EDITABLE_ROLES.map(function(r) {
+      return '<option value="' + r + '"' + (r === a.role ? ' selected' : '') + '>' + (r.charAt(0).toUpperCase() + r.slice(1)) + '</option>';
+    }).join('');
+    const ministryOptions = ministryRegistry.map(function(m) {
+      return '<option value="' + m.id + '"' + (m.id === a.ministry ? ' selected' : '') + '>' + escHtml(m.name) + '</option>';
+    }).join('');
+    return '<div id="edit-role-form-' + a.uid + '" style="display:none;margin-top:8px;padding:10px;background:var(--sand);border-radius:6px;">' +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">' +
+        '<select class="form-select" id="er-role-' + a.uid + '" style="width:auto;" onchange="toggleErMinistryField(\'' + a.uid + '\')">' + roleOptions + '</select>' +
+        '<select class="form-select" id="er-ministry-' + a.uid + '" style="width:auto;display:' + (a.role === 'ministry' ? '' : 'none') + ';">' + ministryOptions + '</select>' +
+        '<button class="btn btn-primary btn-sm" onclick="submitEditRole(\'' + a.uid + '\')">Save</button>' +
+        '<button class="btn btn-outline btn-sm" onclick="toggleEditRoleForm(\'' + a.uid + '\')">Cancel</button>' +
+      '</div>' +
+    '</div>';
+  }
+  function toggleEditRoleForm(uid) {
+    const el = document.getElementById('edit-role-form-' + uid);
+    if (el) el.style.display = (el.style.display === 'none') ? 'block' : 'none';
+  }
+  function toggleErMinistryField(uid) {
+    const role = document.getElementById('er-role-' + uid).value;
+    document.getElementById('er-ministry-' + uid).style.display = (role === 'ministry') ? '' : 'none';
+  }
+  async function submitEditRole(uid) {
+    const account = leaderTrackerAccounts.find(function(a) { return a.uid === uid; });
+    if (!account) { showToast('Could not find that account -- refresh and try again.', 'error'); return; }
+    const role = document.getElementById('er-role-' + uid).value;
+    const ministry = document.getElementById('er-ministry-' + uid).value;
+    if (role === 'ministry' && !ministry) { showToast('Please choose a ministry.', 'error'); return; }
+    try {
+      const body = { email: account.email, role: role, parish: 'saint-rose-anthem' };
+      if (role === 'ministry') body.ministry = ministry;
+      const res = await fetch(FUNCTIONS_BASE + '/grantRole', {
+        method: 'POST',
+        headers: await authHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify(body)
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Could not update role.');
+      showToast('Role updated for ' + account.email + '.', 'success');
+      loadLeaderTracker();
+    } catch (e) {
+      showToast(e.message || 'Error updating role.', 'error');
+    }
+  }
+  async function revokeAccountRole(uid) {
+    const account = leaderTrackerAccounts.find(function(a) { return a.uid === uid; });
+    if (!account) { showToast('Could not find that account -- refresh and try again.', 'error'); return; }
+    if (!confirm('Revoke all portal access for ' + account.email + '? They will lose their role and ministry assignment (back to no access, same as a brand-new account with no role).')) return;
+    try {
+      const res = await fetch(FUNCTIONS_BASE + '/revokeRole', {
+        method: 'POST',
+        headers: await authHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify({ email: account.email, disable: false })
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Could not revoke role.');
+      showToast('Access revoked for ' + account.email + '.', 'success');
+      loadLeaderTracker();
+    } catch (e) {
+      showToast(e.message || 'Error revoking role.', 'error');
+    }
+  }
   async function loadLeaderTracker() {
     const loadingEl = document.getElementById('leader-tracker-loading');
     const listEl = document.getElementById('leader-tracker-list');
@@ -4301,6 +4383,7 @@
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Could not load accounts.');
       const accounts = data.accounts || [];
+      leaderTrackerAccounts = accounts;
 
       if (!ministryRegistry.length) await loadMinistryRegistry();
 
@@ -4316,7 +4399,13 @@
         const rows = leaders.length ? leaders.map(function(a) {
           const name = STAFF_NAME_MAP[a.email] || a.email;
           const statusBadge = a.disabled ? ' <span style="color:var(--danger);font-size:11px;">Disabled</span>' : '';
-          return '<div style="font-size:14px;color:var(--soil);margin-bottom:4px;">' + escHtml(name) + ' <span style="color:var(--dusty-rose);font-size:12px;">(' + escHtml(a.email) + ')</span>' + statusBadge + '<div style="font-size:11px;color:var(--dusty-rose);">Last login: ' + formatLastLogin(a) + '</div></div>';
+          return '<div style="margin-bottom:8px;">' +
+              '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;">' +
+                '<div style="font-size:14px;color:var(--soil);">' + escHtml(name) + ' <span style="color:var(--dusty-rose);font-size:12px;">(' + escHtml(a.email) + ')</span>' + statusBadge + '<div style="font-size:11px;color:var(--dusty-rose);">Last login: ' + formatLastLogin(a) + '</div></div>' +
+                accountRowButtonsHtml(a) +
+              '</div>' +
+              accountRowEditFormHtml(a) +
+            '</div>';
         }).join('') : '<span style="color:var(--dusty-rose);font-style:italic;">Unassigned</span>';
         return '<div style="display:flex;justify-content:space-between;align-items:flex-start;padding:12px 0;border-bottom:1px solid var(--linen);"><div style="font-family:Cinzel,serif;font-size:14px;color:var(--burgundy);flex-shrink:0;width:200px;">' + escHtml(m.name) + '</div><div style="flex:1;">' + rows + '</div></div>';
       }).join('');
@@ -4325,7 +4414,13 @@
         otherListEl.innerHTML = otherAccounts.map(function(a) {
           const name = STAFF_NAME_MAP[a.email] || a.email;
           const statusBadge = a.disabled ? ' <span style="color:var(--danger);font-size:11px;">Disabled</span>' : '';
-          return '<div style="display:flex;justify-content:space-between;align-items:center;padding:10px 0;border-bottom:1px solid var(--linen);"><div><span style="font-family:Cinzel,serif;font-size:12px;color:var(--burgundy);text-transform:capitalize;">' + escHtml(a.role) + '</span> -- ' + escHtml(name) + ' <span style="color:var(--dusty-rose);font-size:12px;">(' + escHtml(a.email) + ')</span>' + statusBadge + '</div><div style="font-size:11px;color:var(--dusty-rose);">' + formatLastLogin(a) + '</div></div>';
+          return '<div style="padding:10px 0;border-bottom:1px solid var(--linen);">' +
+              '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">' +
+                '<div><span style="font-family:Cinzel,serif;font-size:12px;color:var(--burgundy);text-transform:capitalize;">' + escHtml(a.role) + '</span> -- ' + escHtml(name) + ' <span style="color:var(--dusty-rose);font-size:12px;">(' + escHtml(a.email) + ')</span>' + statusBadge + '<div style="font-size:11px;color:var(--dusty-rose);">' + formatLastLogin(a) + '</div></div>' +
+                accountRowButtonsHtml(a) +
+              '</div>' +
+              accountRowEditFormHtml(a) +
+            '</div>';
         }).join('');
         otherCard.style.display = 'block';
       }
