@@ -882,6 +882,7 @@
           <div class="form-group"><label class="form-label">Role name *</label><input type="text" class="form-input" id="serving-name" placeholder="e.g. Lectors (Ministers of the Word)" /></div>
           <div class="form-group"><label class="form-label">Contact name</label><input type="text" class="form-input" id="serving-contact" placeholder="e.g. Jane Smith" /></div>
           <div class="form-group"><label class="form-label">Phone</label><input type="text" class="form-input" id="serving-phone" placeholder="e.g. 623-555-1234" /></div>
+          <div class="form-group"><label class="form-label">Schedule/Sign-up Link (optional)</label><input type="url" class="form-input" id="serving-link" placeholder="https://..." /></div>
           <div class="form-group"><label class="form-label">Order (display position)</label><input type="number" class="form-input" id="serving-order" placeholder="e.g. 1" /></div>
           <div class="btn-row">
             <button class="btn btn-primary" id="serving-save-btn" onclick="saveServingRole()">Add Serving Role</button>
@@ -6525,8 +6526,10 @@
   // == SERVING ROLES ==
   // Data-driven list behind the app's Parish-screen "Serving" tab. Collection:
   // parishes/saint-rose-anthem/servingRoles. Doc shape: name (string),
-  // contactName (string), phone (string), order (int). Deliberately minimal --
-  // no description / schedule / email (separate from the `ministries` editor).
+  // contactName (string), phone (string), link (string, optional -- shows a
+  // "View Schedule" button in the app when non-empty, e.g. a Rotunda Software
+  // scheduler URL), order (int). Deliberately minimal -- no description /
+  // full schedule / email (separate from the `ministries` editor).
   var servingEditingId = null;
 
   // The nine standard liturgical serving roles, in display order -- the "Seed"
@@ -6548,6 +6551,7 @@
     document.getElementById('serving-name').value = '';
     document.getElementById('serving-contact').value = '';
     document.getElementById('serving-phone').value = '';
+    document.getElementById('serving-link').value = '';
     document.getElementById('serving-order').value = '';
     document.getElementById('serving-form-title').textContent = '🙌 Add Serving Role';
     document.getElementById('serving-save-btn').textContent = 'Add Serving Role';
@@ -6557,6 +6561,7 @@
     const name = document.getElementById('serving-name').value.trim();
     const contactName = document.getElementById('serving-contact').value.trim();
     const phone = document.getElementById('serving-phone').value.trim();
+    const link = document.getElementById('serving-link').value.trim();
     const orderRaw = document.getElementById('serving-order').value.trim();
     if (!name) { showToast('Please fill in the role name.', 'error'); return; }
     const order = orderRaw === '' ? 999 : parseInt(orderRaw, 10);
@@ -6567,6 +6572,7 @@
         name: { stringValue: name },
         contactName: { stringValue: contactName },
         phone: { stringValue: phone },
+        link: { stringValue: link },
         order: { integerValue: String(isNaN(order) ? 999 : order) },
         updatedAt: { stringValue: new Date().toISOString() }
       };
@@ -6593,6 +6599,7 @@
     document.getElementById('serving-name').value = item.name || '';
     document.getElementById('serving-contact').value = item.contactName || '';
     document.getElementById('serving-phone').value = item.phone || '';
+    document.getElementById('serving-link').value = item.link || '';
     document.getElementById('serving-order').value = (item.order === '' || item.order === undefined) ? '' : item.order;
     document.getElementById('serving-form-title').textContent = '🙌 Edit Serving Role';
     document.getElementById('serving-save-btn').textContent = 'Save Changes';
@@ -6664,6 +6671,7 @@
         name: gf(d, 'name'),
         contactName: gf(d, 'contactName'),
         phone: gf(d, 'phone'),
+        link: gf(d, 'link'),
         order: d.fields?.order?.integerValue !== undefined ? parseInt(d.fields.order.integerValue, 10) : 999
       })).sort((a, b) => a.order - b.order);
       el.innerHTML = items.map((item, i) => {
