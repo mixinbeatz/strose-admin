@@ -397,6 +397,7 @@
         <div class="nav-item staff-only" onclick="showPage('bulletin-images',this);loadBulletinImages()"><span class="nav-icon">🗞️</span> Bulletin Images</div>
         <div class="nav-item staff-only" onclick="showPage('ministry-booklet',this);loadMinistryBooklet()"><span class="nav-icon">📖</span> Ministry Booklet</div>
         <div class="nav-item staff-only" onclick="showPage('mass-schedule',this);loadMassSchedule()"><span class="nav-icon">⏰</span> Mass Schedule</div>
+        <div class="nav-item staff-only" onclick="showPage('live-screen',this);loadLiveScreenSettings()"><span class="nav-icon">📺</span> Live Screen</div>
       </div>
       <div class="nav-section-toggle collapsed owner-admin-only" style="display:none" onclick="toggleNavSection(this)"><span>Staff &amp; Access</span><span class="nav-chevron">▾</span></div>
       <div class="nav-group collapsed">
@@ -1407,6 +1408,26 @@
           <button class="btn btn-primary" onclick="saveMassSchedule()">Save Mass Schedule</button>
           <button class="btn btn-outline" onclick="loadMassSchedule()" style="margin-left:8px;">Reload Current</button>
           <span id="mass-schedule-success" style="display:none;color:var(--success);margin-left:12px;">Saved!</span>
+        </div>
+      </div>
+      <!-- LIVE SCREEN -->
+      <div class="page" id="page-live-screen">
+        <div class="card">
+          <div class="card-title">📺 Live Screen</div>
+          <div class="info-box">Controls the featured video on the app's Video tab, below the "Watch Live" button. Leave the video ID blank to automatically show the channel's latest upload instead of picking one by hand.</div>
+        </div>
+        <div class="card">
+          <div class="form-group">
+            <label class="form-label">Featured YouTube Video ID (optional)</label>
+            <input type="text" class="form-input" id="ls-video-id" placeholder="e.g. RnFBkEydXCc" />
+            <div style="font-size:12px;color:var(--dusty-rose);margin-top:4px;">Paste the part after <code>watch?v=</code> from the YouTube URL — e.g. from <code>youtube.com/watch?v=RnFBkEydXCc</code>, that's <code>RnFBkEydXCc</code>. Leave blank to fall back to the channel's latest upload automatically.</div>
+          </div>
+          <label style="display:flex;align-items:center;gap:8px;font-size:14px;margin-top:12px;cursor:pointer;"><input type="checkbox" id="ls-visible" style="width:auto;" checked> Show featured video on the Video tab</label>
+        </div>
+        <div class="card">
+          <button class="btn btn-primary" onclick="saveLiveScreenSettings()">Save Live Screen Settings</button>
+          <button class="btn btn-outline" onclick="loadLiveScreenSettings()" style="margin-left:8px;">Reload Current</button>
+          <span id="live-screen-success" style="display:none;color:var(--success);margin-left:12px;">Saved!</span>
         </div>
       </div>
       <div class="page" id="page-councils">
@@ -2457,7 +2478,7 @@
     if(el) el.classList.add('active');
     window.scrollTo(0,0);
     closeSidebar();
-    const titles = {dashboard:'Dashboard',events:'Events',announcement:'Post Announcement',fastblast:'Fast Blast',reflection:'Weekly Reflection','parish-development':'Parish Development',daily:'Daily Reflection',songsheet:'Mass Songsheet',welcome:'Welcome Message','hero-media':'Hero Section','welcome-media':'Welcome Section',gallery:'Homepage Gallery','around-parish':'Around the Parish','parish-dev-media':'Parish Development','bulletin-images':'Bulletin Images','ministry-booklet':'Ministry Booklet','mass-schedule':'Mass Schedule',councils:'Pastoral, Finance & Development Council','council-inquiries':'Council Inquiries','signup-forms':'Forms & Sign-ups','parish-staff':'Parish Staff Directory','ministry-documents':'Ministry Documents','serving-roles':'Serving Roles','funeral-planning':'Funeral Planning Forms','onboard-council':'Onboard Council Lead','music-ministry':'Music Ministry','music-members':'Music Ministry Members',approvals:'Parish Family Approvals',partners:'Partner Requests',directory:'Parish Family Directory','ministry-post':'Post to Members','cda-members':'My Members','submit-event':'Submit Event','event-requests':'Event Requests','contact-requests':'Contact Requests',intention:'Mass Intentions','my-ministry':'My Ministry','onboard-leader':'Onboard Ministry Leader','leader-tracker':'Ministry Leaders'};
+    const titles = {dashboard:'Dashboard',events:'Events',announcement:'Post Announcement',fastblast:'Fast Blast',reflection:'Weekly Reflection','parish-development':'Parish Development',daily:'Daily Reflection',songsheet:'Mass Songsheet',welcome:'Welcome Message','hero-media':'Hero Section','welcome-media':'Welcome Section',gallery:'Homepage Gallery','around-parish':'Around the Parish','parish-dev-media':'Parish Development','bulletin-images':'Bulletin Images','ministry-booklet':'Ministry Booklet','mass-schedule':'Mass Schedule','live-screen':'Live Screen',councils:'Pastoral, Finance & Development Council','council-inquiries':'Council Inquiries','signup-forms':'Forms & Sign-ups','parish-staff':'Parish Staff Directory','ministry-documents':'Ministry Documents','serving-roles':'Serving Roles','funeral-planning':'Funeral Planning Forms','onboard-council':'Onboard Council Lead','music-ministry':'Music Ministry','music-members':'Music Ministry Members',approvals:'Parish Family Approvals',partners:'Partner Requests',directory:'Parish Family Directory','ministry-post':'Post to Members','cda-members':'My Members','submit-event':'Submit Event','event-requests':'Event Requests','contact-requests':'Contact Requests',intention:'Mass Intentions','my-ministry':'My Ministry','onboard-leader':'Onboard Ministry Leader','leader-tracker':'Ministry Leaders'};
     document.getElementById('page-title').textContent = titles[id]||id;
     var mpt = document.getElementById('mobile-page-title'); if(mpt) mpt.textContent = titles[id]||id;
     if(id==='approvals') loadApprovals();
@@ -7084,6 +7105,38 @@
       document.getElementById('mass-schedule-success').style.display = 'inline';
       setTimeout(() => document.getElementById('mass-schedule-success').style.display = 'none', 3000);
       showToast('Mass schedule saved!', 'success');
+    } catch(e) { showToast('Error saving.', 'error'); }
+  }
+  // ── LIVE SCREEN ──
+  // Featured video on the app's Video tab. Collection: parishes/saint-rose-anthem/settings,
+  // doc: liveScreen. Public-read singleton, same pattern as siteContent/massSchedule above --
+  // featuredVideoId (string, optional) and featuredVideoVisible (bool). The app treats a blank
+  // featuredVideoId (or this doc not existing yet) as "show the channel's uploads playlist
+  // instead", and featuredVideoVisible !== false as "show the section" -- so an empty/never-saved
+  // form here is a valid, working state, not an error.
+  async function loadLiveScreenSettings() {
+    try {
+      const res = await fs_get('settings/liveScreen');
+      const fields = res.fields || {};
+      document.getElementById('ls-video-id').value = fields.featuredVideoId?.stringValue || '';
+      document.getElementById('ls-visible').checked = fields.featuredVideoVisible?.booleanValue !== false;
+    } catch(e) {
+      document.getElementById('ls-video-id').value = '';
+      document.getElementById('ls-visible').checked = true;
+      showToast('No saved settings yet — showing defaults.', 'success');
+    }
+  }
+  async function saveLiveScreenSettings() {
+    const fieldsPayload = {
+      featuredVideoId: { stringValue: document.getElementById('ls-video-id').value.trim() },
+      featuredVideoVisible: { booleanValue: document.getElementById('ls-visible').checked },
+      updatedAt: { stringValue: new Date().toISOString() },
+    };
+    try {
+      await fs_patch('settings/liveScreen', fieldsPayload);
+      document.getElementById('live-screen-success').style.display = 'inline';
+      setTimeout(() => document.getElementById('live-screen-success').style.display = 'none', 3000);
+      showToast('Live Screen settings saved!', 'success');
     } catch(e) { showToast('Error saving.', 'error'); }
   }
   // ── PASTORAL, FINANCE & DEVELOPMENT COUNCIL ──
