@@ -780,7 +780,7 @@
               <button type="button" class="toolbar-btn tb-bold" title="Bold" onclick="wrapSelection('ref-body','**')">B</button>
               <button type="button" class="toolbar-btn tb-italic" title="Italic" onclick="wrapSelection('ref-body','*')">I</button>
             </div>
-            <textarea class="form-textarea large" id="ref-body" placeholder="Paste the full text of Fr. Bing's reflection here..."></textarea>
+            <textarea class="form-textarea large" id="ref-body" placeholder="Paste the full text of Fr. Bing's reflection here..." onpaste="handleSmartPaste(event)"></textarea>
           </div>
           <div class="btn-row">
             <button class="btn btn-primary" onclick="postReflection()">Update Reflection</button>
@@ -1197,7 +1197,7 @@
               <button type="button" class="toolbar-btn tb-bold" title="Bold" onclick="wrapSelection('welcome-body','**')">B</button>
               <button type="button" class="toolbar-btn tb-italic" title="Italic" onclick="wrapSelection('welcome-body','*')">I</button>
             </div>
-            <textarea class="form-input" id="welcome-body" rows="12" placeholder="Paste the welcome message here..." style="resize:vertical;"></textarea>
+            <textarea class="form-input" id="welcome-body" rows="12" placeholder="Paste the welcome message here..." style="resize:vertical;" onpaste="handleSmartPaste(event)"></textarea>
           </div>
           <div class="btn-row">
             <button class="btn btn-primary" onclick="saveWelcomeMessage()">Save to App</button>
@@ -3982,7 +3982,7 @@
           '<button type="button" class="toolbar-btn tb-bold" title="Bold" onclick="wrapSelection(\'daily-body-' + i + '\',\'**\')">B</button>' +
           '<button type="button" class="toolbar-btn tb-italic" title="Italic" onclick="wrapSelection(\'daily-body-' + i + '\',\'*\')">I</button>' +
         '</div>' +
-        '<textarea class="form-textarea" id="daily-body-' + i + '" placeholder="Paste reflection text here..." style="min-height:100px;"></textarea>' +
+        '<textarea class="form-textarea" id="daily-body-' + i + '" placeholder="Paste reflection text here..." style="min-height:100px;" onpaste="handleSmartPaste(event)"></textarea>' +
         '<input type="text" class="form-input" id="daily-music-' + i + '" placeholder="YouTube music link (optional) - e.g. https://youtu.be/XXXXX" style="margin-top:8px;" />' +
         '</div>';
     }
@@ -8644,6 +8644,69 @@
     } finally {
       input.value = '';
     }
+  }
+  // ── SMART PASTE (rich text -> ** / * markers) ──
+  // Paste handler shared by every reflection-style textarea (Welcome Message,
+  // Weekly Reflection, each Daily Reflection scheduler row) via
+  // onpaste="handleSmartPaste(event)" below. If the thing on the clipboard
+  // carries an HTML representation (e.g. copied from a Google Doc or another
+  // rich-text app), this converts <b>/<strong>/font-weight:bold runs and
+  // <i>/<em>/font-style:italic runs into the same **bold**/*italic* markers
+  // parseDocxToMarkdown produces, strips the rest of the markup, and drops in
+  // plain text -- so pasting straight from a rich-text source can work like
+  // the .docx importer without a file upload. Does NOT help with a PDF viewer
+  // copy (Chrome's built-in PDF viewer, in particular, never puts HTML on the
+  // clipboard -- only plain text survives from that source); in that case, or
+  // for any plain-text paste, clipboardData.getData('text/html') comes back
+  // empty and this just gets out of the way for the browser's normal paste.
+  function htmlToReflectionMarkdown(html) {
+    const root = new DOMParser().parseFromString(html, 'text/html').body;
+    const BLOCK_TAGS = /^(P|DIV|LI|H1|H2|H3|H4|H5|H6|TR)$/;
+    let out = '';
+    function isBold(el) {
+      const style = el.getAttribute('style') || '';
+      return /^(B|STRONG)$/.test(el.tagName) || /font-weight\s*:\s*(bold|[6-9]\d\d|1000)/i.test(style);
+    }
+    function isItalic(el) {
+      const style = el.getAttribute('style') || '';
+      return /^(I|EM)$/.test(el.tagName) || /font-style\s*:\s*italic/i.test(style);
+    }
+    function walk(node, bold, italic) {
+      if (node.nodeType === Node.TEXT_NODE) {
+        let text = node.textContent;
+        if (!text) return;
+        if (bold && italic) text = '***' + text + '***';
+        else if (bold) text = '**' + text + '**';
+        else if (italic) text = '*' + text + '*';
+        out += text;
+        return;
+      }
+      if (node.nodeType !== Node.ELEMENT_NODE) return;
+      if (node.tagName === 'BR') { out += '\n'; return; }
+      if (node.tagName === 'SCRIPT' || node.tagName === 'STYLE') return;
+      const nowBold = bold || isBold(node);
+      const nowItalic = italic || isItalic(node);
+      for (const child of node.childNodes) walk(child, nowBold, nowItalic);
+      if (BLOCK_TAGS.test(node.tagName)) out += '\n\n';
+    }
+    walk(root, false, false);
+    return normalizeReflectionBody(out);
+  }
+  function handleSmartPaste(event) {
+    const html = event.clipboardData && event.clipboardData.getData('text/html');
+    if (!html) return; // no rich text on the clipboard -- let the normal plain-text paste happen
+    event.preventDefault();
+    const el = event.target;
+    let text;
+    try {
+      text = htmlToReflectionMarkdown(html);
+    } catch (e) {
+      text = event.clipboardData.getData('text/plain') || '';
+    }
+    const start = el.selectionStart, end = el.selectionEnd;
+    el.value = el.value.slice(0, start) + text + el.value.slice(end);
+    el.selectionStart = el.selectionEnd = start + text.length;
+    el.dispatchEvent(new Event('input', { bubbles: true }));
   }
   // ── HOMEPAGE GALLERY ──
   const GALLERY_SLOTS = [
