@@ -781,8 +781,6 @@
               <button type="button" class="toolbar-btn tb-italic" title="Italic" onclick="wrapSelection('ref-body','*')">I</button>
             </div>
             <textarea class="form-textarea large" id="ref-body" placeholder="Paste the full text of Fr. Bing's reflection here..." onpaste="handleSmartPaste(event)"></textarea>
-            <!-- TEMP DEBUG -- remove once the paragraph-merging issue is diagnosed -->
-            <pre id="smart-paste-debug" style="display:none;white-space:pre-wrap;word-break:break-word;background:#222;color:#0f0;font-size:11px;padding:10px;border-radius:6px;margin-top:8px;max-height:400px;overflow:auto;"></pre>
           </div>
           <div class="btn-row">
             <button class="btn btn-primary" onclick="postReflection()">Update Reflection</button>
@@ -8656,11 +8654,29 @@
   // <i>/<em>/font-style:italic runs into the same **bold**/*italic* markers
   // parseDocxToMarkdown produces, strips the rest of the markup, and drops in
   // plain text -- so pasting straight from a rich-text source can work like
-  // the .docx importer without a file upload. Does NOT help with a PDF viewer
-  // copy (Chrome's built-in PDF viewer, in particular, never puts HTML on the
-  // clipboard -- only plain text survives from that source); in that case, or
-  // for any plain-text paste, clipboardData.getData('text/html') comes back
-  // empty and this just gets out of the way for the browser's normal paste.
+  // the .docx importer without a file upload.
+  //
+  // Many real-world sources (Chrome's built-in PDF viewer, Preview, plain
+  // text extracted from a Word doc) put NO html on the clipboard at all --
+  // confirmed via a live debug dump against an actual bulletin paste, which
+  // came back "(none)" for text/html even though the source clearly had bold
+  // headings in the original document. For that case there is no bold/italic
+  // to recover -- it was never on the clipboard, and only the .docx importer
+  // (which reads the real paragraph/run structure from the .docx XML) can
+  // preserve it. What plain-text pastes DO still need is the same line-break
+  // cleanup normalizeReflectionBody() already applies at save time -- PDF/Word
+  // "select all" text carries a literal line break after every original
+  // visual line, not just at real paragraph ends, and it looked like a wall
+  // of one-line paragraphs sitting in the textarea until Save was clicked.
+  // A per-line heuristic (e.g. "only break at sentence-ending punctuation")
+  // was considered and rejected: tested against that same real sample, a
+  // mid-paragraph sentence ends right at a line-wrap by coincidence, so the
+  // heuristic would introduce a false paragraph break there. Plain text
+  // extraction throws away the paragraph/line-wrap distinction entirely --
+  // there's no reliable way to reconstruct it from newlines alone, so we
+  // apply the existing single-vs-double-newline collapsing at paste time
+  // instead of waiting for Save, and leave true paragraph/heading recovery to
+  // the .docx importer, which has the real structure to work from.
   function htmlToReflectionMarkdown(html) {
     const root = new DOMParser().parseFromString(html, 'text/html').body;
     const BLOCK_TAGS = /^(P|DIV|LI|H1|H2|H3|H4|H5|H6|TR)$/;
@@ -8696,30 +8712,20 @@
   }
   function handleSmartPaste(event) {
     const html = event.clipboardData && event.clipboardData.getData('text/html');
-    // ── TEMP DEBUG -- remove once the paragraph-merging issue is diagnosed ──
-    const plainRaw = event.clipboardData && event.clipboardData.getData('text/plain');
-    console.log('[smartPaste] text/html RAW:\n' + (html || '(none)'));
-    console.log('[smartPaste] text/plain RAW:\n' + (plainRaw || '(none)'));
-    if (html) {
-      console.log('[smartPaste] has <b>/<strong>: ' + /<(b|strong)\b/i.test(html) +
-        ' | has bold-ish font-weight style: ' + /font-weight\s*:\s*(bold|[6-9]\d\d|1000)/i.test(html));
-    }
-    const dbgPanel = document.getElementById('smart-paste-debug');
-    if (dbgPanel) {
-      dbgPanel.style.display = 'block';
-      dbgPanel.textContent =
-        '=== text/html RAW ===\n' + (html || '(none -- clipboard had no HTML)') +
-        '\n\n=== text/plain RAW ===\n' + (plainRaw || '(none)');
-    }
-    // ── END TEMP DEBUG ──
-    if (!html) return; // no rich text on the clipboard -- let the normal plain-text paste happen
     event.preventDefault();
     const el = event.target;
     let text;
-    try {
-      text = htmlToReflectionMarkdown(html);
-    } catch (e) {
-      text = event.clipboardData.getData('text/plain') || '';
+    if (html) {
+      try {
+        text = htmlToReflectionMarkdown(html);
+      } catch (e) {
+        text = normalizeReflectionBody(event.clipboardData.getData('text/plain') || '');
+      }
+    } else {
+      // No HTML on the clipboard -- nothing to detect bold/italic from, but
+      // still collapse PDF/Word-style single-line-per-visual-line breaks the
+      // same way Save already does, instead of leaving that until Save.
+      text = normalizeReflectionBody(event.clipboardData.getData('text/plain') || '');
     }
     const start = el.selectionStart, end = el.selectionEnd;
     el.value = el.value.slice(0, start) + text + el.value.slice(end);
