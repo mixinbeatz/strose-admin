@@ -781,6 +781,8 @@
               <button type="button" class="toolbar-btn tb-italic" title="Italic" onclick="wrapSelection('ref-body','*')">I</button>
             </div>
             <textarea class="form-textarea large" id="ref-body" placeholder="Paste the full text of Fr. Bing's reflection here..." onpaste="handleSmartPaste(event)"></textarea>
+            <!-- TEMP DEBUG -- remove once the paragraph-merging issue is diagnosed -->
+            <pre id="smart-paste-debug" style="display:none;white-space:pre-wrap;word-break:break-word;background:#222;color:#0f0;font-size:11px;padding:10px;border-radius:6px;margin-top:8px;max-height:400px;overflow:auto;"></pre>
           </div>
           <div class="btn-row">
             <button class="btn btn-primary" onclick="postReflection()">Update Reflection</button>
@@ -8694,6 +8696,22 @@
   }
   function handleSmartPaste(event) {
     const html = event.clipboardData && event.clipboardData.getData('text/html');
+    // ── TEMP DEBUG -- remove once the paragraph-merging issue is diagnosed ──
+    const plainRaw = event.clipboardData && event.clipboardData.getData('text/plain');
+    console.log('[smartPaste] text/html RAW:\n' + (html || '(none)'));
+    console.log('[smartPaste] text/plain RAW:\n' + (plainRaw || '(none)'));
+    if (html) {
+      console.log('[smartPaste] has <b>/<strong>: ' + /<(b|strong)\b/i.test(html) +
+        ' | has bold-ish font-weight style: ' + /font-weight\s*:\s*(bold|[6-9]\d\d|1000)/i.test(html));
+    }
+    const dbgPanel = document.getElementById('smart-paste-debug');
+    if (dbgPanel) {
+      dbgPanel.style.display = 'block';
+      dbgPanel.textContent =
+        '=== text/html RAW ===\n' + (html || '(none -- clipboard had no HTML)') +
+        '\n\n=== text/plain RAW ===\n' + (plainRaw || '(none)');
+    }
+    // ── END TEMP DEBUG ──
     if (!html) return; // no rich text on the clipboard -- let the normal plain-text paste happen
     event.preventDefault();
     const el = event.target;
