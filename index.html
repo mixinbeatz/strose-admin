@@ -336,6 +336,8 @@
         <div class="nav-item staff-only" onclick="showPage('faith-formation-registrations',this);loadFaithFormationRegs()"><span class="nav-icon">✝️</span> Faith Formation Registrations <span class="nav-badge" id="ffreg-count" style="display:none">0</span></div>
         <div class="nav-item staff-only" onclick="showPage('youth-ministry-registrations',this);loadYouthMinistryRegs();loadYMSettings()"><span class="nav-icon">🔥</span> Youth Ministry Registrations <span class="nav-badge" id="ymreg-count" style="display:none">0</span></div>
         <div class="nav-item staff-only" onclick="showPage('directory',this)"><span class="nav-icon">📋</span> Parish Family Directory</div>
+        <div class="nav-item staff-only" onclick="showPage('reported-listings',this)"><span class="nav-icon">🚩</span> Reported Listings <span class="nav-badge" id="reported-count" style="display:none">0</span></div>
+        <div class="nav-item staff-only" onclick="showPage('needs-review',this)"><span class="nav-icon">✏️</span> Needs Review <span class="nav-badge" id="needsreview-count" style="display:none">0</span></div>
       </div>
 
       <!-- MINISTRIES -->
@@ -2183,6 +2185,22 @@
           <div id="directory-list"><div style="color:var(--dusty-rose);font-size:14px;">Loading...</div></div>
         </div>
       </div>
+      <!-- REPORTED LISTINGS -->
+      <div class="page" id="page-reported-listings">
+        <div class="card">
+          <div class="card-title">🚩 Reported Listings</div>
+          <div class="info-box">Directory listings flagged by members via the app's "Report" action. Dismiss clears the flag; Remove takes the listing out of the Parish Family directory entirely.</div>
+          <div id="reported-listings-list"><div style="color:var(--dusty-rose);font-size:14px;">Loading...</div></div>
+        </div>
+      </div>
+      <!-- NEEDS REVIEW -->
+      <div class="page" id="page-needs-review">
+        <div class="card">
+          <div class="card-title">✏️ Needs Review</div>
+          <div class="info-box">Approved listings edited after approval (name, bio, or photo) that haven't been re-reviewed yet. Dismiss clears the flag once you've checked the edit; Remove takes the listing out of the Parish Family directory entirely.</div>
+          <div id="needs-review-list"><div style="color:var(--dusty-rose);font-size:14px;">Loading...</div></div>
+        </div>
+      </div>
       <!-- Submit Event Page (Ministry Leaders) -->
       <div class="page" id="page-submit-event">
         <div class="card">
@@ -2478,12 +2496,14 @@
     if(el) el.classList.add('active');
     window.scrollTo(0,0);
     closeSidebar();
-    const titles = {dashboard:'Dashboard',events:'Events',announcement:'Post Announcement',fastblast:'Fast Blast',reflection:'Weekly Reflection','parish-development':'Parish Development',daily:'Daily Reflection',songsheet:'Mass Songsheet',welcome:'Welcome Message','hero-media':'Hero Section','welcome-media':'Welcome Section',gallery:'Homepage Gallery','around-parish':'Around the Parish','parish-dev-media':'Parish Development','bulletin-images':'Bulletin Images','ministry-booklet':'Ministry Booklet','mass-schedule':'Mass Schedule','live-screen':'Live Screen',councils:'Pastoral, Finance & Development Council','council-inquiries':'Council Inquiries','signup-forms':'Forms & Sign-ups','parish-staff':'Parish Staff Directory','ministry-documents':'Ministry Documents','serving-roles':'Serving Roles','funeral-planning':'Funeral Planning Forms','onboard-council':'Onboard Council Lead','music-ministry':'Music Ministry','music-members':'Music Ministry Members',approvals:'Parish Family Approvals',partners:'Partner Requests',directory:'Parish Family Directory','ministry-post':'Post to Members','cda-members':'My Members','submit-event':'Submit Event','event-requests':'Event Requests','contact-requests':'Contact Requests',intention:'Mass Intentions','my-ministry':'My Ministry','onboard-leader':'Onboard Ministry Leader','leader-tracker':'Ministry Leaders'};
+    const titles = {dashboard:'Dashboard',events:'Events',announcement:'Post Announcement',fastblast:'Fast Blast',reflection:'Weekly Reflection','parish-development':'Parish Development',daily:'Daily Reflection',songsheet:'Mass Songsheet',welcome:'Welcome Message','hero-media':'Hero Section','welcome-media':'Welcome Section',gallery:'Homepage Gallery','around-parish':'Around the Parish','parish-dev-media':'Parish Development','bulletin-images':'Bulletin Images','ministry-booklet':'Ministry Booklet','mass-schedule':'Mass Schedule','live-screen':'Live Screen',councils:'Pastoral, Finance & Development Council','council-inquiries':'Council Inquiries','signup-forms':'Forms & Sign-ups','parish-staff':'Parish Staff Directory','ministry-documents':'Ministry Documents','serving-roles':'Serving Roles','funeral-planning':'Funeral Planning Forms','onboard-council':'Onboard Council Lead','music-ministry':'Music Ministry','music-members':'Music Ministry Members',approvals:'Parish Family Approvals',partners:'Partner Requests',directory:'Parish Family Directory','reported-listings':'Reported Listings','needs-review':'Needs Review','ministry-post':'Post to Members','cda-members':'My Members','submit-event':'Submit Event','event-requests':'Event Requests','contact-requests':'Contact Requests',intention:'Mass Intentions','my-ministry':'My Ministry','onboard-leader':'Onboard Ministry Leader','leader-tracker':'Ministry Leaders'};
     document.getElementById('page-title').textContent = titles[id]||id;
     var mpt = document.getElementById('mobile-page-title'); if(mpt) mpt.textContent = titles[id]||id;
     if(id==='approvals') loadApprovals();
     if(id==='partners') loadPartners();
     if(id==='directory') loadDirectory();
+    if(id==='reported-listings') loadReportedListings();
+    if(id==='needs-review') loadNeedsReview();
     if(id==='announcement') loadActiveAnnouncements();
     if(id==='fastblast') loadScheduledFastBlasts();
     if(id==='reflection') loadCurrentReflection();
@@ -3493,6 +3513,12 @@
       document.getElementById('stat-pending').textContent = pending.length;
       document.getElementById('stat-partners').textContent = preqs.length;
       document.getElementById('approval-count').textContent = pending.length;
+      const reportedListings = approved.filter(d=>gf(d,'reported')===true);
+      const reportedBadge = document.getElementById('reported-count');
+      if (reportedBadge) { reportedBadge.textContent = reportedListings.length; reportedBadge.style.display = reportedListings.length > 0 ? '' : 'none'; }
+      const needsReviewListings = approved.filter(d=>gf(d,'needsReview')===true);
+      const needsReviewBadge = document.getElementById('needsreview-count');
+      if (needsReviewBadge) { needsReviewBadge.textContent = needsReviewListings.length; needsReviewBadge.style.display = needsReviewListings.length > 0 ? '' : 'none'; }
       // Active Listings: total published advertisers, broken down by billingStatus
       // (comped | paying). billingStatus is independent of `active` -- a paused
       // listing still counts here; the Partners page shows the paused state.
@@ -5524,6 +5550,69 @@
   function filterDirectory(){
     const q=document.getElementById('dir-search').value.toLowerCase();
     renderDirectory(allMembers.filter(d=>gf(d,'name').toLowerCase().includes(q)||gf(d,'email').toLowerCase().includes(q)||gf(d,'ministries').toLowerCase().includes(q)));
+  }
+
+  // Reported Listings & Needs Review: same underlying parishFamily doc as the
+  // Directory above, filtered on the `reported`/`needsReview` flags set by
+  // CommunityScreen.tsx's reportDirectoryListing / handleSignup in the app.
+  // Dismiss clears the flag (matches MeScreen.tsx's dismissReport/
+  // dismissNeedsReview); Remove reuses the existing removeMember() below.
+  async function loadReportedListings() {
+    const list=document.getElementById('reported-listings-list');
+    list.innerHTML='<div style="color:var(--dusty-rose);font-size:14px;">Loading...</div>';
+    try {
+      const res=await fs_get('parishFamily');
+      const docs=(res.documents||[]).filter(d=>gf(d,'reported')===true);
+      if(docs.length===0){list.innerHTML=`<div class="empty-state"><div class="empty-icon">🚩</div><div class="empty-title">No reported listings</div><div class="empty-sub">Directory listings flagged by members will appear here.</div></div>`;return;}
+      list.innerHTML=docs.map(doc=>{
+        const id=docId(doc),name=gf(doc,'name'),email=gf(doc,'email'),bio=gf(doc,'bio'),ministries=gf(doc,'ministries'),photo=gf(doc,'photoUrl');
+        return `<div class="approval-card" id="reported-${id}">
+          <div class="approval-avatar">${photo?`<img src="${photo}" onclick="openLightbox('${photo}')"/>`:(name.charAt(0)||'?')}</div>
+          <div class="approval-info">
+            <div class="approval-name">${escHtml(name)}</div>
+            <div class="approval-meta">${escHtml(email)}${ministries?' · '+escHtml(ministries):''}</div>
+            ${bio?`<div class="approval-bio">${escHtml(bio)}</div>`:''}
+          </div>
+          <div class="approval-actions">
+            <button class="btn btn-outline btn-sm" onclick="dismissReportedListing('${id}','${escAttr(name)}')">Dismiss</button>
+            <button class="btn btn-danger btn-sm" onclick="removeMember('${id}','${escAttr(name)}')">Remove</button>
+          </div>
+        </div>`;
+      }).join('');
+    } catch(e){list.innerHTML='<div style="color:var(--danger);">Error loading.</div>';}
+  }
+  async function dismissReportedListing(id,name){
+    try{await fs_patch(`parishFamily/${id}`,{reported:{booleanValue:false}});document.getElementById(`reported-${id}`)?.remove();showToast(`${name}'s report dismissed.`,'success');loadDashboard();}
+    catch(e){showToast('Error.','error');}
+  }
+
+  async function loadNeedsReview() {
+    const list=document.getElementById('needs-review-list');
+    list.innerHTML='<div style="color:var(--dusty-rose);font-size:14px;">Loading...</div>';
+    try {
+      const res=await fs_get('parishFamily');
+      const docs=(res.documents||[]).filter(d=>gf(d,'needsReview')===true);
+      if(docs.length===0){list.innerHTML=`<div class="empty-state"><div class="empty-icon">✏️</div><div class="empty-title">No edited listings awaiting review</div></div>`;return;}
+      list.innerHTML=docs.map(doc=>{
+        const id=docId(doc),name=gf(doc,'name'),email=gf(doc,'email'),bio=gf(doc,'bio'),ministries=gf(doc,'ministries'),photo=gf(doc,'photoUrl');
+        return `<div class="approval-card" id="needsreview-${id}">
+          <div class="approval-avatar">${photo?`<img src="${photo}" onclick="openLightbox('${photo}')"/>`:(name.charAt(0)||'?')}</div>
+          <div class="approval-info">
+            <div class="approval-name">${escHtml(name)}</div>
+            <div class="approval-meta">${escHtml(email)}${ministries?' · '+escHtml(ministries):''}</div>
+            ${bio?`<div class="approval-bio">${escHtml(bio)}</div>`:''}
+          </div>
+          <div class="approval-actions">
+            <button class="btn btn-outline btn-sm" onclick="dismissNeedsReviewListing('${id}','${escAttr(name)}')">Dismiss</button>
+            <button class="btn btn-danger btn-sm" onclick="removeMember('${id}','${escAttr(name)}')">Remove</button>
+          </div>
+        </div>`;
+      }).join('');
+    } catch(e){list.innerHTML='<div style="color:var(--danger);">Error loading.</div>';}
+  }
+  async function dismissNeedsReviewListing(id,name){
+    try{await fs_patch(`parishFamily/${id}`,{needsReview:{booleanValue:false}});document.getElementById(`needsreview-${id}`)?.remove();showToast(`${name}'s listing marked reviewed.`,'success');loadDashboard();}
+    catch(e){showToast('Error.','error');}
   }
 
   async function removeMember(id,name){
