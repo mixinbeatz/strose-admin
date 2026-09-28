@@ -2207,7 +2207,7 @@
       <div class="page" id="page-needs-review">
         <div class="card">
           <div class="card-title">✏️ Needs Review</div>
-          <div class="info-box">Approved listings edited after approval (name, bio, or photo) that haven't been re-reviewed yet. Dismiss clears the flag once you've checked the edit; Remove takes the listing out of the Parish Family directory entirely.</div>
+          <div class="info-box">Approved listings with an edit (name, bio, or photo) awaiting your review -- the edit does NOT go live until you Accept it, so the directory still shows each member's last-approved version below. Accept promotes the edit; Reject discards it and keeps the current version, no harm done; Remove takes the listing out of the Parish Family directory entirely.</div>
           <div id="needs-review-list"><div style="color:var(--dusty-rose);font-size:14px;">Loading...</div></div>
         </div>
       </div>
@@ -2326,6 +2326,7 @@
 
   let currentExpiry = 'week';
   let allMembers = [];
+  let needsReviewDocs = [];
   let bulkRows = [];
 
   const dailyDateEl = document.getElementById('daily-date'); if(dailyDateEl) dailyDateEl.value = new Date().toISOString().split('T')[0];
@@ -5598,32 +5599,65 @@
     catch(e){showToast('Error.','error');}
   }
 
+  // Needs Review shows the PROPOSED edit (pendingName/pendingBio/
+  // pendingPhotoUrl), not the live fields -- handleSignup (CommunityScreen.tsx)
+  // writes edits to an already-approved profile there instead of onto
+  // name/bio/photoUrl directly (firestore.rules blocks that write once
+  // approved), so the live fields still hold the last-approved version until
+  // Accept promotes the pending ones onto them. A legacy doc flagged before
+  // these pending fields existed has nothing proposed to show separately --
+  // its live fields already ARE the unreviewed edit -- so it falls back to
+  // the old single-card display with Accept/Reject reduced to "just clear
+  // the flag" (matches the old single-button Dismiss for those).
   async function loadNeedsReview() {
     const list=document.getElementById('needs-review-list');
     list.innerHTML='<div style="color:var(--dusty-rose);font-size:14px;">Loading...</div>';
     try {
       const res=await fs_get('parishFamily');
-      const docs=(res.documents||[]).filter(d=>gf(d,'needsReview')===true);
-      if(docs.length===0){list.innerHTML=`<div class="empty-state"><div class="empty-icon">✏️</div><div class="empty-title">No edited listings awaiting review</div></div>`;return;}
-      list.innerHTML=docs.map(doc=>{
+      needsReviewDocs=(res.documents||[]).filter(d=>gf(d,'needsReview')===true);
+      if(needsReviewDocs.length===0){list.innerHTML=`<div class="empty-state"><div class="empty-icon">✏️</div><div class="empty-title">No edited listings awaiting review</div></div>`;return;}
+      list.innerHTML=needsReviewDocs.map(doc=>{
         const id=docId(doc),name=gf(doc,'name'),email=gf(doc,'email'),bio=gf(doc,'bio'),ministries=gf(doc,'ministries'),photo=gf(doc,'photoUrl');
+        const pendingName=gf(doc,'pendingName'),pendingBio=gf(doc,'pendingBio'),pendingPhotoUrl=gf(doc,'pendingPhotoUrl');
+        const hasPendingEdit=!!(pendingName||pendingBio||pendingPhotoUrl);
+        const displayName=hasPendingEdit?(pendingName||name):name;
+        const displayBio=hasPendingEdit?pendingBio:bio;
+        const displayPhoto=hasPendingEdit?(pendingPhotoUrl||photo):photo;
+        const nameChanged=hasPendingEdit&&pendingName&&pendingName!==name;
+        const bioChanged=hasPendingEdit&&pendingBio!==bio;
+        const currentLine=!hasPendingEdit
+          ?`<div style="margin-top:6px;font-size:12px;color:var(--dusty-rose);">Flagged before this listing's proposed edit could be tracked separately — shown above is already live.</div>`
+          :(nameChanged||bioChanged)
+            ?`<div style="margin-top:6px;font-size:12px;color:var(--dusty-rose);">Currently: ${escHtml([nameChanged?name:null,bioChanged?(bio||'(no bio)'):null].filter(Boolean).join(' — '))}</div>`
+            :'';
         return `<div class="approval-card" id="needsreview-${id}">
-          <div class="approval-avatar">${photo?`<img src="${photo}" onclick="openLightbox('${photo}')"/>`:(name.charAt(0)||'?')}</div>
+          <div class="approval-avatar">${displayPhoto?`<img src="${displayPhoto}" onclick="openLightbox('${displayPhoto}')"/>`:(displayName.charAt(0)||'?')}</div>
           <div class="approval-info">
-            <div class="approval-name">${escHtml(name)}</div>
+            <div class="approval-name">${escHtml(displayName)}</div>
             <div class="approval-meta">${escHtml(email)}${ministries?' · '+escHtml(ministries):''}</div>
-            ${bio?`<div class="approval-bio">${escHtml(bio)}</div>`:''}
+            ${displayBio?`<div class="approval-bio">${escHtml(displayBio)}</div>`:''}
+            ${currentLine}
           </div>
           <div class="approval-actions">
-            <button class="btn btn-outline btn-sm" onclick="dismissNeedsReviewListing('${id}','${escAttr(name)}')">Accept</button>
+            <button class="btn btn-success btn-sm" onclick="acceptNeedsReview('${id}','${escAttr(name)}')">Accept</button>
+            <button class="btn btn-outline btn-sm" onclick="rejectNeedsReview('${id}','${escAttr(name)}')">Reject</button>
             <button class="btn btn-danger btn-sm" onclick="removeMember('${id}','${escAttr(name)}')">Remove</button>
           </div>
         </div>`;
       }).join('');
     } catch(e){list.innerHTML='<div style="color:var(--danger);">Error loading.</div>';}
   }
-  async function dismissNeedsReviewListing(id,name){
-    try{await fs_patch(`parishFamily/${id}`,{needsReview:{booleanValue:false}});document.getElementById(`needsreview-${id}`)?.remove();showToast(`${name}'s listing marked reviewed.`,'success');loadDashboard();}
+  async function acceptNeedsReview(id,name){
+    const doc=needsReviewDocs.find(d=>docId(d)===id);
+    const pendingName=doc?gf(doc,'pendingName'):'',pendingBio=doc?gf(doc,'pendingBio'):'',pendingPhotoUrl=doc?gf(doc,'pendingPhotoUrl'):'';
+    const hasPendingEdit=!!(pendingName||pendingBio||pendingPhotoUrl);
+    const fields={needsReview:{booleanValue:false},pendingName:{stringValue:''},pendingBio:{stringValue:''},pendingPhotoUrl:{stringValue:''}};
+    if(hasPendingEdit){fields.name={stringValue:pendingName};fields.bio={stringValue:pendingBio};fields.photoUrl={stringValue:pendingPhotoUrl};}
+    try{await fs_patch(`parishFamily/${id}`,fields);document.getElementById(`needsreview-${id}`)?.remove();showToast(`${name}'s edit accepted.`,'success');loadDashboard();}
+    catch(e){showToast('Error.','error');}
+  }
+  async function rejectNeedsReview(id,name){
+    try{await fs_patch(`parishFamily/${id}`,{needsReview:{booleanValue:false},pendingName:{stringValue:''},pendingBio:{stringValue:''},pendingPhotoUrl:{stringValue:''}});document.getElementById(`needsreview-${id}`)?.remove();showToast(`${name}'s edit rejected.`,'success');loadDashboard();}
     catch(e){showToast('Error.','error');}
   }
 
