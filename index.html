@@ -454,6 +454,16 @@
             <div class="stat-value" id="stat-listings">—</div>
             <div class="stat-sub" id="stat-listings-sub">in directory</div>
           </div>
+          <div class="stat-card clickable" style="border-top-color:var(--danger)" onclick="showPage('reported-listings',navItem('reported-listings'))">
+            <div class="stat-label">Reported Listings</div>
+            <div class="stat-value" id="stat-reported">—</div>
+            <div class="stat-sub">flagged by members</div>
+          </div>
+          <div class="stat-card clickable" style="border-top-color:var(--gold-light)" onclick="showPage('needs-review',navItem('needs-review'))">
+            <div class="stat-label">Needs Review</div>
+            <div class="stat-value" id="stat-needsreview">—</div>
+            <div class="stat-sub">edited since approval</div>
+          </div>
         </div>
         <div class="card">
           <div class="card-title">📌 Quick Actions</div>
@@ -3516,9 +3526,11 @@
       const reportedListings = approved.filter(d=>gf(d,'reported')===true);
       const reportedBadge = document.getElementById('reported-count');
       if (reportedBadge) { reportedBadge.textContent = reportedListings.length; reportedBadge.style.display = reportedListings.length > 0 ? '' : 'none'; }
+      document.getElementById('stat-reported').textContent = reportedListings.length;
       const needsReviewListings = approved.filter(d=>gf(d,'needsReview')===true);
       const needsReviewBadge = document.getElementById('needsreview-count');
       if (needsReviewBadge) { needsReviewBadge.textContent = needsReviewListings.length; needsReviewBadge.style.display = needsReviewListings.length > 0 ? '' : 'none'; }
+      document.getElementById('stat-needsreview').textContent = needsReviewListings.length;
       // Active Listings: total published advertisers, broken down by billingStatus
       // (comped | paying). billingStatus is independent of `active` -- a paused
       // listing still counts here; the Partners page shows the paused state.
