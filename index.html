@@ -2687,20 +2687,35 @@
     const len = marker.length;
     const before = val.slice(Math.max(0, start - len), start);
     const after = val.slice(end, end + len);
-    let newVal, newStart, newEnd;
+    // What to replace ([from, to)), what to put there, and where the selection ends up.
+    let from, to, text, newStart, newEnd;
     if (start !== end && before === marker && after === marker) {
-      newVal = val.slice(0, start - len) + val.slice(start, end) + val.slice(end + len);
+      from = start - len; to = end + len; text = val.slice(start, end);
       newStart = start - len; newEnd = end - len;
     } else if (start === end) {
-      newVal = val.slice(0, start) + marker + marker + val.slice(end);
+      from = start; to = end; text = marker + marker;
       newStart = newEnd = start + len;
     } else {
-      newVal = val.slice(0, start) + marker + val.slice(start, end) + marker + val.slice(end);
+      from = start; to = end; text = marker + val.slice(start, end) + marker;
       newStart = start + len; newEnd = end + len;
     }
-    ta.value = newVal;
-    ta.focus();
+    // Keep the view exactly where the user was working. Rewriting ta.value and
+    // re-focusing made the browser jump to the end of the text, so instead make
+    // the edit in place (execCommand also keeps Undo working), and as a fallback
+    // restore the scroll positions by hand.
+    const taScroll = ta.scrollTop;
+    const winX = window.scrollX, winY = window.scrollY;
+    ta.focus({ preventScroll: true });
+    ta.setSelectionRange(from, to);
+    let done = false;
+    try { done = document.execCommand('insertText', false, text); } catch (e) { done = false; }
+    if (!done) {
+      ta.value = val.slice(0, from) + text + val.slice(to);
+      ta.dispatchEvent(new Event('input', { bubbles: true }));
+    }
     ta.setSelectionRange(newStart, newEnd);
+    ta.scrollTop = taScroll;
+    window.scrollTo(winX, winY);
   }
 
 
@@ -8847,6 +8862,8 @@
   }
   function handleSmartPaste(event) {
     const html = event.clipboardData && event.clipboardData.getData('text/html');
+    // Nothing on the clipboard to smart-paste: let the browser handle it natively.
+    if (!html && !(event.clipboardData && event.clipboardData.getData('text/plain'))) return;
     event.preventDefault();
     const el = event.target;
     let text;
