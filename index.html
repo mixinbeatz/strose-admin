@@ -3555,7 +3555,8 @@
       const payingCount = advDocs.filter(d => gf(d,'billingStatus') === 'paying').length;
       const compedCount = advDocs.length - payingCount;
       document.getElementById('stat-listings').textContent = advDocs.length;
-      document.getElementById('stat-listings-sub').textContent = compedCount + ' comped · ' + payingCount + ' paying';
+      const dueSoon = advDocs.filter(d => { const c = compedStatus(gf(d,'compedUntil'), gf(d,'billingStatus')); return c && (c.state==='soon' || c.state==='ended'); }).length;
+      document.getElementById('stat-listings-sub').textContent = compedCount + ' comped · ' + payingCount + ' paying' + (dueSoon ? ' · ' + dueSoon + ' need follow-up' : '');
       loadActiveAnnouncements('dashboard-announcements-list');
     } catch(e){console.log(e);}
   }
@@ -4699,6 +4700,20 @@
   // PII stays on the staff-only partnerRequests doc, reachable via
   // sourceRequestId. `tier` is normalised to premium|standard — the only two
   // tiers the website renders (Parish Pro maps to standard).
+  // First-month-free tracking. `compedUntil` is a YYYY-MM-DD string. Parish Pro
+  // approvals get approval date + 30 days; the portal flags the listing when
+  // that date is near/past so staff can follow up for payment by hand.
+  function isoDay(d){return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');}
+  function compedStatus(until,billing){
+    // -> {label, color} or null. Only relevant while comped.
+    if(billing==='paying'||!until)return null;
+    const today=isoDay(new Date());
+    const days=Math.round((new Date(until+'T00:00:00')-new Date(today+'T00:00:00'))/86400000);
+    const nice=new Date(until+'T00:00:00').toLocaleDateString('en-US',{month:'short',day:'numeric'});
+    if(days<0)return {label:'Free period ended '+nice+' — follow up',color:'var(--danger)',state:'ended'};
+    if(days<=7)return {label:'Free until '+nice+' ('+days+(days===1?' day':' days')+' left)',color:'#B7791F',state:'soon'};
+    return {label:'Free until '+nice,color:'var(--dusty-rose)',state:'ok'};
+  }
   function advertiserFieldsFromRequest(doc, requestId){
     const s=k=>{const v=gf(doc,k);return typeof v==='string'?v:'';};
     const b=k=>gf(doc,k)===true;
@@ -4729,6 +4744,7 @@
       // yet. Staff flip this to 'paying' by hand once real billing exists.
       // Independent of `active` (visibility/pause).
       billingStatus:{stringValue:'comped'},
+      compedUntil:{stringValue:(rawTier.toLowerCase().includes('pro')||rawTier.toLowerCase().includes('parish'))?isoDay(new Date(Date.now()+30*86400000)):''},
       publishedAt:{stringValue:new Date().toISOString()},
       sourceRequestId:{stringValue:requestId}
     };
@@ -4771,6 +4787,9 @@
         const isPaying=gf(doc,'billingStatus')==='paying';
         const tagline=gf(doc,'tagline'),desc=gf(doc,'description'),discount=gf(doc,'discount'),phone=gf(doc,'phone'),website=gf(doc,'website');
         const isPremium=String(tier).toLowerCase()==='premium';
+        const compedUntil=gf(doc,'compedUntil')||'';
+        const cs=compedStatus(compedUntil,isPaying?'paying':'comped');
+        const csHtml=cs?`<div style="font-size:12px;font-weight:600;margin:6px 0;color:${cs.color};">⏳ ${escHtml(cs.label)}</div>`:'';
         return `<div class="partner-card" id="advertiser-${id}" style="${active?'':'opacity:0.55;'}">
           <div class="partner-card-header">
             <div class="partner-name">${escHtml(name)}${active?'':' <span style="font-size:12px;color:var(--danger);">· paused</span>'}</div>
@@ -4780,6 +4799,7 @@
             </div>
           </div>
           <div class="partner-meta">${escHtml(cat)}${phone?' · '+escHtml(phone):''}${website?' · '+escHtml(website):''}</div>
+          ${csHtml}
           ${desc?`<div class="partner-desc">${escHtml(desc)}</div>`:''}
           <div style="display:flex;gap:8px;flex-wrap:wrap;">
             <button class="btn btn-outline btn-sm" onclick="toggleAdvertiserActive('${id}',${active})">${active?'⏸ Pause':'▶ Reactivate'}</button>
@@ -4790,6 +4810,7 @@
             <div class="form-group"><label class="form-label">Category</label><input class="form-input" id="ad-${id}-category" value="${av(cat)}"></div>
             <div class="form-group"><label class="form-label">Tier</label><select class="form-select" id="ad-${id}-tier"><option value="premium"${isPremium?' selected':''}>Premium</option><option value="standard"${isPremium?'':' selected'}>Standard</option></select></div>
             <div class="form-group"><label class="form-label">Billing status</label><select class="form-select" id="ad-${id}-billingStatus"><option value="comped"${isPaying?'':' selected'}>Comped — not billed</option><option value="paying"${isPaying?' selected':''}>Paying</option></select><div style="font-size:12px;color:var(--dusty-rose);margin-top:4px;">Separate from Pause. A comped listing still shows on the website.</div></div>
+            <div class="form-group"><label class="form-label">Comped until (free period ends)</label><input class="form-input" type="date" id="ad-${id}-compedUntil" value="${av(compedUntil)}"><div style="font-size:12px;color:var(--dusty-rose);margin-top:4px;">Leave blank for no end date. Ignored once Billing status is Paying.</div></div>
             <div class="form-group"><label class="form-label">Tagline (premium)</label><input class="form-input" id="ad-${id}-tagline" value="${av(tagline)}"></div>
             <div class="form-group"><label class="form-label">Description</label><textarea class="form-textarea" id="ad-${id}-description">${escHtml(desc)}</textarea></div>
             <div class="form-group"><label class="form-label">Special Offer (premium)</label><input class="form-input" id="ad-${id}-discount" value="${av(discount)}"></div>
@@ -4818,6 +4839,7 @@
         category:{stringValue:v('category')},
         tier:{stringValue:v('tier')},
         billingStatus:{stringValue:v('billingStatus')},
+        compedUntil:{stringValue:v('compedUntil')},
         tagline:{stringValue:v('tagline')},
         description:{stringValue:v('description')},
         discount:{stringValue:v('discount')},
