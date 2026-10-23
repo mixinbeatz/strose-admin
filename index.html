@@ -3515,7 +3515,7 @@
       if (familyRegBadge) { familyRegBadge.textContent = pendingFamilyRegs.length; familyRegBadge.style.display = pendingFamilyRegs.length > 0 ? '' : 'none'; }
       const approved = (fam.documents||[]).filter(d=>gf(d,'approved')===true);
       const pending = (fam.documents||[]).filter(d=>gf(d,'approved')===false && gf(d,'rejected')!==true);
-      const preqs = (parts.documents||[]).filter(d=>!gf(d,'parishApproved'));
+      const preqs = (parts.documents||[]).filter(d=>!gf(d,'parishApproved')||gf(d,'status')==='awaiting_activation');
       const pendingEventReqs = (eventReqs.documents||[]).filter(d=>gf(d,'status')==='pending');
       const eventReqBadge = document.getElementById('event-req-count');
       if (eventReqBadge) { eventReqBadge.textContent = pendingEventReqs.length; eventReqBadge.style.display = pendingEventReqs.length > 0 ? '' : 'none'; }
@@ -4666,7 +4666,7 @@
     list.innerHTML='<div style="color:var(--dusty-rose);font-size:14px;">Loading...</div>';
     try {
       const res=await fs_get('partnerRequests');
-      const docs=(res.documents||[]).filter(d=>!gf(d,'parishApproved'));
+      const docs=(res.documents||[]).filter(d=>!gf(d,'parishApproved')||gf(d,'status')==='awaiting_activation');
       if(docs.length===0){list.innerHTML=`<div class="empty-state"><div class="empty-icon">🏢</div><div class="empty-title">No pending requests</div><div class="empty-sub">New partner requests will appear here.</div></div>`;return;}
       list.innerHTML=docs.map(doc=>{
         const id=docId(doc),biz=gf(doc,'businessName'),contact=gf(doc,'contactName'),email=gf(doc,'email'),phone=gf(doc,'phone'),tier=gf(doc,'tier')||'standard',desc=gf(doc,'description'),website=gf(doc,'website');
@@ -4674,6 +4674,7 @@
         const tierClass=tl.includes('premium')?'tier-premium':isProTier?'tier-pro':'tier-standard';
         const tierLabel=tl.includes('premium')?'Premium':isProTier?'Parish Pro':'Standard';
         const logo=gf(doc,'logoUrl'),photo=gf(doc,'photoUrl'),hero=gf(doc,'modalHeroUrl'),mlogo=gf(doc,'modalLogoUrl');
+        const awaiting=gf(doc,'status')==='awaiting_activation';
         const imgs=[['Logo',logo],['Photo',photo],['Detail logo',mlogo],['Detail hero',hero]].filter(x=>x[1]&&typeof x[1]==='string');
         const imgHtml=imgs.length?`<div style="display:flex;gap:12px;flex-wrap:wrap;margin:10px 0;">${imgs.map(x=>`<a href="${escAttr(x[1])}" target="_blank" style="text-align:center;font-size:11px;color:var(--dusty-rose);text-decoration:none;"><img src="${escAttr(x[1])}" alt="${x[0]}" style="width:72px;height:72px;object-fit:cover;border-radius:10px;border:1px solid var(--linen);display:block;margin-bottom:4px;">${x[0]}</a>`).join('')}</div>`:`<div style="font-size:12px;color:var(--dusty-rose);margin:8px 0;">No logo or photos uploaded.</div>`;
         return `<div class="partner-card" id="partner-${id}">
@@ -4681,10 +4682,15 @@
           <div class="partner-meta">${escHtml(contact)} · ${escHtml(email)} · ${escHtml(phone)}${website?' · <a href="'+escAttr(website)+'" target="_blank" style="color:var(--burgundy);">'+escHtml(website)+'</a>':''}</div>
           ${desc?`<div class="partner-desc">${escHtml(desc)}</div>`:''}
           ${imgHtml}
-          <div style="display:flex;gap:8px;">
+          ${awaiting?`<div style="font-size:12px;font-weight:600;color:#B7791F;margin:6px 0;">⏳ Approved — awaiting activation. Not yet visible in the directory.</div>
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn btn-success btn-sm" onclick="activatePartner('${id}','${escAttr(biz)}','paying')">✓ Activate listing (payment received)</button>
+            <button class="btn btn-outline btn-sm" onclick="activatePartner('${id}','${escAttr(biz)}','comped')">Activate as comped</button>
+            <button class="btn btn-outline btn-sm" onclick="declinePartner('${id}','${escAttr(biz)}')">Decline</button>
+          </div>`:`<div style="display:flex;gap:8px;">
             <button class="btn btn-success btn-sm" onclick="approvePartner('${id}','${escAttr(biz)}')">✓ Approve for Saint Rose</button>
             <button class="btn btn-outline btn-sm" onclick="declinePartner('${id}','${escAttr(biz)}')">Decline</button>
-          </div>
+          </div>`}
         </div>`;
       }).join('');
     } catch(e){list.innerHTML='<div style="color:var(--danger);">Error loading.</div>';}
@@ -4753,6 +4759,16 @@
   async function approvePartner(id,name){
     try{
       const doc=await fs_get_doc(`partnerRequests/${id}`);
+      const tl=String(gf(doc,'tier')||'standard').toLowerCase();
+      const isProTier=tl.includes('pro')||tl.includes('parish');
+      if(!isProTier){
+        // Premium / Standard: approved by the parish, but held (not published)
+        // until staff activate it once arrangements with the business are done.
+        await fs_patch(`partnerRequests/${id}`,{parishApproved:{booleanValue:true},parishApprovedAt:{stringValue:new Date().toISOString()},status:{stringValue:'awaiting_activation'}});
+        showToast(`${name} approved. Activate the listing when you're ready to publish it.`,'success');
+        loadPartners();loadDashboard();
+        return;
+      }
       await fs_post('advertisers',advertiserFieldsFromRequest(doc,id));
       await fs_patch(`partnerRequests/${id}`,{parishApproved:{booleanValue:true},parishApprovedAt:{stringValue:new Date().toISOString()},status:{stringValue:'parish_approved'}});
       document.getElementById(`partner-${id}`)?.remove();
@@ -4760,6 +4776,19 @@
       loadDashboard();loadAdvertisers();
     }
     catch(e){showToast('Error approving partner.','error');}
+  }
+  // Publish a held (awaiting_activation) Premium/Standard request.
+  async function activatePartner(id,name,billing){
+    try{
+      const doc=await fs_get_doc(`partnerRequests/${id}`);
+      const f=advertiserFieldsFromRequest(doc,id);
+      f.billingStatus={stringValue:billing};
+      f.compedUntil={stringValue:''};
+      await fs_post('advertisers',f);
+      await fs_patch(`partnerRequests/${id}`,{status:{stringValue:'parish_approved'},activatedAt:{stringValue:new Date().toISOString()}});
+      showToast(`${name} is now live in the directory.`,'success');
+      loadPartners();loadDashboard();loadAdvertisers();
+    }catch(e){showToast('Error activating listing.','error');}
   }
   async function declinePartner(id,name){
     if(!confirm(`Decline ${name}'s request?`))return;
