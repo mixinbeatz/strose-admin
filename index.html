@@ -315,7 +315,7 @@
   <div class="sidebar" id="sidebar">
     <div class="sidebar-header">
       <button class="hamburger-close" id="sidebar-close" onclick="closeSidebar()" aria-label="Close menu">&#10005;</button>
-      <div class="sidebar-parish">SACRED APPS</div>
+      <div class="sidebar-parish">THE FAITHFUL ONES</div>
       <div class="sidebar-title">Saint Rose Philippine Duchesne</div>
       <div class="sidebar-badge" id="logged-in-user">Parish Staff</div>
     </div>
@@ -2122,7 +2122,7 @@
       <div class="page" id="page-partners">
         <div class="card">
           <div class="card-title">🏢 Partner Requests — Parish Review</div>
-          <div class="info-box">Review each business and approve or decline on behalf of Saint Rose Parish. Your approval means this business is a good fit for the community. Sacred Apps will handle payment and final activation after your approval.</div>
+          <div class="info-box">Review each business and approve or decline on behalf of Saint Rose Parish. Your approval means this business is a good fit for the community. The Faithful Ones will handle payment and final activation after your approval.</div>
           <div id="partners-list"><div style="color:var(--dusty-rose);font-size:14px;">Loading...</div></div>
         </div>
         <div class="card">
@@ -4669,12 +4669,17 @@
       if(docs.length===0){list.innerHTML=`<div class="empty-state"><div class="empty-icon">🏢</div><div class="empty-title">No pending requests</div><div class="empty-sub">New partner requests will appear here.</div></div>`;return;}
       list.innerHTML=docs.map(doc=>{
         const id=docId(doc),biz=gf(doc,'businessName'),contact=gf(doc,'contactName'),email=gf(doc,'email'),phone=gf(doc,'phone'),tier=gf(doc,'tier')||'standard',desc=gf(doc,'description'),website=gf(doc,'website');
-        const tierClass=tier.toLowerCase().includes('premium')?'tier-premium':tier.toLowerCase().includes('pro')?'tier-pro':'tier-standard';
-        const tierLabel=tier.toLowerCase().includes('premium')?'Premium':tier.toLowerCase().includes('pro')?'Parish Pro':'Standard';
+        const tl=tier.toLowerCase(),isProTier=tl.includes('pro')||tl.includes('parish');
+        const tierClass=tl.includes('premium')?'tier-premium':isProTier?'tier-pro':'tier-standard';
+        const tierLabel=tl.includes('premium')?'Premium':isProTier?'Parish Pro':'Standard';
+        const logo=gf(doc,'logoUrl'),photo=gf(doc,'photoUrl'),hero=gf(doc,'modalHeroUrl'),mlogo=gf(doc,'modalLogoUrl');
+        const imgs=[['Logo',logo],['Photo',photo],['Detail logo',mlogo],['Detail hero',hero]].filter(x=>x[1]&&typeof x[1]==='string');
+        const imgHtml=imgs.length?`<div style="display:flex;gap:12px;flex-wrap:wrap;margin:10px 0;">${imgs.map(x=>`<a href="${escAttr(x[1])}" target="_blank" style="text-align:center;font-size:11px;color:var(--dusty-rose);text-decoration:none;"><img src="${escAttr(x[1])}" alt="${x[0]}" style="width:72px;height:72px;object-fit:cover;border-radius:10px;border:1px solid var(--linen);display:block;margin-bottom:4px;">${x[0]}</a>`).join('')}</div>`:`<div style="font-size:12px;color:var(--dusty-rose);margin:8px 0;">No logo or photos uploaded.</div>`;
         return `<div class="partner-card" id="partner-${id}">
           <div class="partner-card-header"><div class="partner-name">${escHtml(biz)}</div><span class="tier-badge ${tierClass}">${tierLabel}</span></div>
           <div class="partner-meta">${escHtml(contact)} · ${escHtml(email)} · ${escHtml(phone)}${website?' · <a href="'+escAttr(website)+'" target="_blank" style="color:var(--burgundy);">'+escHtml(website)+'</a>':''}</div>
           ${desc?`<div class="partner-desc">${escHtml(desc)}</div>`:''}
+          ${imgHtml}
           <div style="display:flex;gap:8px;">
             <button class="btn btn-success btn-sm" onclick="approvePartner('${id}','${escAttr(biz)}')">✓ Approve for Saint Rose</button>
             <button class="btn btn-outline btn-sm" onclick="declinePartner('${id}','${escAttr(biz)}')">Decline</button>
