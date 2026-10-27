@@ -2189,6 +2189,12 @@
           <div class="card-title">📋 Parish Family Directory</div>
           <div style="margin-bottom:16px; display:flex; gap:12px; align-items:center; flex-wrap:wrap;">
             <input type="text" class="form-input" id="dir-search" placeholder="Search by name, email, or ministry..." oninput="filterDirectory()" style="max-width:400px;" />
+            <select class="form-input" id="dir-platform" onchange="filterDirectory()" style="max-width:170px;">
+              <option value="all">All devices</option>
+              <option value="ios">iOS</option>
+              <option value="android">Android</option>
+              <option value="unknown">Unknown</option>
+            </select>
             <button class="btn btn-outline btn-sm" onclick="copyEmails()">📋 Copy All Emails</button>
             <button class="btn btn-outline btn-sm" onclick="downloadCSV()">⬇ Download CSV</button>
           </div>
@@ -5599,16 +5605,68 @@
     const list=document.getElementById('directory-list');
     list.innerHTML='<div style="color:var(--dusty-rose);font-size:14px;">Loading...</div>';
     try {
-      const res=await fs_get('parishFamily');
+      const [res]=await Promise.all([fs_get_all('parishFamily'), loadPlatformMap()]);
       allMembers=(res.documents||[]).filter(d=>gf(d,'approved')===true).sort((a,b)=>{const la=gf(a,'name').trim().split(' ').filter(Boolean).pop()||'';const lb=gf(b,'name').trim().split(' ').filter(Boolean).pop()||'';return la.localeCompare(lb);});
       renderDirectory(allMembers);
     } catch(e){list.innerHTML='<div style="color:var(--danger);">Error loading.</div>';}
   }
 
+  // ---- Platform (iOS / Android) per member: fcmTokens docs carry {uid, platform}; parishFamily doc id == uid ----
+  let platformByUid = {};
+  let platformOk = false;
+  async function fs_get_all(col) {
+    const documents = []; let token = '';
+    do {
+      const r = await fetch(`${BASE}/${col}?key=${API_KEY}&pageSize=300` + (token ? `&pageToken=${encodeURIComponent(token)}` : ''), {headers: await authHeaders()});
+      const j = await r.json();
+      (j.documents || []).forEach(d => documents.push(d));
+      token = j.nextPageToken || '';
+    } while (token);
+    return { documents };
+  }
+  async function loadPlatformMap() {
+    platformByUid = {}; platformOk = false;
+    try {
+      let token = '';
+      do {
+        const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/fcmTokens?key=${API_KEY}&pageSize=300&mask.fieldPaths=uid&mask.fieldPaths=platform` + (token ? `&pageToken=${encodeURIComponent(token)}` : '');
+        const r = await fetch(url, {headers: await authHeaders()});
+        const j = await r.json();
+        if (j.error) return;
+        (j.documents || []).forEach(d => {
+          const uid = gf(d, 'uid'), p = String(gf(d, 'platform')).toLowerCase();
+          if (!uid || (p !== 'ios' && p !== 'android')) return;
+          (platformByUid[uid] = platformByUid[uid] || {})[p] = true;
+        });
+        token = j.nextPageToken || '';
+      } while (token);
+      platformOk = true;
+    } catch (e) { platformByUid = {}; platformOk = false; }
+  }
+  function platformKey(id) {
+    const p = platformByUid[id] || {};
+    return p.ios && p.android ? 'both' : p.ios ? 'ios' : p.android ? 'android' : 'unknown';
+  }
+  function platformLabel(id) {
+    return ({both: 'iOS + Android', ios: 'iOS', android: 'Android', unknown: ''})[platformKey(id)];
+  }
+  function platformBadge(id) {
+    const l = platformLabel(id);
+    return l ? ` <span style="font-family:'Faustina',serif;font-size:11px;letter-spacing:.5px;padding:2px 8px;border-radius:10px;background:var(--linen);color:var(--burgundy);vertical-align:middle;">${l}</span>` : '';
+  }
+  function platformMatches(id, filter) {
+    if (!platformOk || filter === 'all') return true;
+    const k = platformKey(id);
+    return filter === 'unknown' ? k === 'unknown' : (k === filter || k === 'both');
+  }
+
   function renderDirectory(members) {
     const list=document.getElementById('directory-list');
     if(members.length===0){list.innerHTML=`<div class="empty-state"><div class="empty-icon">👥</div><div class="empty-title">No members yet</div></div>`;return;}
-    let html = `<div style="font-size:13px;color:var(--dusty-rose);margin-bottom:16px;">${members.length} approved members</div>`;
+    const _pc = {ios:0, android:0, unknown:0};
+    members.forEach(d => { const k = platformKey(docId(d)); if (k === 'both') { _pc.ios++; _pc.android++; } else _pc[k]++; });
+    const _ps = platformOk ? ` · ${_pc.ios} iOS · ${_pc.android} Android · ${_pc.unknown} unknown` : ' · device info unavailable';
+    let html = `<div style="font-size:13px;color:var(--dusty-rose);margin-bottom:16px;">${members.length} approved members${_ps}</div>`;
     let currentLetter = '';
     members.forEach(doc => {
       const id=docId(doc),name=gf(doc,'name'),email=gf(doc,'email'),ministries=gf(doc,'ministries'),photo=gf(doc,'photoUrl');
@@ -5620,7 +5678,7 @@
       }
       html += `<div class="approval-card" id="dir-${id}">
           <div class="approval-avatar">${photo?`<img src="${photo}" onclick="openLightbox('${photo}')"/>`:(name.charAt(0)||'?')}</div>
-          <div class="approval-info"><div class="approval-name">${escHtml(name)}</div><div class="approval-meta">${escHtml(email)}${ministries?' · '+escHtml(ministries):''}</div></div>
+          <div class="approval-info"><div class="approval-name">${escHtml(name)}${platformBadge(id)}</div><div class="approval-meta">${escHtml(email)}${ministries?' · '+escHtml(ministries):''}</div></div>
           <div class="approval-actions">
             <button class="btn btn-outline btn-sm" onclick="showMemberProfile('${id}')">View Profile</button>
             <button class="btn btn-outline btn-sm" onclick="emailMember('${escAttr(email)}')">Email</button>
@@ -5633,7 +5691,8 @@
 
   function filterDirectory(){
     const q=document.getElementById('dir-search').value.toLowerCase();
-    renderDirectory(allMembers.filter(d=>gf(d,'name').toLowerCase().includes(q)||gf(d,'email').toLowerCase().includes(q)||gf(d,'ministries').toLowerCase().includes(q)));
+    const pf=(document.getElementById('dir-platform')||{}).value||'all';
+    renderDirectory(allMembers.filter(d=>(gf(d,'name').toLowerCase().includes(q)||gf(d,'email').toLowerCase().includes(q)||gf(d,'ministries').toLowerCase().includes(q))&&platformMatches(docId(d),pf)));
   }
 
   // Reported Listings & Needs Review: same underlying parishFamily doc as the
@@ -5770,14 +5829,15 @@
 
   function downloadCSV() {
     if(allMembers.length===0){showToast('No members to export.','error');return;}
-    const rows = [['Name','Email','Ministries','Founding Member','Joined']];
+    const rows = [['Name','Email','Ministries','Founding Member','Joined','Device']];
     allMembers.forEach(d=>{
       rows.push([
         gf(d,'name'),
         gf(d,'email'),
         gf(d,'ministries'),
         gf(d,'foundingMember')?'Yes':'No',
-        gf(d,'createdAt')?new Date(gf(d,'createdAt')).toLocaleDateString():''
+        gf(d,'createdAt')?new Date(gf(d,'createdAt')).toLocaleDateString():'',
+        platformLabel(docId(d))
       ]);
     });
     const csv = rows.map(r=>r.map(v=>`"${String(v).replace(/"/g,'""')}"`).join(',')).join('\n');
