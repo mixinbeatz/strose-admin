@@ -738,6 +738,7 @@
           </div>
           <div class="form-group">
             <label class="form-label">Expires</label>
+            <div id="ann-expiry-note" style="font-size:12px;color:var(--dusty-rose);margin-bottom:8px;"></div>
             <div class="expiry-options">
               <div class="expiry-chip" onclick="selectExpiry(this,'tonight')">Tonight</div>
               <div class="expiry-chip" onclick="selectExpiry(this,'tomorrow')">Tomorrow</div>
@@ -752,7 +753,7 @@
           </div>
           <div class="btn-row">
             <button class="btn btn-primary" onclick="postAnnouncement()">Post Announcement</button>
-            <button class="btn btn-outline" onclick="document.getElementById('ann-title').value='';document.getElementById('ann-body').value='';">Clear</button>
+            <button class="btn btn-outline" onclick="resetAnnouncementForm()">Clear</button>
           </div>
           <div class="post-success" id="ann-success">✓ Announcement posted successfully.</div>
         </div>
@@ -3837,13 +3838,11 @@
     const title=document.getElementById('ann-title').value.trim();
     const body=document.getElementById('ann-body').value.trim();
     if(!title||!body){showToast('Please fill in title and message.','error');return;}
-    const expiresAt=getExpiresAt(currentExpiry);
+    const expiresAt=(window._editingAnnouncementId && currentExpiry==='keep') ? (window._editingAnnouncementExpiry||'') : getExpiresAt(currentExpiry);
     try {
       if (window._editingAnnouncementId) {
         await fs_patch('announcements/' + window._editingAnnouncementId, {title:{stringValue:title},body:{stringValue:body},expiresAt:{stringValue:expiresAt||''}});
-        window._editingAnnouncementId = null;
-        document.querySelector('#page-announcement .card-title').textContent = 'Post an Announcement';
-        document.querySelector('[onclick="postAnnouncement()"]').textContent = 'Post Announcement';
+        resetAnnouncementForm();
         showToast('Announcement updated!','success');
       } else {
         await fs_post('announcements',{title:{stringValue:title},body:{stringValue:body},postedBy:{stringValue:'Parish Staff'},expiresAt:{stringValue:expiresAt||''},createdAt:{stringValue:new Date().toISOString()}});
@@ -8637,17 +8636,42 @@
   }
 
   async function editAnnouncement(id) {
-    const docRes = await fetch(BASE + '/announcements/' + id + '?key=' + API_KEY);
-    const doc = await docRes.json();
-    const title = doc.fields?.title?.stringValue || '';
-    const body = doc.fields?.body?.stringValue || '';
-    document.getElementById('ann-title').value = title;
-    document.getElementById('ann-body').value = body;
-    window._editingAnnouncementId = id;
-    document.querySelector('#page-announcement .card-title').textContent = '&#9998; Edit Announcement';
-    document.querySelector('[onclick="postAnnouncement()"]').textContent = 'Update Announcement';
-    window.scrollTo(0,0);
-    showToast('Editing — make changes and click Update.', 'success');
+    try {
+      const doc = await fs_get_doc('announcements/' + id);
+      if (!doc || !doc.fields) { showToast('Could not load that announcement.', 'error'); return; }
+      const title = doc.fields?.title?.stringValue || '';
+      const body = doc.fields?.body?.stringValue || '';
+      const exp = doc.fields?.expiresAt?.stringValue || '';
+      showPage('announcement', navItem('announcement'));   // go to the edit form (was missing)
+      document.getElementById('ann-title').value = title;
+      document.getElementById('ann-body').value = body;
+      window._editingAnnouncementId = id;
+      window._editingAnnouncementExpiry = exp;
+      // keep the existing expiry unless the editor picks a new one
+      document.querySelectorAll('#page-announcement .expiry-chip').forEach(c => c.classList.remove('selected'));
+      document.getElementById('custom-expiry').style.display = 'none';
+      currentExpiry = 'keep';
+      const note = document.getElementById('ann-expiry-note');
+      if (note) note.textContent = exp
+        ? 'Current expiry: ' + new Date(exp).toLocaleString('en-US', {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'}) + ' — leave as is to keep it, or pick a new one.'
+        : 'Currently no expiry — leave as is to keep it, or pick one.';
+      document.querySelector('#page-announcement .card-title').textContent = '✏️ Edit Announcement';
+      document.querySelector('[onclick="postAnnouncement()"]').textContent = 'Update Announcement';
+      window.scrollTo(0, 0);
+      showToast('Editing — make changes and click Update.', 'success');
+    } catch (e) { showToast('Error opening announcement: ' + e.message, 'error'); }
+  }
+
+  function resetAnnouncementForm() {
+    window._editingAnnouncementId = null;
+    window._editingAnnouncementExpiry = null;
+    document.getElementById('ann-title').value = '';
+    document.getElementById('ann-body').value = '';
+    const note = document.getElementById('ann-expiry-note'); if (note) note.textContent = '';
+    document.querySelector('#page-announcement .card-title').textContent = '📢 Post an Announcement';
+    document.querySelector('[onclick="postAnnouncement()"]').textContent = 'Post Announcement';
+    const chip = document.querySelector('#page-announcement .expiry-chip[onclick*="\'week\'"]');
+    if (chip) selectExpiry(chip, 'week');
   }
 
   async function deleteAnnouncement(id) {
