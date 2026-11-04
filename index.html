@@ -803,6 +803,7 @@
             <div class="textarea-toolbar">
               <button type="button" class="toolbar-btn tb-bold" title="Bold" onclick="wrapSelection('ref-body','**')">B</button>
               <button type="button" class="toolbar-btn tb-italic" title="Italic" onclick="wrapSelection('ref-body','*')">I</button>
+              <button type="button" class="toolbar-btn" title="Add a link: select some words first, then click" onclick="insertLink('ref-body')">&#128279;</button>
             </div>
             <textarea class="form-textarea large" id="ref-body" placeholder="Paste the full text of Fr. Bing's reflection here..." onpaste="handleSmartPaste(event)"></textarea>
           </div>
@@ -1220,6 +1221,7 @@
             <div class="textarea-toolbar">
               <button type="button" class="toolbar-btn tb-bold" title="Bold" onclick="wrapSelection('welcome-body','**')">B</button>
               <button type="button" class="toolbar-btn tb-italic" title="Italic" onclick="wrapSelection('welcome-body','*')">I</button>
+              <button type="button" class="toolbar-btn" title="Add a link: select some words first, then click" onclick="insertLink('welcome-body')">&#128279;</button>
             </div>
             <textarea class="form-input" id="welcome-body" rows="12" placeholder="Paste the welcome message here..." style="resize:vertical;" onpaste="handleSmartPaste(event)"></textarea>
           </div>
@@ -4090,6 +4092,7 @@
         '<div class="textarea-toolbar">' +
           '<button type="button" class="toolbar-btn tb-bold" title="Bold" onclick="wrapSelection(\'daily-body-' + i + '\',\'**\')">B</button>' +
           '<button type="button" class="toolbar-btn tb-italic" title="Italic" onclick="wrapSelection(\'daily-body-' + i + '\',\'*\')">I</button>' +
+          '<button type="button" class="toolbar-btn" title="Add a link: select some words first, then click" onclick="insertLink(\'daily-body-' + i + '\')">&#128279;</button>' +
         '</div>' +
         '<textarea class="form-textarea" id="daily-body-' + i + '" placeholder="Paste reflection text here..." style="min-height:100px;" onpaste="handleSmartPaste(event)"></textarea>' +
         '<input type="text" class="form-input" id="daily-music-' + i + '" placeholder="YouTube music link (optional) - e.g. https://youtu.be/XXXXX" style="margin-top:8px;" />' +
