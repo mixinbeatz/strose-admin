@@ -737,6 +737,11 @@
             <textarea class="form-textarea" id="ann-body" placeholder="Write your announcement here..."></textarea>
           </div>
           <div class="form-group">
+            <label class="form-label">Link (optional)</label>
+            <input type="text" class="form-input" id="ann-link" placeholder="e.g. https://saintroseanthem.org/app" />
+            <div style="font-size:12px;color:var(--dusty-rose);margin-top:6px;">Adds a "Learn More" button to the announcement in the app.</div>
+          </div>
+          <div class="form-group">
             <label class="form-label">Expires</label>
             <div id="ann-expiry-note" style="font-size:12px;color:var(--dusty-rose);margin-bottom:8px;"></div>
             <div class="expiry-options">
@@ -3834,22 +3839,36 @@
   }
 
   // ── ANNOUNCEMENT ──
+  // '' -> '' (no link); valid -> normalized https/mailto/tel URL; anything else -> null
+  function normalizeAnnLink(v) {
+    v = (v || '').trim();
+    if (!v) return '';
+    if (/\s/.test(v)) return null;
+    if (/^(https?:\/\/|mailto:|tel:)\S+$/i.test(v)) return v;
+    if (/^[a-z0-9-]+(\.[a-z0-9-]+)+(\/\S*)?$/i.test(v)) return 'https://' + v;
+    return null;
+  }
+
   async function postAnnouncement() {
     const title=document.getElementById('ann-title').value.trim();
     const body=document.getElementById('ann-body').value.trim();
     if(!title||!body){showToast('Please fill in title and message.','error');return;}
+    const rawLink=(document.getElementById('ann-link')?.value||'').trim();
+    const linkUrl=normalizeAnnLink(rawLink);
+    if(rawLink && !linkUrl){showToast('That link does not look right. It should start with https://','error');return;}
     const expiresAt=(window._editingAnnouncementId && currentExpiry==='keep') ? (window._editingAnnouncementExpiry||'') : getExpiresAt(currentExpiry);
     try {
       if (window._editingAnnouncementId) {
-        await fs_patch('announcements/' + window._editingAnnouncementId, {title:{stringValue:title},body:{stringValue:body},expiresAt:{stringValue:expiresAt||''}});
+        await fs_patch('announcements/' + window._editingAnnouncementId, {title:{stringValue:title},body:{stringValue:body},linkUrl:{stringValue:linkUrl},expiresAt:{stringValue:expiresAt||''}});
         resetAnnouncementForm();
         showToast('Announcement updated!','success');
       } else {
-        await fs_post('announcements',{title:{stringValue:title},body:{stringValue:body},postedBy:{stringValue:'Parish Staff'},expiresAt:{stringValue:expiresAt||''},createdAt:{stringValue:new Date().toISOString()}});
+        await fs_post('announcements',{title:{stringValue:title},body:{stringValue:body},linkUrl:{stringValue:linkUrl},postedBy:{stringValue:'Parish Staff'},expiresAt:{stringValue:expiresAt||''},createdAt:{stringValue:new Date().toISOString()}});
         showToast('Announcement posted!','success');
       }
       document.getElementById('ann-title').value='';
       document.getElementById('ann-body').value='';
+      const _al=document.getElementById('ann-link'); if(_al) _al.value='';
       document.getElementById('ann-success').style.display='block';
       setTimeout(()=>{document.getElementById('ann-success').style.display='none';},4000);
       loadActiveAnnouncements();
@@ -8621,11 +8640,12 @@
         const id = doc.name.split('/').pop();
         const title = doc.fields?.title?.stringValue || '';
         const body = doc.fields?.body?.stringValue || '';
+        const link = doc.fields?.linkUrl?.stringValue || '';
         const expires = doc.fields?.expiresAt?.stringValue ? new Date(doc.fields.expiresAt.stringValue).toLocaleDateString('en-US',{month:'short',day:'numeric'}) : 'No expiry';
         return `<div data-ann-id="${id}" style="padding:14px;border-bottom:1px solid var(--linen);">
           <div style="font-family:'Cinzel',serif;font-size:13px;color:var(--burgundy);margin-bottom:4px;">${title}</div>
           <div style="font-size:12px;color:var(--soil);line-height:1.5;margin-bottom:6px;">${body.substring(0,100)}${body.length>100?'...':''}</div>
-          <div style="font-size:11px;color:var(--dusty-rose);margin-bottom:8px;">Expires ${expires}</div>
+          <div style="font-size:11px;color:var(--dusty-rose);margin-bottom:8px;">Expires ${expires}${link ? ' · 🔗 ' + escHtml(link) : ''}</div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;">
             <button class="btn btn-outline btn-sm" onclick="editAnnouncement('${id}')">Edit</button>
             <button class="btn btn-sm" style="background:#8B2635;color:#E8DDD0;border:none;border-radius:6px;padding:4px 12px;cursor:pointer;" onclick="deleteAnnouncement('${id}')">Delete</button>
@@ -8645,6 +8665,7 @@
       showPage('announcement', navItem('announcement'));   // go to the edit form (was missing)
       document.getElementById('ann-title').value = title;
       document.getElementById('ann-body').value = body;
+      document.getElementById('ann-link').value = doc.fields?.linkUrl?.stringValue || '';
       window._editingAnnouncementId = id;
       window._editingAnnouncementExpiry = exp;
       // keep the existing expiry unless the editor picks a new one
@@ -8667,6 +8688,7 @@
     window._editingAnnouncementExpiry = null;
     document.getElementById('ann-title').value = '';
     document.getElementById('ann-body').value = '';
+    const _al = document.getElementById('ann-link'); if (_al) _al.value = '';
     const note = document.getElementById('ann-expiry-note'); if (note) note.textContent = '';
     document.querySelector('#page-announcement .card-title').textContent = '📢 Post an Announcement';
     document.querySelector('[onclick="postAnnouncement()"]').textContent = 'Post Announcement';
