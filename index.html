@@ -2177,7 +2177,7 @@
       <!-- FAMILY REGISTRATIONS -->
       <div class="page" id="page-family-registrations">
         <div class="card">
-          <div class="card-title">📝 Family Registrations</div>
+          <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;"><span>📝 Family Registrations</span><button class="btn btn-outline btn-sm" onclick="exportPendingFamiliesCSV()">Export CSV</button></div>
           <div class="info-box">New families who registered through the website's Family Registration form. Review each one, then mark it reviewed once you've added them to your records.</div>
           <div id="familyreg-list"><div style="color:var(--dusty-rose);font-size:14px;">Loading...</div></div>
         </div>
@@ -4981,12 +4981,14 @@
   }
 
   // ── FAMILY REGISTRATIONS ──
+  let pendingFamilyRegsCache = [];
   async function loadFamilyRegistrations() {
     const list = document.getElementById('familyreg-list');
     list.innerHTML = '<div style="color:var(--dusty-rose);font-size:14px;">Loading...</div>';
     try {
       const res = await fs_get('familyRegistrations');
       const docs = (res.documents || []).filter(d => !gf(d, 'reviewed')).sort((a,b) => new Date(gf(b,'submittedAt')||0) - new Date(gf(a,'submittedAt')||0));
+      pendingFamilyRegsCache = docs;
       const badge = document.getElementById('familyreg-count');
       if (badge) { badge.textContent = docs.length; badge.style.display = docs.length > 0 ? '' : 'none'; }
       if (docs.length === 0) {
@@ -5088,7 +5090,8 @@
       html += '<div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--linen);font-size:13px;color:var(--soil);"><strong>Comments:</strong> ' + escHtml(comments) + '</div>';
     }
 
-    html += '<div style="display:flex;gap:8px;margin-top:16px;">';
+    html += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;">';
+    html += famRegActionButtons(id, !!(headEmail || spouseEmail));
     html += '<button class="btn btn-success btn-sm" onclick="markFamilyRegReviewed(\'' + id + '\',\'' + escAttr(lastName) + '\')">✓ Mark Reviewed</button>';
     html += '<button class="btn btn-outline btn-sm" onclick="deleteFamilyReg(\'' + id + '\',\'' + escAttr(lastName) + '\')">Delete</button>';
     html += '</div>';
@@ -5242,7 +5245,8 @@
       html += '<div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--linen);font-size:13px;color:var(--soil);"><strong>Comments:</strong> ' + escHtml(comments) + '</div>';
     }
 
-    html += '<div style="margin-top:16px;">';
+    html += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;">';
+    html += famRegActionButtons(id, !!(headEmail || spouseEmail));
     html += '<button class="btn btn-outline btn-sm" onclick="deleteReviewedFamily(\'' + id + '\',\'' + escAttr(lastName) + '\')">Delete</button>';
     html += '</div>';
     html += '</div>';
@@ -5256,29 +5260,171 @@
       loadReviewedFamilies();
     } catch(e) { showToast('Error deleting: ' + e.message, 'error'); }
   }
-  function exportReviewedFamiliesCSV() {
-    if (reviewedFamiliesCache.length === 0) { showToast('No reviewed families to export.', 'error'); return; }
-    const headers = ['Last Name', 'Head of House', 'Spouse', 'Main Phone', 'Address', 'City', 'State', 'Zip', 'Envelopes', 'Date Entered'];
-    const csvEscape = (v) => '"' + String(v || '').replace(/"/g, '""') + '"';
-    const rows = reviewedFamiliesCache.map(doc => {
-      const reviewedAt = gf(doc, 'reviewedAt');
-      const dateStr = reviewedAt ? new Date(reviewedAt).toLocaleDateString() : '';
-      return [
-        gf(doc, 'familyLastName'), gf(doc, 'headName'), gf(doc, 'spouseName'), gf(doc, 'mainPhone'),
-        gf(doc, 'homeAddress'), gf(doc, 'city'), gf(doc, 'state'), gf(doc, 'zip'),
-        gf(doc, 'envelopes'), dateStr,
-      ].map(csvEscape).join(',');
+  // ── FAMILY REGISTRATION ACTIONS (copy / print / email / full CSV) ──
+  // Shared by the pending cards and the reviewed list so the office can get
+  // every field out of the portal, not just the slim CSV that used to exist.
+  function parseFamilyReg(doc) {
+    const arr = function(key) { const f = doc.fields && doc.fields[key]; return (f && f.arrayValue && f.arrayValue.values) || []; };
+    const sv = function(f, k) { return (f && f[k] && f[k].stringValue) || ''; };
+    const person = function(p) {
+      return { title: gf(doc, p + 'Title'), name: gf(doc, p + 'Name'), birthdate: gf(doc, p + 'Birthdate'), occupation: gf(doc, p + 'Occupation'),
+        email: gf(doc, p + 'Email'), baptized: gf(doc, p + 'Baptized'), eucharist: gf(doc, p + 'Eucharist'), confirmed: gf(doc, p + 'Confirmed') };
+    };
+    return {
+      id: docId(doc), lastName: gf(doc, 'familyLastName'), mainPhone: gf(doc, 'mainPhone'), envelopes: gf(doc, 'envelopes'),
+      address: gf(doc, 'homeAddress'), city: gf(doc, 'city'), state: gf(doc, 'state'), zip: gf(doc, 'zip'),
+      maritalStatus: gf(doc, 'maritalStatus'), marriageDate: gf(doc, 'marriageDate'), marriedByPriest: gf(doc, 'marriedByPriest'),
+      comments: gf(doc, 'comments'), submittedAt: gf(doc, 'submittedAt'), reviewedAt: gf(doc, 'reviewedAt'),
+      head: person('head'), spouse: person('spouse'),
+      otherPhones: arr('otherPhones').map(function(v) { const f = (v.mapValue && v.mapValue.fields) || {}; return { label: sv(f, 'label'), number: sv(f, 'number') }; }),
+      children: arr('children').map(function(v) {
+        const f = (v.mapValue && v.mapValue.fields) || {};
+        return { firstName: sv(f, 'firstName'), lastName: sv(f, 'lastName'), gender: sv(f, 'gender'), birthdate: sv(f, 'birthdate'),
+          baptized: sv(f, 'baptized'), firstReconciliation: sv(f, 'firstReconciliation'), firstEucharist: sv(f, 'firstEucharist'), confirmed: sv(f, 'confirmed') };
+      })
+    };
+  }
+
+  function familyRegAddress(fam) {
+    const cityLine = ([fam.city, fam.state].filter(Boolean).join(', ') + (fam.zip ? ' ' + fam.zip : '')).trim();
+    return [fam.address, cityLine].filter(Boolean).join(', ');
+  }
+
+  function familyRegToText(fam) {
+    const L = [];
+    const sacr = function(a, b, c) { return 'Baptized: ' + (a || '—') + ' · First Eucharist: ' + (b || '—') + ' · Confirmed: ' + (c || '—'); };
+    L.push(fam.lastName + ' Family' + (fam.submittedAt ? ' (submitted ' + new Date(fam.submittedAt).toLocaleDateString('en-US') + ')' : ''));
+    if (fam.mainPhone) L.push('Phone: ' + fam.mainPhone);
+    if (fam.otherPhones.length) L.push('Other phones: ' + fam.otherPhones.map(function(p) { return (p.label ? p.label + ': ' : '') + p.number; }).join(', '));
+    const addr = familyRegAddress(fam);
+    if (addr) L.push('Address: ' + addr);
+    if (fam.envelopes) L.push('Envelopes: ' + fam.envelopes);
+    const h = fam.head;
+    L.push('', 'HEAD OF HOUSE', [h.title, h.name].filter(Boolean).join(' '));
+    if (h.birthdate) L.push('Birthdate: ' + h.birthdate);
+    if (fam.maritalStatus) L.push('Marital status: ' + fam.maritalStatus);
+    if (fam.marriageDate) L.push('Married: ' + fam.marriageDate + (fam.marriedByPriest ? ' (by a priest: ' + fam.marriedByPriest + ')' : ''));
+    else if (fam.marriedByPriest) L.push('Married by a priest: ' + fam.marriedByPriest);
+    if (h.occupation) L.push('Occupation: ' + h.occupation);
+    if (h.email) L.push('Email: ' + h.email);
+    L.push(sacr(h.baptized, h.eucharist, h.confirmed));
+    const s = fam.spouse;
+    if (s.name) {
+      L.push('', 'SPOUSE / OTHER ADULT', [s.title, s.name].filter(Boolean).join(' '));
+      if (s.birthdate) L.push('Birthdate: ' + s.birthdate);
+      if (s.occupation) L.push('Occupation: ' + s.occupation);
+      if (s.email) L.push('Email: ' + s.email);
+      L.push(sacr(s.baptized, s.eucharist, s.confirmed));
+    }
+    if (fam.children.length) {
+      L.push('', 'CHILDREN (' + fam.children.length + ')');
+      fam.children.forEach(function(c) {
+        L.push([c.firstName, c.lastName].filter(Boolean).join(' ') + (c.gender ? ' (' + c.gender + ')' : '') + (c.birthdate ? ' · b. ' + c.birthdate : ''));
+        L.push('   Baptized: ' + (c.baptized || '—') + ' · First Reconciliation: ' + (c.firstReconciliation || '—') + ' · First Eucharist: ' + (c.firstEucharist || '—') + ' · Confirmed: ' + (c.confirmed || '—'));
+      });
+    }
+    if (fam.comments) L.push('', 'Comments: ' + fam.comments);
+    return L.join('\n');
+  }
+
+  function famRegActionButtons(id, hasEmail) {
+    return '<button class="btn btn-outline btn-sm" onclick="copyFamilyReg(\'' + id + '\')">Copy details</button>' +
+      '<button class="btn btn-outline btn-sm" onclick="printFamilyReg(\'' + id + '\')">Print</button>' +
+      (hasEmail ? '<button class="btn btn-outline btn-sm" onclick="emailFamilyReg(\'' + id + '\')">Email family</button>' : '');
+  }
+
+  function findFamilyRegDoc(id) {
+    return pendingFamilyRegsCache.concat(reviewedFamiliesCache).find(function(d) { return docId(d) === id; });
+  }
+
+  async function copyFamilyReg(id) {
+    const doc = findFamilyRegDoc(id);
+    if (!doc) { showToast('Could not find that registration — reload the tab.', 'error'); return; }
+    const text = familyRegToText(parseFamilyReg(doc));
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch (e) {
+      const ta = document.createElement('textarea');
+      ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); } catch (e2) { document.body.removeChild(ta); showToast('Copy failed.', 'error'); return; }
+      document.body.removeChild(ta);
+    }
+    showToast('Family details copied.', 'success');
+  }
+
+  function printFamilyReg(id) {
+    const doc = findFamilyRegDoc(id);
+    if (!doc) { showToast('Could not find that registration — reload the tab.', 'error'); return; }
+    const fam = parseFamilyReg(doc);
+    const w = window.open('', '_blank');
+    if (!w) { showToast('Allow pop-ups to print.', 'error'); return; }
+    w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>' + escHtml(fam.lastName) + ' Family Registration</title>' +
+      '<style>body{font-family:Georgia,serif;color:#3D2B2B;max-width:720px;margin:32px auto;padding:0 24px;}h1{font-size:20px;color:#5C1A2E;border-bottom:2px solid #C9A84C;padding-bottom:8px;}pre{font-family:inherit;font-size:14px;line-height:1.6;white-space:pre-wrap;}</style></head><body>' +
+      '<h1>Saint Rose Philippine Duchesne Parish — Family Registration</h1><pre>' + escHtml(familyRegToText(fam)) + '</pre></body></html>');
+    w.document.close();
+    w.focus();
+    setTimeout(function() { w.print(); }, 300);
+  }
+
+  function emailFamilyReg(id) {
+    const doc = findFamilyRegDoc(id);
+    if (!doc) { showToast('Could not find that registration — reload the tab.', 'error'); return; }
+    const fam = parseFamilyReg(doc);
+    const to = fam.head.email || fam.spouse.email;
+    if (!to) { showToast('No email address on this registration.', 'error'); return; }
+    const cc = (fam.head.email && fam.spouse.email && fam.spouse.email !== fam.head.email) ? fam.spouse.email : '';
+    const NL = '\n';
+    const subject = 'Welcome to Saint Rose Philippine Duchesne Parish';
+    const body = 'Dear ' + fam.lastName + ' Family,' + NL + NL +
+      'Welcome to Saint Rose Philippine Duchesne Parish! Thank you for registering your family. We have received your registration and the parish office is adding your household to our records.' + NL + NL +
+      'If anything changes or you have any questions, just reply to this email.' + NL + NL +
+      'God bless,' + NL + 'Saint Rose Philippine Duchesne Parish Office';
+    window.open('https://mail.google.com/mail/?view=cm&fs=1&to=' + encodeURIComponent(to) + (cc ? '&cc=' + encodeURIComponent(cc) : '') + '&su=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body), '_blank');
+  }
+
+  function downloadFamiliesCSV(docs, filenamePrefix) {
+    if (!docs.length) { showToast('Nothing to export.', 'error'); return; }
+    // Registrations come from a public form, so neutralize anything a spreadsheet
+    // could treat as a formula (leading = or @, or +/- followed by a non-number).
+    const csvEscape = function(v) {
+      let s = String(v == null ? '' : v);
+      if (/^[=@]/.test(s) || /^[+\-][^\d\s().]/.test(s)) s = "'" + s;
+      return '"' + s.replace(/"/g, '""') + '"';
+    };
+    const headers = ['Last Name', 'Submitted', 'Reviewed', 'Main Phone', 'Other Phones', 'Address', 'City', 'State', 'Zip', 'Envelopes',
+      'Head Title', 'Head Name', 'Head Birthdate', 'Marital Status', 'Marriage Date', 'Married By Priest', 'Head Occupation', 'Head Email', 'Head Baptized', 'Head First Eucharist', 'Head Confirmed',
+      'Spouse Title', 'Spouse Name', 'Spouse Birthdate', 'Spouse Occupation', 'Spouse Email', 'Spouse Baptized', 'Spouse First Eucharist', 'Spouse Confirmed',
+      'Children Count', 'Children', 'Comments'];
+    const fmtDate = function(iso) { return iso ? new Date(iso).toLocaleDateString('en-US') : ''; };
+    const rows = docs.map(function(doc) {
+      const f = parseFamilyReg(doc);
+      const kids = f.children.map(function(c) {
+        return [c.firstName, c.lastName].filter(Boolean).join(' ') + ' [' + [c.gender, c.birthdate ? 'b. ' + c.birthdate : '', 'Bapt: ' + (c.baptized || '—'), 'Recon: ' + (c.firstReconciliation || '—'), 'Euch: ' + (c.firstEucharist || '—'), 'Conf: ' + (c.confirmed || '—')].filter(Boolean).join(', ') + ']';
+      }).join(' | ');
+      return [f.lastName, fmtDate(f.submittedAt), fmtDate(f.reviewedAt), f.mainPhone, f.otherPhones.map(function(p) { return (p.label ? p.label + ': ' : '') + p.number; }).join('; '), f.address, f.city, f.state, f.zip, f.envelopes,
+        f.head.title, f.head.name, f.head.birthdate, f.maritalStatus, f.marriageDate, f.marriedByPriest, f.head.occupation, f.head.email, f.head.baptized, f.head.eucharist, f.head.confirmed,
+        f.spouse.title, f.spouse.name, f.spouse.birthdate, f.spouse.occupation, f.spouse.email, f.spouse.baptized, f.spouse.eucharist, f.spouse.confirmed,
+        f.children.length, kids, f.comments].map(csvEscape).join(',');
     });
     const csv = headers.map(csvEscape).join(',') + '\n' + rows.join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
     a.href = url;
-    a.download = 'reviewed_families_' + new Date().toISOString().split('T')[0] + '.csv';
+    a.download = filenamePrefix + '_' + new Date().toISOString().split('T')[0] + '.csv';
     document.body.appendChild(a);
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+  }
+  function exportReviewedFamiliesCSV() {
+    if (reviewedFamiliesCache.length === 0) { showToast('No reviewed families to export.', 'error'); return; }
+    downloadFamiliesCSV(reviewedFamiliesCache, 'reviewed_families');
+  }
+  function exportPendingFamiliesCSV() {
+    if (pendingFamilyRegsCache.length === 0) { showToast('No pending registrations to export.', 'error'); return; }
+    downloadFamiliesCSV(pendingFamilyRegsCache, 'pending_family_registrations');
   }
 
   // ── FAITH FORMATION REGISTRATIONS ──
