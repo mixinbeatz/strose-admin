@@ -360,7 +360,7 @@
         <div class="nav-item staff-only" onclick="showPage('event-requests',this)"><span class="nav-icon">📋</span> Event Requests <span class="nav-badge" id="event-req-count" style="display:none">0</span></div>
         <div class="nav-item staff-only" onclick="showPage('contact-requests',this);loadContactRequests()"><span class="nav-icon">✉️</span> Contact Requests <span class="nav-badge" id="contact-req-count" style="display:none">0</span></div>
         <div class="nav-item staff-only" onclick="showPage('council-inquiries',this);loadCouncilInquiries()"><span class="nav-icon">🗳️</span> Council Inquiries <span class="nav-badge" id="council-inq-count" style="display:none">0</span></div>
-        <div class="nav-item staff-only" onclick="showPage('family-registrations',this);loadFamilyRegistrations();loadReviewedFamilies()"><span class="nav-icon">📝</span> Family Registrations <span class="nav-badge" id="familyreg-count" style="display:none">0</span></div>
+        <div class="nav-item staff-only cheyanne-only" onclick="showPage('family-registrations',this);loadFamilyRegistrations();loadReviewedFamilies()"><span class="nav-icon">📝</span> Family Registrations <span class="nav-badge" id="familyreg-count" style="display:none">0</span></div>
         <div class="nav-item staff-only" onclick="showPage('funeral-planning',this);loadFuneralPlanning()"><span class="nav-icon">🕊️</span> Funeral Planning <span class="nav-badge" id="funeral-plan-count" style="display:none">0</span></div>
         <div class="nav-item staff-only" onclick="showPage('faith-formation-registrations',this);loadFaithFormationRegs()"><span class="nav-icon">✝️</span> Faith Formation Registrations <span class="nav-badge" id="ffreg-count" style="display:none">0</span></div>
         <div class="nav-item staff-only" onclick="showPage('youth-ministry-registrations',this);loadYouthMinistryRegs();loadYMSettings()"><span class="nav-icon">🔥</span> Youth Ministry Registrations <span class="nav-badge" id="ymreg-count" style="display:none">0</span></div>
@@ -493,6 +493,13 @@
             <div class="stat-value" id="stat-needsreview">—</div>
             <div class="stat-sub">edited since approval</div>
           </div>
+        </div>
+        <div class="card" id="dash-familyreg-card">
+          <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;gap:12px;flex-wrap:wrap;">
+            <span>📝 New Family Registrations <span class="nav-badge" id="dash-familyreg-count" style="display:none;margin-left:6px;">0</span></span>
+            <button class="btn btn-outline btn-sm" onclick="openFamilyRegistrations()">Open Family Registrations</button>
+          </div>
+          <div id="dash-familyreg-list"><div style="color:var(--dusty-rose);font-size:13px;">Loading...</div></div>
         </div>
         <div class="card">
           <div class="card-title">📌 Quick Actions</div>
@@ -3592,12 +3599,55 @@
   function calPrev() { calMonth--; if (calMonth < 0) { calMonth = 11; calYear--; } renderCal(); }
   function calNext() { calMonth++; if (calMonth > 11) { calMonth = 0; calYear++; } renderCal(); }
 
+  function openFamilyRegistrations() {
+    showPage('family-registrations', navItem('family-registrations'));
+    loadFamilyRegistrations();
+    loadReviewedFamilies();
+  }
+
+  // Dashboard card: newest pending family registrations at a glance. Data comes
+  // from the same familyRegistrations fetch loadDashboard already makes. Every
+  // value is escaped -- the registration form is a public, unauthenticated write.
+  function renderDashboardFamilyRegs(allDocs) {
+    const list = document.getElementById('dash-familyreg-list');
+    if (!list) return;
+    const pendingDocs = allDocs.filter(d => !gf(d, 'reviewed'))
+      .sort((a, b) => new Date(gf(b, 'submittedAt') || 0) - new Date(gf(a, 'submittedAt') || 0));
+    const reviewedCount = allDocs.length - pendingDocs.length;
+    const badge = document.getElementById('dash-familyreg-count');
+    if (badge) { badge.textContent = pendingDocs.length; badge.style.display = pendingDocs.length > 0 ? '' : 'none'; }
+    if (pendingDocs.length === 0) {
+      list.innerHTML = '<div style="color:var(--dusty-rose);font-size:14px;">No new registrations waiting.' + (reviewedCount ? ' ' + reviewedCount + ' reviewed so far.' : '') + '</div>';
+      return;
+    }
+    const SHOW = 5;
+    let html = pendingDocs.slice(0, SHOW).map(function(d) {
+      const last = gf(d, 'familyLastName') || '';
+      const head = [gf(d, 'headTitle'), gf(d, 'headName')].filter(Boolean).join(' ');
+      const phone = gf(d, 'mainPhone') || '';
+      const kids = (d.fields && d.fields.children && d.fields.children.arrayValue && d.fields.children.arrayValue.values || []).length;
+      const sub = gf(d, 'submittedAt');
+      const when = sub ? new Date(sub).toLocaleDateString('en-US', {month:'short', day:'numeric'}) : '';
+      return '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--linen);cursor:pointer;" onclick="openFamilyRegistrations()">' +
+        '<div><strong>' + escHtml(last) + ' Family</strong>' +
+        (head ? ' <span style="color:var(--dusty-rose);font-size:13px;">(' + escHtml(head) + ')</span>' : '') +
+        '<div style="font-size:12px;color:var(--soil);opacity:0.75;margin-top:2px;">' + [phone ? escHtml(phone) : '', kids ? kids + (kids === 1 ? ' child' : ' children') : ''].filter(Boolean).join(' · ') + '</div></div>' +
+        (when ? '<span style="font-size:12px;color:var(--dusty-rose);white-space:nowrap;">' + escHtml(when) + '</span>' : '') +
+        '</div>';
+    }).join('');
+    const more = pendingDocs.length - SHOW;
+    html += '<div style="font-size:12px;color:var(--soil);opacity:0.75;margin-top:10px;">' +
+      (more > 0 ? '+ ' + more + ' more waiting · ' : '') + reviewedCount + ' reviewed so far</div>';
+    list.innerHTML = html;
+  }
+
   async function loadDashboard() {
     try {
       const [fam,parts,ref,eventReqs,dailyRef,familyRegs,contactReqs,councilInqs,funeralPlans,ffRegs,ymRegs,advs] = await Promise.all([fs_get('parishFamily'),fs_get('partnerRequests'),fs_get('weeklyReflection'),fs_get('eventRequests'),fs_get('dailyReflection'),fs_get('familyRegistrations'),fs_get('contactRequests'),fs_get('councilInquiries'),fs_get('funeralPlanningSubmissions'),fs_get('faithFormationRegistrations'),fs_get('youthMinistryRegistrations'),fs_get('advertisers')]);
       const pendingFamilyRegs = (familyRegs.documents||[]).filter(d=>!gf(d,'reviewed'));
       const familyRegBadge = document.getElementById('familyreg-count');
       if (familyRegBadge) { familyRegBadge.textContent = pendingFamilyRegs.length; familyRegBadge.style.display = pendingFamilyRegs.length > 0 ? '' : 'none'; }
+      renderDashboardFamilyRegs(familyRegs.documents || []);
       const approved = (fam.documents||[]).filter(d=>gf(d,'approved')===true);
       const pending = (fam.documents||[]).filter(d=>gf(d,'approved')===false && gf(d,'rejected')!==true);
       const preqs = (parts.documents||[]).filter(d=>!gf(d,'parishApproved')||gf(d,'status')==='awaiting_activation');
