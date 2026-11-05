@@ -111,6 +111,8 @@
   .post-success { display: none; background: #EDF7F0; border: 1px solid #4A7C59; color: #2D5C3A; padding: 12px 16px; border-radius: 9px; font-size: 14px; margin-top: 16px; }
 
   .stats-row { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 24px; }
+  .stats-row.three { grid-template-columns: repeat(3, 1fr); }
+  .dash-section-title { font-family: 'Cinzel', serif; font-size: 13px; letter-spacing: 1px; text-transform: uppercase; color: var(--burgundy); margin: 0 0 10px; }
   .stat-card { background: var(--white); border-radius: 12px; padding: 20px; box-shadow: 0 2px 12px rgba(92,26,46,0.06); border-top: 3px solid var(--burgundy); }
   .stat-card.clickable { cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; }
   .stat-card.clickable:hover { transform: translateY(-2px); box-shadow: 0 4px 16px rgba(92,26,46,0.12); }
@@ -249,7 +251,7 @@
     .content { padding: 16px; padding-top: 0; }
 
     /* Stats: 2 columns on mobile instead of 4 */
-    .stats-row { grid-template-columns: repeat(2, 1fr); gap: 12px; }
+    .stats-row, .stats-row.three { grid-template-columns: repeat(2, 1fr); gap: 12px; }
 
     /* Stat cards smaller */
     .stat-card { padding: 16px; }
@@ -285,7 +287,7 @@
 
   @media (max-width: 420px) {
     /* Single column stats on very small phones */
-    .stats-row { grid-template-columns: 1fr 1fr; }
+    .stats-row, .stats-row.three { grid-template-columns: 1fr 1fr; }
     .content { padding: 12px; padding-top: 0; }
   }
 </style>
@@ -462,19 +464,33 @@
 
       <!-- DASHBOARD -->
       <div class="page active" id="page-dashboard">
+        <div class="dash-section-title">Parish Family</div>
         <div class="stats-row">
           <div class="stat-card clickable" onclick="showPage('directory',navItem('directory'))">
-            <div class="stat-label">Parish Family</div>
+            <div class="stat-label">Approved Members</div>
             <div class="stat-value" id="stat-members">—</div>
-            <div class="stat-sub">approved members</div>
+            <div class="stat-sub">in the directory</div>
           </div>
           <div class="stat-card clickable" style="border-top-color:var(--gold)" onclick="showPage('approvals',navItem('approvals'))">
-            <div class="stat-label">Pending Approvals</div>
+            <div class="stat-label">Pending Approval</div>
             <div class="stat-value" id="stat-pending">—</div>
             <div class="stat-sub">awaiting review</div>
           </div>
+          <div class="stat-card clickable" style="border-top-color:var(--gold-light)" onclick="showPage('needs-review',navItem('needs-review'))">
+            <div class="stat-label">Changed Profiles</div>
+            <div class="stat-value" id="stat-needsreview">—</div>
+            <div class="stat-sub">need review (edited since approval)</div>
+          </div>
+          <div class="stat-card clickable" style="border-top-color:var(--danger)" onclick="showPage('reported-listings',navItem('reported-listings'))">
+            <div class="stat-label">Reported Listings</div>
+            <div class="stat-value" id="stat-reported">—</div>
+            <div class="stat-sub">flagged by members</div>
+          </div>
+        </div>
+        <div class="dash-section-title">Advertisers</div>
+        <div class="stats-row three">
           <div class="stat-card clickable" style="border-top-color:var(--dusty-rose)" onclick="showPage('partners',navItem('partners'))">
-            <div class="stat-label">Partner Requests</div>
+            <div class="stat-label">Advertising Requests</div>
             <div class="stat-value" id="stat-partners">—</div>
             <div class="stat-sub">pending</div>
           </div>
@@ -483,15 +499,10 @@
             <div class="stat-value" id="stat-listings">—</div>
             <div class="stat-sub" id="stat-listings-sub">in directory</div>
           </div>
-          <div class="stat-card clickable" style="border-top-color:var(--danger)" onclick="showPage('reported-listings',navItem('reported-listings'))">
-            <div class="stat-label">Reported Listings</div>
-            <div class="stat-value" id="stat-reported">—</div>
-            <div class="stat-sub">flagged by members</div>
-          </div>
-          <div class="stat-card clickable" style="border-top-color:var(--gold-light)" onclick="showPage('needs-review',navItem('needs-review'))">
-            <div class="stat-label">Needs Review</div>
-            <div class="stat-value" id="stat-needsreview">—</div>
-            <div class="stat-sub">edited since approval</div>
+          <div class="stat-card clickable" style="border-top-color:var(--gold)" onclick="showPage('partners',navItem('partners'))">
+            <div class="stat-label">Parish Pros</div>
+            <div class="stat-value" id="stat-parishpros">—</div>
+            <div class="stat-sub" id="stat-parishpros-sub">on the Parish Pro plan</div>
           </div>
         </div>
         <div class="card" id="dash-familyreg-card">
@@ -3690,6 +3701,13 @@
       const payingCount = advDocs.filter(d => gf(d,'billingStatus') === 'paying').length;
       const compedCount = advDocs.length - payingCount;
       document.getElementById('stat-listings').textContent = advDocs.length;
+      // Parish Pros: published listings on the Parish Pro plan. `tier` is normalised
+      // to premium|standard when a request is approved, so the plan lives in the raw
+      // `tierPlan` field (listings published before that field existed aren't counted).
+      const proDocs = advDocs.filter(d => { const t = String(gf(d,'tierPlan')||'').toLowerCase(); return t.includes('pro') || t.includes('parish'); });
+      const proPaying = proDocs.filter(d => gf(d,'billingStatus') === 'paying').length;
+      document.getElementById('stat-parishpros').textContent = proDocs.length;
+      document.getElementById('stat-parishpros-sub').textContent = proDocs.length ? ((proDocs.length - proPaying) + ' comped · ' + proPaying + ' paying') : 'on the Parish Pro plan';
       const dueSoon = advDocs.filter(d => { const c = compedStatus(gf(d,'compedUntil'), gf(d,'billingStatus')); return c && (c.state==='soon' || c.state==='ended'); }).length;
       document.getElementById('stat-listings-sub').textContent = compedCount + ' comped · ' + payingCount + ' paying' + (dueSoon ? ' · ' + dueSoon + ' need follow-up' : '');
       loadActiveAnnouncements('dashboard-announcements-list');
