@@ -2287,6 +2287,7 @@
           The wording, dates, fees and email address on the website's Funeral Planning, Faith Formation and Youth Ministry forms. Changes show up on saintroseanthem.org right away &mdash; no code change. Leave a box empty to use the standard wording built into the form. The questions themselves stay as built.
         </div>
         <div id="form-settings-cards"></div>
+        <div class="card" id="funeral-guide-card" style="margin-bottom:16px;"></div>
       </div>
 
       <!-- YOUTH MINISTRY REGISTRATIONS -->
@@ -6465,6 +6466,7 @@
   }
   async function loadFormContent() {
     renderFormContent();
+    loadFuneralGuide();
     for (const f of FORM_SETTINGS) {
       try {
         const doc = await fs_get_doc('siteContent/' + f.doc);
@@ -6497,6 +6499,96 @@
       console.error('Form settings save error:', e);
       showToast('Error saving: ' + (e && e.message || e), 'error');
     } finally { btn.disabled = false; btn.textContent = 'Save'; }
+  }
+
+
+  // ── FUNERAL GUIDE (the app's "View Funeral Planning Guide" text) ──
+  // Stored as one JSON string in siteContent/funeralGuide.guideJson. The app ships
+  // the same defaults below and falls back to them if the doc is missing or a field
+  // is blank, so an empty guide here can never produce a blank screen.
+  const FUNERAL_GUIDE_DEFAULTS = {"title":"A Catholic Funeral Guide","quote":"\"I am the resurrection and the life. Whoever believes in me, even though he dies, will live.\" — John 11:25","intro":"We are here to support you and your family during this time of loss and to help you plan a meaningful and prayerful funeral in the Catholic tradition.","formButton":"Fill Out & Submit Planning Form","stepsHeading":"OUR GUIDANCE EVERY STEP OF THE WAY","steps":[{"t":"SCHEDULING","b":"The mortuary you choose will contact our parish office to schedule the Mass or Service. Funeral Masses are celebrated in the parish church of the deceased."},{"t":"PERSONAL PLANNING","b":"We will meet with you to help select readings, music, and answer any questions you may have. A Funeral Planning Packet is available to help guide you through the details."},{"t":"THE VIGIL (VIEWING)","b":"Usually celebrated at the mortuary with a rosary or scripture service led by a deacon. A time for prayer, remembrance and support."},{"t":"THE FUNERAL MASS","b":"Traditionally celebrated in the morning. Christian symbols may be placed on the casket. A small table may be placed in front of the altar for cremains."},{"t":"THE COMMITTAL","b":"The Rite of Committal is celebrated at the cemetery, concluding the three-part liturgy. A priest or deacon will accompany you."}],"liturgyHeading":"THE FUNERAL LITURGY AT A GLANCE","liturgy":[{"t":"INTRODUCTORY RITES","items":["Greeting at the entrance of the church","Sprinkling with Holy Water & Placing of the Funeral Pall","Placing of the Christian Symbols","Procession to the Altar","Opening Prayer"]},{"t":"LITURGY OF THE WORD","items":["First Reading","Responsorial Psalm","Second Reading","Gospel Acclamation","Gospel Reading","Homily","General Intercessions"]},{"t":"LITURGY OF THE EUCHARIST","items":["Preparation of the Gifts","Eucharistic Prayer and Acclamations"]},{"t":"COMMUNION RITE","items":["The Lord's Prayer","Rite of Peace","Fraction Rite","Communion Procession","Post-Communion Prayer"]},{"t":"FINAL COMMENDATION","items":["Invitation to Prayer","Incensing of the Casket","Song of Farewell","Prayer of Commendation","Procession to the Place of Committal"]}],"scriptureHeading":"SCRIPTURE OFFERS HOPE","scriptureIntro":"The readings proclaimed at the Funeral Mass proclaim our faith in eternal life.","readingsLabel":"SAMPLE OLD TESTAMENT READINGS","readings":[{"ref":"Job 19:1, 23-27","quote":"I know that my Vindicator lives."},{"ref":"Wisdom 3:1-9","quote":"The souls of the just are in the hand of God."},{"ref":"Wisdom 4:7-14","quote":"He who pleased God was loved and taken from this life."}]};
+  var fgState = null;
+  function fgClone(o) { return JSON.parse(JSON.stringify(o)); }
+  function fgTextField(key, label, multi) {
+    const v = annAttr(fgState[key]);
+    return '<div class="form-group"><label class="form-label">' + label + '</label>' +
+      (multi ? '<textarea class="form-textarea" rows="3" oninput="fgState.' + key + '=this.value">' + escHtml(fgState[key]) + '</textarea>'
+             : '<input class="form-input" value="' + v + '" oninput="fgState.' + key + '=this.value" />') + '</div>';
+  }
+  function fgRowTools(list, i, n) {
+    return '<div style="display:flex;gap:6px;margin-top:6px;">' +
+      '<button type="button" class="btn btn-outline btn-sm" ' + (i === 0 ? 'disabled' : '') + ' onclick="fgMove(\'' + list + '\',' + i + ',-1)">↑</button>' +
+      '<button type="button" class="btn btn-outline btn-sm" ' + (i === n - 1 ? 'disabled' : '') + ' onclick="fgMove(\'' + list + '\',' + i + ',1)">↓</button>' +
+      '<button type="button" class="btn btn-outline btn-sm" onclick="fgRemove(\'' + list + '\',' + i + ')">Remove</button></div>';
+  }
+  function renderFuneralGuide() {
+    const el = document.getElementById('funeral-guide-card');
+    if (!el || !fgState) return;
+    const box = 'border:1px solid var(--linen);border-radius:10px;padding:12px;margin-bottom:10px;';
+    el.innerHTML = '<div class="card-title">🕊️ Funeral Planning Guide (in the app)</div>' +
+      '<div class="info-box">The guide families open from the Funeral Ministry section of the app. Changes appear in the app without an update, for people on the next app release or newer; older versions keep showing the original text.</div>' +
+      fgTextField('title', 'Title') + fgTextField('quote', 'Scripture quote under the title', true) + fgTextField('intro', 'Welcome paragraph', true) + fgTextField('formButton', 'Planning form button label') +
+      '<hr style="border:none;border-top:1px solid var(--linen);margin:18px 0;" />' +
+      fgTextField('stepsHeading', 'Steps section heading') +
+      fgState.steps.map(function(x, i) {
+        return '<div style="' + box + '"><input class="form-input" placeholder="Step title, e.g. SCHEDULING" value="' + annAttr(x.t) + '" oninput="fgState.steps[' + i + '].t=this.value" />' +
+          '<textarea class="form-textarea" rows="3" style="margin-top:6px;" placeholder="Description" oninput="fgState.steps[' + i + '].b=this.value">' + escHtml(x.b) + '</textarea>' + fgRowTools('steps', i, fgState.steps.length) + '</div>';
+      }).join('') +
+      '<button type="button" class="btn btn-outline btn-sm" onclick="fgAdd(\'steps\')">+ Add step</button>' +
+      '<hr style="border:none;border-top:1px solid var(--linen);margin:18px 0;" />' +
+      fgTextField('liturgyHeading', 'Liturgy section heading') +
+      fgState.liturgy.map(function(x, i) {
+        return '<div style="' + box + '"><input class="form-input" placeholder="Part title, e.g. LITURGY OF THE WORD" value="' + annAttr(x.t) + '" oninput="fgState.liturgy[' + i + '].t=this.value" />' +
+          '<textarea class="form-textarea" rows="5" style="margin-top:6px;" placeholder="One item per line" oninput="fgState.liturgy[' + i + '].items=this.value.split(/\r?\n/)">' + escHtml((x.items || []).join('\n')) + '</textarea>' + fgRowTools('liturgy', i, fgState.liturgy.length) + '</div>';
+      }).join('') +
+      '<button type="button" class="btn btn-outline btn-sm" onclick="fgAdd(\'liturgy\')">+ Add part</button>' +
+      '<hr style="border:none;border-top:1px solid var(--linen);margin:18px 0;" />' +
+      fgTextField('scriptureHeading', 'Scripture section heading') + fgTextField('scriptureIntro', 'Scripture introduction', true) + fgTextField('readingsLabel', 'Readings list label') +
+      fgState.readings.map(function(x, i) {
+        return '<div style="' + box + '"><input class="form-input" placeholder="Reference, e.g. Wisdom 3:1-9" value="' + annAttr(x.ref) + '" oninput="fgState.readings[' + i + '].ref=this.value" />' +
+          '<input class="form-input" style="margin-top:6px;" placeholder="Short quote" value="' + annAttr(x.quote) + '" oninput="fgState.readings[' + i + '].quote=this.value" />' + fgRowTools('readings', i, fgState.readings.length) + '</div>';
+      }).join('') +
+      '<button type="button" class="btn btn-outline btn-sm" onclick="fgAdd(\'readings\')">+ Add reading</button>' +
+      '<div class="btn-row" style="margin-top:20px;"><button class="btn btn-primary" id="fg-save-btn" onclick="saveFuneralGuide()">Save Funeral Guide</button>' +
+      '<button class="btn btn-outline" onclick="fgResetDefaults()">Reset to standard text</button></div>';
+  }
+  async function loadFuneralGuide() {
+    fgState = fgClone(FUNERAL_GUIDE_DEFAULTS);
+    try {
+      const doc = await fs_get_doc('siteContent/funeralGuide');
+      const raw = doc && doc.fields && doc.fields.guideJson && doc.fields.guideJson.stringValue;
+      if (raw) {
+        const o = JSON.parse(raw);
+        Object.keys(FUNERAL_GUIDE_DEFAULTS).forEach(function(k) {
+          const d = FUNERAL_GUIDE_DEFAULTS[k];
+          if (Array.isArray(d)) { if (Array.isArray(o[k])) fgState[k] = o[k]; }
+          else if (typeof o[k] === 'string' && o[k].trim()) fgState[k] = o[k];
+        });
+      }
+    } catch (e) { /* none saved yet or unreadable: show the standard text */ }
+    renderFuneralGuide();
+  }
+  function fgNewItem(list) { return list === 'steps' ? { t: '', b: '' } : list === 'liturgy' ? { t: '', items: [] } : { ref: '', quote: '' }; }
+  function fgAdd(list) { fgState[list].push(fgNewItem(list)); renderFuneralGuide(); }
+  function fgRemove(list, i) { fgState[list].splice(i, 1); renderFuneralGuide(); }
+  function fgMove(list, i, d) { const a = fgState[list], j = i + d; if (j < 0 || j >= a.length) return; const t = a[i]; a[i] = a[j]; a[j] = t; renderFuneralGuide(); }
+  function fgResetDefaults() { if (!confirm('Replace everything above with the standard text? Nothing is saved until you press Save.')) return; fgState = fgClone(FUNERAL_GUIDE_DEFAULTS); renderFuneralGuide(); }
+  async function saveFuneralGuide() {
+    const out = fgClone(fgState);
+    out.steps = out.steps.filter(function(x) { return (x.t || '').trim(); });
+    out.liturgy = out.liturgy.filter(function(x) { return (x.t || '').trim(); }).map(function(x) { return { t: x.t, items: (x.items || []).map(function(i) { return i.trim(); }).filter(Boolean) }; });
+    out.readings = out.readings.filter(function(x) { return (x.ref || '').trim(); });
+    const btn = document.getElementById('fg-save-btn');
+    btn.disabled = true; btn.textContent = 'Saving...';
+    try {
+      await fs_patch('siteContent/funeralGuide', { guideJson: { stringValue: JSON.stringify(out) }, updatedAt: { stringValue: new Date().toISOString() } });
+      fgState = out; renderFuneralGuide();
+      showToast('Funeral guide saved.', 'success');
+    } catch (e) {
+      console.error('Funeral guide save error:', e);
+      showToast('Error saving: ' + (e && e.message || e), 'error');
+      btn.disabled = false; btn.textContent = 'Save Funeral Guide';
+    }
   }
 
   // SET session line — stored in siteContent/youthMinistry.setSession, read by
