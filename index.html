@@ -799,6 +799,39 @@
             <div style="font-size:12px;color:var(--dusty-rose);margin-top:6px;">Adds a "Learn More" button to the announcement in the app.</div>
           </div>
           <div class="form-group">
+            <label class="form-label">Event details (optional)</label>
+            <div style="font-size:12px;color:var(--dusty-rose);margin-bottom:8px;">Shows the date, time and place at the top of the announcement in the app, with an "Add to Calendar" button. Leave blank for a regular announcement.</div>
+            <div class="form-grid">
+              <div class="form-group">
+                <label class="form-label">Date</label>
+                <input type="date" class="form-input" id="ann-event-date" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Start time</label>
+                <input type="time" class="form-input" id="ann-event-start" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">End time (optional)</label>
+                <input type="time" class="form-input" id="ann-event-end" />
+              </div>
+              <div class="form-group">
+                <label class="form-label">Time wording (optional)</label>
+                <input type="text" class="form-input" id="ann-event-timenote" placeholder="e.g. Following the 11:00 AM Mass" />
+              </div>
+              <div class="form-group form-full">
+                <label class="form-label">Place</label>
+                <input type="text" class="form-input" id="ann-event-location" placeholder="e.g. St. Rose Catholic Church" />
+              </div>
+            </div>
+            <div style="font-size:12px;color:var(--dusty-rose);margin-top:2px;">The start time is what goes on people's calendars. If you fill in "Time wording", that text is shown instead of the clock time.</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Photos at the bottom (optional, up to 3)</label>
+            <div style="font-size:12px;color:var(--dusty-rose);margin-bottom:8px;">Round photos with a name and a role underneath, such as a guest priest or musician. You'll crop each one after choosing it.</div>
+            <div id="ann-photos-list"></div>
+            <label class="btn btn-outline btn-sm" id="ann-photo-add" style="cursor:pointer;display:inline-block;">+ Add photo<input type="file" accept="image/*" style="display:none;" onchange="handleAnnPhotoPick(this)" /></label>
+          </div>
+          <div class="form-group">
             <label class="form-label">Expires</label>
             <div id="ann-expiry-note" style="font-size:12px;color:var(--dusty-rose);margin-bottom:8px;"></div>
             <div class="expiry-options">
@@ -807,6 +840,7 @@
               <div class="expiry-chip" onclick="selectExpiry(this,'weekend')">This Weekend</div>
               <div class="expiry-chip selected" onclick="selectExpiry(this,'week')">This Week</div>
               <div class="expiry-chip" onclick="selectExpiry(this,'month')">This Month</div>
+              <div class="expiry-chip" onclick="selectExpiry(this,'event')">After the event</div>
               <div class="expiry-chip" onclick="selectExpiry(this,'custom')">Custom</div>
             </div>
             <div id="custom-expiry" style="display:none;margin-top:12px;">
@@ -2638,6 +2672,8 @@
     if(type==='week'){const d=new Date(now);d.setDate(d.getDate()+7);return d.toISOString();}
     if(type==='month'){const d=new Date(now);d.setDate(d.getDate()+30);return d.toISOString();}
     if(type==='custom'){const v=document.getElementById('ann-custom-expiry').value;return v?new Date(v).toISOString():null;}
+    // End of the event's day, Arizona time (UTC-7 all year, no DST).
+    if(type==='event'){const d=document.getElementById('ann-event-date').value;return d?new Date(d+'T23:59:59-07:00').toISOString():null;}
     return null;
   }
 
@@ -4031,6 +4067,88 @@
     return null;
   }
 
+  // ── ANNOUNCEMENT EXTRAS: event details + captioned photos ──
+  // Stored on the announcement doc as eventDate (YYYY-MM-DD), eventStartTime /
+  // eventEndTime (HH:MM), eventTimeNote, eventLocation and photos[{url,name,role}].
+  // Dates and times are plain Arizona wall-clock values (no timezone math in the
+  // portal); the app turns them into a real calendar entry. Older app versions
+  // ignore these fields.
+  var annPhotos = [];
+  function annAttr(s) { return escHtml(s == null ? '' : s).replace(/"/g, '&quot;'); }
+  function renderAnnPhotos() {
+    const el = document.getElementById('ann-photos-list');
+    if (!el) return;
+    el.innerHTML = annPhotos.map(function(p, i) {
+      return '<div style="display:flex;gap:12px;align-items:center;margin-bottom:10px;flex-wrap:wrap;">' +
+        '<img src="' + annAttr(p.url) + '" alt="" style="width:64px;height:64px;border-radius:32px;object-fit:cover;flex-shrink:0;background:var(--linen);" />' +
+        '<div style="flex:1;min-width:200px;display:grid;gap:6px;">' +
+          '<input class="form-input" placeholder="Name, e.g. Fr. Dan Nevares, SJ" value="' + annAttr(p.name) + '" oninput="annPhotos[' + i + '].name=this.value" />' +
+          '<input class="form-input" placeholder="Role, e.g. Celebrant" value="' + annAttr(p.role) + '" oninput="annPhotos[' + i + '].role=this.value" />' +
+        '</div>' +
+        '<button type="button" class="btn btn-outline btn-sm" onclick="removeAnnPhoto(' + i + ')">Remove</button>' +
+      '</div>';
+    }).join('');
+    const add = document.getElementById('ann-photo-add');
+    if (add) add.style.display = annPhotos.length >= 3 ? 'none' : 'inline-block';
+  }
+  function handleAnnPhotoPick(input) {
+    const file = input.files && input.files[0];
+    input.value = '';
+    if (!file) return;
+    if (annPhotos.length >= 3) { showToast('Up to 3 photos per announcement.', 'error'); return; }
+    openPhotoCropper(file, async function(r) {
+      try {
+        const url = await uploadDevFile(r.base64, 'announcement-photo.jpg', 'announcements', r.contentType);
+        annPhotos.push({ url: url, name: '', role: '' });
+        renderAnnPhotos();
+        showToast('Photo added — fill in the name and role, then post.', 'success');
+      } catch (e) { console.error('Announcement photo upload error:', e); showToast('Upload failed: ' + (e && e.message || e), 'error'); }
+    });
+  }
+  // Removes it from this announcement only; the file stays in Storage, same as
+  // every other photo swap in the portal.
+  function removeAnnPhoto(i) { annPhotos.splice(i, 1); renderAnnPhotos(); }
+
+  function clearAnnExtras() {
+    ['ann-event-date', 'ann-event-start', 'ann-event-end', 'ann-event-timenote', 'ann-event-location'].forEach(function(id) { const el = document.getElementById(id); if (el) el.value = ''; });
+    annPhotos = [];
+    renderAnnPhotos();
+  }
+  function loadAnnExtras(doc) {
+    const f = doc.fields || {};
+    const s = function(k) { return (f[k] && f[k].stringValue) || ''; };
+    document.getElementById('ann-event-date').value = s('eventDate');
+    document.getElementById('ann-event-start').value = s('eventStartTime');
+    document.getElementById('ann-event-end').value = s('eventEndTime');
+    document.getElementById('ann-event-timenote').value = s('eventTimeNote');
+    document.getElementById('ann-event-location').value = s('eventLocation');
+    const arr = (f.photos && f.photos.arrayValue && f.photos.arrayValue.values) || [];
+    annPhotos = arr.map(function(v) {
+      const pf = (v.mapValue && v.mapValue.fields) || {};
+      const ps = function(k) { return (pf[k] && pf[k].stringValue) || ''; };
+      return { url: ps('url'), name: ps('name'), role: ps('role') };
+    }).filter(function(p) { return p.url; });
+    renderAnnPhotos();
+  }
+  // Returns the Firestore fields for the extras, or null (after a toast) when
+  // the event details don't add up. Always returns every key so an edit that
+  // clears a field actually clears it (fs_patch only writes the keys it's given).
+  function readAnnExtras() {
+    const v = function(id) { return (document.getElementById(id).value || '').trim(); };
+    const date = v('ann-event-date'), start = v('ann-event-start'), end = v('ann-event-end'), note = v('ann-event-timenote'), loc = v('ann-event-location');
+    if ((start || end || note || loc) && !date) { showToast('Add a date for the event details, or clear them.', 'error'); return null; }
+    if (end && !start) { showToast('Add a start time, or clear the end time.', 'error'); return null; }
+    if (start && end && end <= start) { showToast('The end time must be after the start time.', 'error'); return null; }
+    const photos = annPhotos.filter(function(p) { return p.url; }).map(function(p) {
+      return { mapValue: { fields: { url: { stringValue: p.url }, name: { stringValue: (p.name || '').trim() }, role: { stringValue: (p.role || '').trim() } } } };
+    });
+    return {
+      eventDate: { stringValue: date }, eventStartTime: { stringValue: start }, eventEndTime: { stringValue: end },
+      eventTimeNote: { stringValue: note }, eventLocation: { stringValue: loc },
+      photos: { arrayValue: { values: photos } }
+    };
+  }
+
   async function postAnnouncement() {
     const title=document.getElementById('ann-title').value.trim();
     const body=document.getElementById('ann-body').value.trim();
@@ -4039,18 +4157,22 @@
     const linkUrl=normalizeAnnLink(rawLink);
     if(rawLink && !linkUrl){showToast('That link does not look right. It should start with https://','error');return;}
     const expiresAt=(window._editingAnnouncementId && currentExpiry==='keep') ? (window._editingAnnouncementExpiry||'') : getExpiresAt(currentExpiry);
+    if(currentExpiry==='event' && !expiresAt){showToast('Pick an event date first, or choose a different expiry.','error');return;}
+    const extras=readAnnExtras();
+    if(!extras) return;
     try {
       if (window._editingAnnouncementId) {
-        await fs_patch('announcements/' + window._editingAnnouncementId, {title:{stringValue:title},body:{stringValue:body},linkUrl:{stringValue:linkUrl},expiresAt:{stringValue:expiresAt||''}});
+        await fs_patch('announcements/' + window._editingAnnouncementId, Object.assign({title:{stringValue:title},body:{stringValue:body},linkUrl:{stringValue:linkUrl},expiresAt:{stringValue:expiresAt||''}}, extras));
         resetAnnouncementForm();
         showToast('Announcement updated!','success');
       } else {
-        await fs_post('announcements',{title:{stringValue:title},body:{stringValue:body},linkUrl:{stringValue:linkUrl},postedBy:{stringValue:'Parish Staff'},expiresAt:{stringValue:expiresAt||''},createdAt:{stringValue:new Date().toISOString()}});
+        await fs_post('announcements',Object.assign({title:{stringValue:title},body:{stringValue:body},linkUrl:{stringValue:linkUrl},postedBy:{stringValue:'Parish Staff'},expiresAt:{stringValue:expiresAt||''},createdAt:{stringValue:new Date().toISOString()}}, extras));
         showToast('Announcement posted!','success');
       }
       document.getElementById('ann-title').value='';
       document.getElementById('ann-body').value='';
       const _al=document.getElementById('ann-link'); if(_al) _al.value='';
+      clearAnnExtras();
       document.getElementById('ann-success').style.display='block';
       setTimeout(()=>{document.getElementById('ann-success').style.display='none';},4000);
       loadActiveAnnouncements();
@@ -9188,6 +9310,7 @@
       document.getElementById('ann-title').value = title;
       document.getElementById('ann-body').value = body;
       document.getElementById('ann-link').value = doc.fields?.linkUrl?.stringValue || '';
+      loadAnnExtras(doc);
       window._editingAnnouncementId = id;
       window._editingAnnouncementExpiry = exp;
       // keep the existing expiry unless the editor picks a new one
@@ -9211,6 +9334,7 @@
     document.getElementById('ann-title').value = '';
     document.getElementById('ann-body').value = '';
     const _al = document.getElementById('ann-link'); if (_al) _al.value = '';
+    clearAnnExtras();
     const note = document.getElementById('ann-expiry-note'); if (note) note.textContent = '';
     document.querySelector('#page-announcement .card-title').textContent = '📢 Post an Announcement';
     document.querySelector('[onclick="postAnnouncement()"]').textContent = 'Post Announcement';
