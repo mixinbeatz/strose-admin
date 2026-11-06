@@ -414,6 +414,7 @@
         <div class="nav-item staff-only cheyanne-only" onclick="showPage('intention',this)"><span class="nav-icon">🕯️</span> Mass Intentions</div>
         <div class="nav-item staff-only cheyanne-only" onclick="showPage('welcome',this);loadWelcomeMessage(true)"><span class="nav-icon">🌹</span> Welcome Message</div>
         <div class="nav-item staff-only" onclick="showPage('councils',this);loadCouncils()"><span class="nav-icon">⛪</span> Pastoral, Finance &amp; Development Council</div>
+        <div class="nav-item staff-only" onclick="showPage('form-settings',this);loadFormContent()"><span class="nav-icon">⚙️</span> Website Form Settings</div>
         <div class="nav-item staff-only" onclick="showPage('signup-forms',this);loadSignupForms()"><span class="nav-icon">📝</span> Forms &amp; Sign-ups</div>
         <div class="nav-item staff-only" onclick="showPage('parish-staff',this);loadParishStaff()"><span class="nav-icon">👥</span> Parish Staff Directory</div>
         <div class="nav-item staff-only" onclick="showPage('ministry-documents',this);loadMinistryDocuments()"><span class="nav-icon">📄</span> Ministry Documents</div>
@@ -2280,6 +2281,14 @@
         </div>
       </div>
 
+      <!-- WEBSITE FORM SETTINGS -->
+      <div class="page" id="page-form-settings">
+        <div class="info-box" style="margin-bottom:16px;">
+          The wording, dates, fees and email address on the website's Funeral Planning, Faith Formation and Youth Ministry forms. Changes show up on saintroseanthem.org right away &mdash; no code change. Leave a box empty to use the standard wording built into the form. The questions themselves stay as built.
+        </div>
+        <div id="form-settings-cards"></div>
+      </div>
+
       <!-- YOUTH MINISTRY REGISTRATIONS -->
       <div class="page" id="page-youth-ministry-registrations">
         <div class="card">
@@ -2649,7 +2658,7 @@
     if(el) el.classList.add('active');
     window.scrollTo(0,0);
     closeSidebar();
-    const titles = {dashboard:'Dashboard',events:'Events',announcement:'Post Announcement',fastblast:'Fast Blast',reflection:'Weekly Reflection','parish-development':'Parish Development',daily:'Daily Reflection',songsheet:'Mass Songsheet',welcome:'Welcome Message','hero-media':'Hero Section','welcome-media':'Welcome Section',gallery:'Homepage Gallery','around-parish':'Around the Parish','parish-dev-media':'Parish Development','bulletin-images':'Bulletin Images','ministry-booklet':'Ministry Booklet','mass-schedule':'Mass Schedule','live-screen':'Live Screen',councils:'Pastoral, Finance & Development Council','council-inquiries':'Council Inquiries','signup-forms':'Forms & Sign-ups','parish-staff':'Parish Staff Directory','ministry-documents':'Ministry Documents','serving-roles':'Serving Roles','funeral-planning':'Funeral Planning Forms','onboard-council':'Onboard Council Lead','music-ministry':'Music Ministry','music-members':'Music Ministry Members',approvals:'Parish Family Approvals',partners:'Advertising Requests',directory:'Parish Family Directory','reported-listings':'Reported Listings','needs-review':'Needs Review','ministry-post':'Post to Members','cda-members':'My Members','submit-event':'Submit Event','event-requests':'Event Requests','contact-requests':'Contact Requests',intention:'Mass Intentions','my-ministry':'My Ministry','onboard-leader':'Onboard Ministry Leader','leader-tracker':'Ministry Leaders'};
+    const titles = {dashboard:'Dashboard',events:'Events',announcement:'Post Announcement',fastblast:'Fast Blast',reflection:'Weekly Reflection','parish-development':'Parish Development',daily:'Daily Reflection',songsheet:'Mass Songsheet',welcome:'Welcome Message','hero-media':'Hero Section','welcome-media':'Welcome Section',gallery:'Homepage Gallery','around-parish':'Around the Parish','parish-dev-media':'Parish Development','bulletin-images':'Bulletin Images','ministry-booklet':'Ministry Booklet','form-settings':'Form Settings','mass-schedule':'Mass Schedule','live-screen':'Live Screen',councils:'Pastoral, Finance & Development Council','council-inquiries':'Council Inquiries','signup-forms':'Forms & Sign-ups','parish-staff':'Parish Staff Directory','ministry-documents':'Ministry Documents','serving-roles':'Serving Roles','funeral-planning':'Funeral Planning Forms','onboard-council':'Onboard Council Lead','music-ministry':'Music Ministry','music-members':'Music Ministry Members',approvals:'Parish Family Approvals',partners:'Advertising Requests',directory:'Parish Family Directory','reported-listings':'Reported Listings','needs-review':'Needs Review','ministry-post':'Post to Members','cda-members':'My Members','submit-event':'Submit Event','event-requests':'Event Requests','contact-requests':'Contact Requests',intention:'Mass Intentions','my-ministry':'My Ministry','onboard-leader':'Onboard Ministry Leader','leader-tracker':'Ministry Leaders'};
     document.getElementById('page-title').textContent = titles[id]||id;
     var mpt = document.getElementById('mobile-page-title'); if(mpt) mpt.textContent = titles[id]||id;
     _portalPage = id;
@@ -6404,6 +6413,90 @@
     a.click();
     document.body.removeChild(a);
     URL.revokeObjectURL(url);
+  }
+
+  // ── WEBSITE FORM SETTINGS ──
+  // One siteContent doc per website form (funeralPlanningForm, faithFormationForm,
+  // youthMinistryForm), read by the form pages with hardcoded fallbacks. All values
+  // are stored as strings; empty = use the page's built-in default. The SET session
+  // line keeps its own doc (siteContent/youthMinistry) on the Youth Registrations page.
+  const FORM_SETTINGS = [
+    { doc: 'funeralPlanningForm', title: '🕊️ Funeral Planning Form', fields: [
+      { k: 'introText', label: 'Opening paragraph', type: 'textarea', ph: 'We are here to walk with you. Fill out as much as you can — anything left blank can be settled when we meet. When you submit, this opens a pre-filled email to our Funeral Ministry so nothing is lost.' },
+      { k: 'recipientEmail', label: 'Email the form opens to', type: 'email', ph: 'chrisbosn@stroseanthem.com' }
+    ] },
+    { doc: 'faithFormationForm', title: '✝️ Faith Formation Registration', fields: [
+      { k: 'schoolYear', label: 'School year', type: 'text', ph: '2026–2027' },
+      { k: 'dueDate', label: 'Registration due date', type: 'text', ph: 'August 1, 2026' },
+      { k: 'dueDateHidden', label: 'Don\'t show a due date', type: 'checkbox' },
+      { k: 'recipientEmail', label: 'Email the form opens to', type: 'email', ph: 'rhunsaker@stroseanthem.com' },
+      { k: 'contactPhone', label: 'Office phone shown under fees', type: 'text', ph: '623-307-8268' },
+      { k: 'feeFirst3', label: 'Fee per child, first 3 children ($)', type: 'number', ph: '100' },
+      { k: 'feeAdditional', label: 'Fee per additional child ($)', type: 'number', ph: '60' },
+      { k: 'feeSacPrep', label: 'Sacramental Preparation fee per child ($)', type: 'number', ph: '60' },
+      { k: 'classOptions', label: 'Class choices (one per line, exactly as families see them)', type: 'textarea', rows: 10, ph: 'PS / PK / Kindergarten — Sunday 9:15am (Spirituality Center)' }
+    ] },
+    { doc: 'youthMinistryForm', title: '🔥 Youth Ministry Registration', fields: [
+      { k: 'schoolYear', label: 'School year', type: 'text', ph: '2026–2027' },
+      { k: 'scheduleMiddle', label: 'Middle School schedule', type: 'text', ph: 'Sundays 9:15am–10:45am' },
+      { k: 'scheduleHigh', label: 'High School schedule', type: 'text', ph: 'Sundays 12:15pm–1:45pm' },
+      { k: 'recipientEmail', label: 'Email the form opens to', type: 'email', ph: 'chrisbosn@stroseanthem.com' },
+      { k: 'contactPhone', label: 'Phone shown under fees', type: 'text', ph: '623-465-9740 ext. 102' },
+      { k: 'feeTeen', label: 'Suggested fee per teen ($)', type: 'number', ph: '100' },
+      { k: 'feeSacPrep', label: 'Sacramental Preparation fee per child ($)', type: 'number', ph: '60' }
+    ] }
+  ];
+  function renderFormContent() {
+    const el = document.getElementById('form-settings-cards');
+    if (!el || el.dataset.ready) return;
+    el.dataset.ready = '1';
+    el.innerHTML = FORM_SETTINGS.map(function(f) {
+      return '<div class="card" style="margin-bottom:16px;"><div class="card-title">' + f.title + '</div>' +
+        f.fields.map(function(x) {
+          const id = 'fs-' + f.doc + '-' + x.k;
+          let inp;
+          if (x.type === 'textarea') inp = '<textarea class="form-textarea" id="' + id + '" rows="' + (x.rows || 4) + '" placeholder="' + annAttr(x.ph) + '"></textarea>';
+          else if (x.type === 'checkbox') inp = '<label style="display:flex;gap:8px;align-items:center;font-size:15px;"><input type="checkbox" id="' + id + '" /> ' + escHtml(x.label) + '</label>';
+          else inp = '<input class="form-input" id="' + id + '" type="' + (x.type === 'number' ? 'number' : 'text') + '"' + (x.type === 'number' ? ' min="0" step="1"' : '') + ' placeholder="' + annAttr(x.ph) + '" />';
+          return '<div class="form-group">' + (x.type === 'checkbox' ? '' : '<label class="form-label">' + escHtml(x.label) + '</label>') + inp + '</div>';
+        }).join('') +
+        '<div class="btn-row"><button class="btn btn-primary" id="fs-save-' + f.doc + '" onclick="saveFormContent(\'' + f.doc + '\')">Save</button></div></div>';
+    }).join('');
+  }
+  async function loadFormContent() {
+    renderFormContent();
+    for (const f of FORM_SETTINGS) {
+      try {
+        const doc = await fs_get_doc('siteContent/' + f.doc);
+        f.fields.forEach(function(x) {
+          const el = document.getElementById('fs-' + f.doc + '-' + x.k);
+          if (!el) return;
+          const v = (doc && doc.fields && doc.fields[x.k] && doc.fields[x.k].stringValue) || '';
+          if (x.type === 'checkbox') el.checked = v === 'yes'; else el.value = v;
+        });
+      } catch (e) { /* doc may not exist yet */ }
+    }
+  }
+  async function saveFormContent(docId) {
+    const f = FORM_SETTINGS.find(function(x) { return x.doc === docId; });
+    const btn = document.getElementById('fs-save-' + docId);
+    const fields = {};
+    for (const x of f.fields) {
+      const el = document.getElementById('fs-' + docId + '-' + x.k);
+      let v = x.type === 'checkbox' ? (el.checked ? 'yes' : '') : el.value.trim();
+      if (x.type === 'email' && v && !/^[^\s@<>"',;]+@[^\s@<>"',;]+\.[^\s@<>"',;]+$/.test(v)) { showToast('"' + x.label + '" is not a valid email address.', 'error'); return; }
+      if (x.type === 'number' && v && !/^\d{1,5}$/.test(v)) { showToast('"' + x.label + '" must be a whole number.', 'error'); return; }
+      fields[x.k] = { stringValue: v };
+    }
+    fields.updatedAt = { stringValue: new Date().toISOString() };
+    btn.disabled = true; btn.textContent = 'Saving...';
+    try {
+      await fs_patch('siteContent/' + docId, fields);
+      showToast('Saved — the website form is updated.', 'success');
+    } catch (e) {
+      console.error('Form settings save error:', e);
+      showToast('Error saving: ' + (e && e.message || e), 'error');
+    } finally { btn.disabled = false; btn.textContent = 'Save'; }
   }
 
   // SET session line — stored in siteContent/youthMinistry.setSession, read by
