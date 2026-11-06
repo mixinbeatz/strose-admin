@@ -1667,6 +1667,8 @@
           <div class="form-group" id="ol-ministry-group">
             <label class="form-label">Ministry *</label>
             <select class="form-select" id="ol-ministry"></select>
+            <div style="font-size:12px;color:var(--burgundy);font-family:'Cinzel',serif;margin:10px 0 4px;">Also leads (optional)</div>
+            <div id="ol-extra-ministries" style="display:flex;flex-wrap:wrap;gap:6px 14px;"></div>
             <div style="font-size:12px;color:var(--dusty-rose);margin-top:4px;">If this ministry doesn't have its own dedicated portal page yet, they'll see the generic My Ministry / Post to Members tools instead.</div>
             <div style="margin-top:10px;padding:10px 12px;background:var(--linen);border-radius:6px;">
               <div style="font-size:12px;color:var(--burgundy);font-family:'Cinzel',serif;margin-bottom:6px;">Don't see the ministry you need?</div>
@@ -2602,6 +2604,44 @@
   // generic .ministry-only pages (safe default for onboarding a new leader
   // before you've built their dedicated page).
   const MINISTRIES_WITH_DEDICATED_PAGES = ['mens'];
+  // A ministry leader may lead several ministries: claims carry `ministry`
+  // (primary) and `ministries` (full list). activeMinistry() is the one the
+  // My Ministry / Post / Documents pages act on right now (switcher below).
+  function myMinistries() {
+    const c = currentClaims || {};
+    const out = [];
+    if (Array.isArray(c.ministries)) c.ministries.forEach(function(m) { if (m && out.indexOf(m) < 0) out.push(m); });
+    if (c.ministry && out.indexOf(c.ministry) < 0) out.unshift(c.ministry);
+    return out;
+  }
+  function activeMinistry() {
+    const list = myMinistries();
+    let saved = '';
+    try { saved = sessionStorage.getItem('activeMinistry') || ''; } catch (e) {}
+    return (saved && list.indexOf(saved) >= 0) ? saved : (list[0] || '');
+  }
+  function renderMinistrySwitcher() {
+    const old = document.getElementById('ministry-switcher');
+    if (old) old.remove();
+    const isMin = !!(currentClaims && currentClaims.role === 'ministry');
+    const list = myMinistries();
+    if (!isMin || list.length < 2) return;
+    const nav = document.querySelector('.sidebar-nav');
+    if (!nav) return;
+    const cur = activeMinistry();
+    const box = document.createElement('div');
+    box.id = 'ministry-switcher';
+    box.style.cssText = 'padding:10px 16px 6px;';
+    box.innerHTML = '<div style="font-size:11px;letter-spacing:.12em;text-transform:uppercase;color:var(--gold);margin-bottom:6px;">Acting for</div>' +
+      '<select class="form-select" id="ministry-switcher-sel" style="width:100%;" onchange="switchActiveMinistry(this.value)">' +
+      list.map(function(m) { return '<option value="' + escHtml(m) + '"' + (m === cur ? ' selected' : '') + '>' + escHtml(ministryDisplayName(m)) + '</option>'; }).join('') +
+      '</select>';
+    nav.insertBefore(box, nav.firstChild);
+  }
+  function switchActiveMinistry(id) {
+    try { sessionStorage.setItem('activeMinistry', id); } catch (e) {}
+    applyRoleNav();
+  }
 
   // Coarse role bucket for analytics only (never the uid, email or name).
   function trackPortalRole() {
@@ -2615,7 +2655,8 @@
   function applyRoleNav() {
     trackPortalRole();
     const isMinistry = !!(currentClaims && currentClaims.role === 'ministry');
-    const ministryId = currentClaims && currentClaims.ministry;
+    const ministryId = activeMinistry();
+    const myMins = myMinistries();
     const isCheyanne = !!(currentClaims && currentClaims.email === 'cbosn@stroseanthem.com');
     const isMatt     = !isMinistry && !isCheyanne;
     const isOwnerOrAdmin = !!(currentClaims && (currentClaims.role === 'owner' || currentClaims.role === 'admin'));
@@ -2627,12 +2668,13 @@
       var show = false;
       if (el.classList.contains('staff-only') && isMatt) show = true;
       if (el.classList.contains('cheyanne-only') && isCheyanne) show = true;
-      if (el.classList.contains('ministry-leader') && isMinistry && (!el.dataset.ministry || el.dataset.ministry === ministryId)) show = true;
+      if (el.classList.contains('ministry-leader') && isMinistry && (!el.dataset.ministry || myMins.indexOf(el.dataset.ministry) >= 0)) show = true;
       if (el.classList.contains('ministry-only') && !el.classList.contains('ministry-leader') && isMinistry && !MINISTRIES_WITH_DEDICATED_PAGES.includes(ministryId)) show = true;
       if (el.classList.contains('owner-admin-only') && isOwnerOrAdmin) show = true;
       el.style.display = show ? '' : 'none';
     });
 
+    renderMinistrySwitcher();
     if (isMinistry && MINISTRIES_WITH_DEDICATED_PAGES.includes(ministryId)) {
       if (ministryId === 'mens') { showPage('mens-ministry', document.querySelector('.ministry-leader[data-ministry="mens"]')); loadMensMinistry(); loadMensCurrentPost(); }
     } else if (isMinistry) {
@@ -4718,6 +4760,13 @@
     }).join('');
     const target = selectId || previousValue;
     if (target && ministryRegistry.some(function(m) { return m.id === target; })) sel.value = target;
+    const extra = document.getElementById('ol-extra-ministries');
+    if (extra) extra.innerHTML = ministryRegistry.map(function(m) {
+      return '<label style="font-size:13px;color:var(--soil);"><input type="checkbox" class="ol-extra" value="' + m.id + '"> ' + escHtml(m.name) + '</label>';
+    }).join('');
+  }
+  function checkedValues(selector) {
+    return Array.prototype.map.call(document.querySelectorAll(selector + ':checked'), function(el) { return el.value; });
   }
   async function syncMinistriesFromApp() {
     showToast('Syncing ministries...', 'success');
@@ -4926,7 +4975,10 @@
 
     try {
       const body = { email, role, parish: 'saint-rose-anthem' };
-      if (role === 'ministry') body.ministry = ministry;
+      if (role === 'ministry') {
+        body.ministry = ministry;
+        body.ministries = [ministry].concat(checkedValues('.ol-extra').filter(function(m) { return m !== ministry; }));
+      }
 
       const grantRes = await fetch(FUNCTIONS_BASE + '/grantRole', {
         method: 'POST',
@@ -4950,7 +5002,7 @@
       successEl.style.display = 'block';
       showToast('Account created and invite sent!', 'success');
 
-      const roleLabel = role === 'ministry' ? (ministryDisplayName(ministry) + ' leader') : (role.charAt(0).toUpperCase() + role.slice(1));
+      const roleLabel = role === 'ministry' ? ((body.ministries || [ministry]).map(ministryDisplayName).join(' and ') + ' leader') : (role.charAt(0).toUpperCase() + role.slice(1));
       const subject = 'Welcome to the Saint Rose Portal, ' + name.split(' ')[0] + '!';
       const firstName = name.split(' ')[0];
       const roleDescription = (role === 'ministry')
@@ -5004,13 +5056,22 @@
     const roleOptions = EDITABLE_ROLES.map(function(r) {
       return '<option value="' + r + '"' + (r === a.role ? ' selected' : '') + '>' + (r.charAt(0).toUpperCase() + r.slice(1)) + '</option>';
     }).join('');
+    const aMins = (a.ministries && a.ministries.length) ? a.ministries : (a.ministry ? [a.ministry] : []);
     const ministryOptions = ministryRegistry.map(function(m) {
       return '<option value="' + m.id + '"' + (m.id === a.ministry ? ' selected' : '') + '>' + escHtml(m.name) + '</option>';
+    }).join('');
+    const extraBoxes = ministryRegistry.map(function(m) {
+      return '<label style="font-size:13px;color:var(--soil);"><input type="checkbox" class="er-extra-' + a.uid + '" value="' + m.id + '"' + (aMins.indexOf(m.id) >= 0 && m.id !== a.ministry ? ' checked' : '') + '> ' + escHtml(m.name) + '</label>';
     }).join('');
     return '<div id="edit-role-form-' + a.uid + '" style="display:none;margin-top:8px;padding:10px;background:var(--sand);border-radius:6px;">' +
       '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">' +
         '<select class="form-select" id="er-role-' + a.uid + '" style="width:auto;" onchange="toggleErMinistryField(\'' + a.uid + '\')">' + roleOptions + '</select>' +
-        '<select class="form-select" id="er-ministry-' + a.uid + '" style="width:auto;display:' + (a.role === 'ministry' ? '' : 'none') + ';">' + ministryOptions + '</select>' +
+        '<div id="er-ministry-' + a.uid + '" style="display:' + (a.role === 'ministry' ? 'flex' : 'none') + ';flex-direction:column;gap:6px;">' +
+          '<div style="font-size:11px;color:var(--dusty-rose);">Primary ministry</div>' +
+          '<select class="form-select" id="er-ministry-sel-' + a.uid + '" style="width:auto;">' + ministryOptions + '</select>' +
+          '<div style="font-size:11px;color:var(--dusty-rose);margin-top:4px;">Also leads</div>' +
+          '<div style="display:flex;flex-wrap:wrap;gap:6px 14px;">' + extraBoxes + '</div>' +
+        '</div>' +
         '<button class="btn btn-primary btn-sm" onclick="submitEditRole(\'' + a.uid + '\')">Save</button>' +
         '<button class="btn btn-outline btn-sm" onclick="toggleEditRoleForm(\'' + a.uid + '\')">Cancel</button>' +
       '</div>' +
@@ -5022,17 +5083,20 @@
   }
   function toggleErMinistryField(uid) {
     const role = document.getElementById('er-role-' + uid).value;
-    document.getElementById('er-ministry-' + uid).style.display = (role === 'ministry') ? '' : 'none';
+    document.getElementById('er-ministry-' + uid).style.display = (role === 'ministry') ? 'flex' : 'none';
   }
   async function submitEditRole(uid) {
     const account = leaderTrackerAccounts.find(function(a) { return a.uid === uid; });
     if (!account) { showToast('Could not find that account -- refresh and try again.', 'error'); return; }
     const role = document.getElementById('er-role-' + uid).value;
-    const ministry = document.getElementById('er-ministry-' + uid).value;
+    const ministry = document.getElementById('er-ministry-sel-' + uid).value;
     if (role === 'ministry' && !ministry) { showToast('Please choose a ministry.', 'error'); return; }
     try {
       const body = { email: account.email, role: role, parish: 'saint-rose-anthem' };
-      if (role === 'ministry') body.ministry = ministry;
+      if (role === 'ministry') {
+        body.ministry = ministry;
+        body.ministries = [ministry].concat(checkedValues('.er-extra-' + uid).filter(function(m) { return m !== ministry; }));
+      }
       const res = await fetch(FUNCTIONS_BASE + '/grantRole', {
         method: 'POST',
         headers: await authHeaders({ 'Content-Type': 'application/json' }),
@@ -5090,7 +5154,7 @@
       }
 
       listEl.innerHTML = ministryRegistry.map(function(m) {
-        const leaders = ministryAccounts.filter(function(a) { return a.ministry === m.id; });
+        const leaders = ministryAccounts.filter(function(a) { return (a.ministries && a.ministries.length ? a.ministries : [a.ministry]).indexOf(m.id) >= 0; });
         const rows = leaders.length ? leaders.map(function(a) {
           const name = STAFF_NAME_MAP[a.email] || a.email;
           const statusBadge = a.disabled ? ' <span style="color:var(--danger);font-size:11px;">Disabled</span>' : '';
@@ -8864,7 +8928,7 @@
     } catch(e) { showToast('Error deleting: ' + e.message, 'error'); }
   }
   async function loadMyMinistry() {
-    const ministryId = currentClaims && currentClaims.ministry;
+    const ministryId = activeMinistry();
     if (!ministryId) { document.getElementById('my-ministry-loading').textContent = 'No ministry assigned to this account.'; return; }
     try {
       const res = await fs_get_doc('ministries/' + ministryId);
@@ -8883,7 +8947,7 @@
     }
   }
   async function saveMyMinistry() {
-    const ministryId = currentClaims && currentClaims.ministry;
+    const ministryId = activeMinistry();
     if (!ministryId) return;
     const fields = {
       schedule: {stringValue: document.getElementById('mm-schedule').value.trim()},
@@ -8905,7 +8969,7 @@
     const list = document.getElementById('ministry-posts-list');
     if (!list) return;
     list.innerHTML = '<div style="color:var(--dusty-rose);font-size:14px;">Loading...</div>';
-    const ministryId = currentClaims && currentClaims.ministry;
+    const ministryId = activeMinistry();
     if (!ministryId) { list.innerHTML = '<div style="color:var(--dusty-rose);font-size:14px;">No ministry assigned to this account.</div>'; return; }
     try {
       const res = await fs_get_doc('currentPosts/' + ministryId);
@@ -8933,7 +8997,7 @@
   }
   async function clearCurrentPost() {
     if (!confirm('Clear this post? It will no longer show in the app.')) return;
-    const ministryId = currentClaims && currentClaims.ministry;
+    const ministryId = activeMinistry();
     if (!ministryId) return;
     try {
       await fs_delete('currentPosts/' + ministryId);
@@ -9212,7 +9276,7 @@
   }
 
   async function postMinistryMessage() {
-    const ministryId = currentClaims && currentClaims.ministry;
+    const ministryId = activeMinistry();
     if (!ministryId) { showToast('No ministry assigned to this account.', 'error'); return; }
     const postedBy = document.getElementById('mp-postedby').value.trim();
     const body = document.getElementById('mp-body').value.trim();
@@ -9678,7 +9742,7 @@
 
   async function loadMinistryMembers() {
     document.getElementById('cda-members-list').innerHTML = '<div style="color:var(--dusty-rose);font-size:13px;padding:8px;">Loading...</div>';
-    const ministryName = MINISTRY_NAME_MAP[currentClaims && currentClaims.ministry] || (currentClaims && currentClaims.ministry) || '';
+    const ministryName = MINISTRY_NAME_MAP[activeMinistry()] || activeMinistry() || '';
     try {
       const res = await fs_get('parishFamily');
       cdaMembers = (res.documents||[]).filter(d => {
@@ -10774,7 +10838,7 @@
     var description = document.getElementById('se-description').value.trim();
     var link = document.getElementById('se-link').value.trim();
     if (!title) { showToast('Title is required.', 'error'); return; }
-    var ministry = MINISTRY_NAME_MAP[currentClaims && currentClaims.ministry] || 'Ministry';
+    var ministry = MINISTRY_NAME_MAP[activeMinistry()] || 'Ministry';
     var submittedBy = STAFF_NAME_MAP[currentUser] || currentUser;
     try {
       await fs_post('eventRequests', {
