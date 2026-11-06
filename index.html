@@ -512,6 +512,10 @@
           </div>
           <div id="dash-familyreg-list"><div style="color:var(--dusty-rose);font-size:13px;">Loading...</div></div>
         </div>
+        <div class="card staff-only" id="dash-otherforms-card">
+          <div class="card-title">📋 Other Registrations &amp; Forms</div>
+          <div id="dash-otherforms-list"><div style="color:var(--dusty-rose);font-size:13px;">Loading...</div></div>
+        </div>
         <div class="card">
           <div class="card-title">📌 Quick Actions</div>
           <div style="display:flex;gap:12px;flex-wrap:wrap;">
@@ -2214,7 +2218,7 @@
         <div class="card">
           <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;">
             <span>✝️ Faith Formation Registrations</span>
-            <button class="btn btn-outline btn-sm" onclick="exportFFRegsCSV()">Export CSV</button>
+            <span style="display:flex;gap:8px;"><button class="btn btn-outline btn-sm" onclick="exportFFRegsCSV()">Export CSV</button><button class="btn btn-outline btn-sm" onclick="exportAllFFRegsCSV()">Export All Fields</button></span>
           </div>
           <div class="info-box">Children's Ministry (PS&ndash;Grade 5) sign-ups from the website's Faith Formation Registration form, most recent first. Open a card to see the full submission and to record payment in the &ldquo;Parish Office Use&rdquo; box &mdash; the digital equivalent of the paper form's box.</div>
           <div id="ffreg-list"><div style="color:var(--dusty-rose);font-size:14px;">Loading...</div></div>
@@ -2237,7 +2241,7 @@
         <div class="card" style="margin-top:16px;">
           <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;">
             <span>🔥 Youth Ministry Registrations</span>
-            <button class="btn btn-outline btn-sm" onclick="exportYMRegsCSV()">Export CSV</button>
+            <span style="display:flex;gap:8px;"><button class="btn btn-outline btn-sm" onclick="exportYMRegsCSV()">Export CSV</button><button class="btn btn-outline btn-sm" onclick="exportAllYMRegsCSV()">Export All Fields</button></span>
           </div>
           <div class="info-box">St. Rose Edge &amp; Life Teen sign-ups from the website's Youth Ministry Registration form, most recent first. Open a card to see the full submission (teens, volunteer interests, transportation consent, SET acknowledgment) and to record payment in the &ldquo;Parish Office Use&rdquo; box.</div>
           <div id="ymreg-list"><div style="color:var(--dusty-rose);font-size:14px;">Loading...</div></div>
@@ -2324,9 +2328,15 @@
       </div>
       <div class="page" id="page-funeral-planning">
         <div class="card">
-          <div class="card-title">🕊️ Funeral Planning Forms</div>
+          <div class="card-title" style="display:flex;align-items:center;justify-content:space-between;"><span>🕊️ Funeral Planning Forms</span><button class="btn btn-outline btn-sm" onclick="exportFuneralCSV()">Export CSV</button></div>
           <div class="info-box">Submitted from the Funeral Planning Form on the website (linked from the app's Funeral Guide). That form's main job is to open a pre-filled email straight to the Funeral Ministry (Chris Bosn) — this list is a backup copy in case the family never presses send. Mark a form handled once the Funeral Ministry has it.</div>
           <div id="funeral-planning-list"><p style="opacity:0.5;font-size:14px">Loading...</p></div>
+        </div>
+        <div class="card" style="margin-top:16px;">
+          <details>
+            <summary class="card-title" style="cursor:pointer;margin-bottom:0;border-bottom:none;padding-bottom:0;">✓ Handled Forms <span id="funeral-handled-count" style="font-size:13px;color:var(--dusty-rose);"></span></summary>
+            <div id="funeral-handled-list" style="margin-top:14px;"></div>
+          </details>
         </div>
       </div>
     </div>
@@ -3610,6 +3620,36 @@
   function calPrev() { calMonth--; if (calMonth < 0) { calMonth = 11; calYear--; } renderCal(); }
   function calNext() { calMonth++; if (calMonth > 11) { calMonth = 0; calYear++; } renderCal(); }
 
+  // Dashboard card for the other three forms. Staff-only (see markup): payment
+  // and funeral details are not Cheyanne's by default. Reuses the data
+  // loadDashboard already fetched. Funeral rows show a date only, never a name.
+  function renderDashboardOtherForms(funeralDocs, ffDocs, ymDocs) {
+    const list = document.getElementById('dash-otherforms-list');
+    if (!list) return;
+    const fmtDay = iso => iso ? new Date(iso).toLocaleDateString('en-US', {month:'short', day:'numeric'}) : '';
+    const newest = (docs, key) => docs.slice().sort((a, b) => new Date(gf(b, key) || 0) - new Date(gf(a, key) || 0))[0];
+    const pendingFuneral = funeralDocs.filter(d => gf(d, 'status') === 'pending');
+    const latestFuneral = newest(pendingFuneral, 'createdAt');
+    const regRow = (docs) => {
+      const unpaid = docs.filter(d => !ffRecon(d).paymentReceived).length;
+      const latest = newest(docs, 'submittedAt');
+      const sub = latest ? 'Latest: ' + escHtml(gf(latest, 'familyLastName') || '') + ' Family' + (gf(latest, 'submittedAt') ? ' · ' + escHtml(fmtDay(gf(latest, 'submittedAt'))) : '') : 'No registrations yet';
+      return { value: unpaid, text: unpaid + ' unpaid of ' + docs.length, sub: sub };
+    };
+    const ff = regRow(ffDocs), ym = regRow(ymDocs);
+    const rows = [
+      { icon: '🕊️', label: 'Funeral Planning', value: pendingFuneral.length, text: pendingFuneral.length + ' pending',
+        sub: latestFuneral ? 'Latest: ' + escHtml(fmtDay(gf(latestFuneral, 'createdAt'))) : 'None waiting', go: "showPage('funeral-planning',navItem('funeral-planning'));loadFuneralPlanning()" },
+      { icon: '✝️', label: 'Faith Formation', value: ff.value, text: ff.text, sub: ff.sub, go: "showPage('faith-formation-registrations',navItem('faith-formation-registrations'));loadFaithFormationRegs()" },
+      { icon: '🔥', label: 'Youth Ministry', value: ym.value, text: ym.text, sub: ym.sub, go: "showPage('youth-ministry-registrations',navItem('youth-ministry-registrations'));loadYouthMinistryRegs();loadYMSettings()" }
+    ];
+    list.innerHTML = rows.map(function(r) {
+      return '<div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;border-bottom:1px solid var(--linen);cursor:pointer;" onclick="' + r.go + '">' +
+        '<div><strong>' + r.icon + ' ' + r.label + '</strong><div style="font-size:12px;color:var(--soil);opacity:0.75;margin-top:2px;">' + r.sub + '</div></div>' +
+        '<span style="font-size:13px;font-weight:600;white-space:nowrap;color:' + (r.value > 0 ? 'var(--burgundy)' : 'var(--dusty-rose)') + ';">' + r.text + '</span></div>';
+    }).join('');
+  }
+
   function openFamilyRegistrations() {
     showPage('family-registrations', navItem('family-registrations'));
     loadFamilyRegistrations();
@@ -3659,6 +3699,7 @@
       const familyRegBadge = document.getElementById('familyreg-count');
       if (familyRegBadge) { familyRegBadge.textContent = pendingFamilyRegs.length; familyRegBadge.style.display = pendingFamilyRegs.length > 0 ? '' : 'none'; }
       renderDashboardFamilyRegs(familyRegs.documents || []);
+      renderDashboardOtherForms(funeralPlans.documents || [], ffRegs.documents || [], ymRegs.documents || []);
       const approved = (fam.documents||[]).filter(d=>gf(d,'approved')===true);
       const pending = (fam.documents||[]).filter(d=>gf(d,'approved')===false && gf(d,'rejected')!==true);
       const preqs = (parts.documents||[]).filter(d=>!gf(d,'parishApproved')||gf(d,'status')==='awaiting_activation');
@@ -5495,6 +5536,199 @@
     downloadFamiliesCSV(pendingFamilyRegsCache, 'pending_family_registrations');
   }
 
+  // ── SHARED REGISTRATION TOOLS (Funeral Planning / Faith Formation / Youth Ministry) ──
+  // Same copy / print / email / full-CSV tools the Family Registrations tab has,
+  // built generically: any Firestore doc is flattened to plain JS, so every field
+  // the form captured comes through without a per-form field list to keep in sync.
+  let funeralCache = [];
+  const REG_KEY_LABELS = { dob: 'Date of Birth', cell: 'Cell', gradeShirtSize: 'Grade / Shirt Size', submittedAt: 'Submitted', createdAt: 'Submitted',
+    signatureName: 'Signature', motherCityZip: 'Mother City / Zip', fatherCityZip: 'Father City / Zip', sacramentalPrep: 'Sacramental Prep', set: 'SET' };
+  const REG_FORMS = {
+    faithFormationRegistrations: {
+      label: 'Faith Formation Registration', cache: function() { return ffRegsCache; },
+      title: function(p) { return (p.familyLastName || '') + ' Family'; },
+      emails: function(p) { return [p.motherEmail, p.fatherEmail]; },
+      subject: 'Faith Formation Registration — Saint Rose Philippine Duchesne Parish',
+      body: function(p) { return 'Dear ' + (p.familyLastName || '') + ' Family,\n\nThank you for registering for Faith Formation at Saint Rose Philippine Duchesne Parish. We have received your registration and the parish office is processing it.\n\nIf you have any questions, just reply to this email.\n\nGod bless,\nSaint Rose Philippine Duchesne Parish Office'; }
+    },
+    youthMinistryRegistrations: {
+      label: 'Youth Ministry Registration', cache: function() { return ymRegsCache; },
+      title: function(p) { return (p.familyLastName || '') + ' Family'; },
+      emails: function(p) { return [p.motherEmail, p.fatherEmail]; },
+      subject: 'Youth Ministry Registration — Saint Rose Philippine Duchesne Parish',
+      body: function(p) { return 'Dear ' + (p.familyLastName || '') + ' Family,\n\nThank you for registering for Youth Ministry at Saint Rose Philippine Duchesne Parish. We have received your registration and the parish office is processing it.\n\nIf you have any questions, just reply to this email.\n\nGod bless,\nSaint Rose Philippine Duchesne Parish Office'; }
+    },
+    funeralPlanningSubmissions: {
+      label: 'Funeral Planning Form', cache: function() { return funeralCache; },
+      title: function(p) { return 'Funeral of ' + (p.deceasedName || 'Unnamed'); },
+      emails: function(p) { return [p.contactEmail]; },
+      subject: 'Saint Rose Philippine Duchesne Parish — Funeral Planning',
+      body: function(p) { return 'Dear ' + (p.contactPerson || 'Family') + ',\n\nPlease accept our sincere condolences on the loss of ' + (p.deceasedName || 'your loved one') + '. We have received the funeral planning information you submitted, and the Funeral Ministry will be in touch with you soon.\n\nIn the meantime, please call the parish office if there is anything you need.\n\nIn Christ,\nSaint Rose Philippine Duchesne Parish'; }
+    }
+  };
+
+  function fsToJs(v) {
+    if (!v) return '';
+    if ('stringValue' in v) return v.stringValue;
+    if ('integerValue' in v) return Number(v.integerValue);
+    if ('doubleValue' in v) return v.doubleValue;
+    if ('booleanValue' in v) return v.booleanValue;
+    if ('timestampValue' in v) return v.timestampValue;
+    if ('arrayValue' in v) return (v.arrayValue.values || []).map(fsToJs);
+    if ('mapValue' in v) { const o = {}, f = v.mapValue.fields || {}; Object.keys(f).forEach(function(k) { o[k] = fsToJs(f[k]); }); return o; }
+    return '';
+  }
+  function regPlain(doc) {
+    const o = {}, f = doc.fields || {};
+    Object.keys(f).forEach(function(k) { if (k !== 'updatedAt') o[k] = fsToJs(f[k]); });
+    return o;
+  }
+  function humanKey(k) { return REG_KEY_LABELS[k] || k.replace(/([a-z0-9])([A-Z])/g, '$1 $2').replace(/^./, function(c) { return c.toUpperCase(); }); }
+  function regEmpty(v) {
+    if (v === '' || v === null || v === undefined) return true;
+    if (Array.isArray(v)) return v.every(regEmpty);
+    if (typeof v === 'object') return Object.keys(v).every(function(k) { return regEmpty(v[k]); });
+    return false;
+  }
+  function fmtRegVal(key, v) {
+    if (v === true) return 'Yes';
+    if (v === false) return 'No';
+    if (typeof v === 'string' && /At$/.test(key) && v && !isNaN(Date.parse(v))) return new Date(v).toLocaleString('en-US');
+    return String(v);
+  }
+  function regLines(obj, indent) {
+    const pad = '  '.repeat(indent), out = [];
+    Object.keys(obj).forEach(function(k) {
+      const v = obj[k];
+      if (regEmpty(v)) return;
+      if (Array.isArray(v)) {
+        if (v.every(function(x) { return x === null || typeof x !== 'object'; })) { out.push(pad + humanKey(k) + ': ' + v.map(function(x) { return fmtRegVal(k, x); }).join(', ')); return; }
+        out.push(pad + humanKey(k).toUpperCase() + ' (' + v.length + ')');
+        v.forEach(function(item, i) { out.push(pad + '  #' + (i + 1)); out.push.apply(out, regLines(item, indent + 2)); });
+      } else if (v && typeof v === 'object') {
+        out.push(pad + humanKey(k).toUpperCase());
+        out.push.apply(out, regLines(v, indent + 1));
+      } else {
+        out.push(pad + humanKey(k) + ': ' + fmtRegVal(k, v));
+      }
+    });
+    return out;
+  }
+  function regText(collection, doc) {
+    const form = REG_FORMS[collection], p = regPlain(doc);
+    if (collection === 'funeralPlanningSubmissions') {
+      const L = [form.label + ' — ' + form.title(p)];
+      if (p.createdAt) L.push('Submitted: ' + fmtRegVal('createdAt', p.createdAt));
+      const contact = [p.contactPerson, p.contactEmail, p.contactPhone].filter(Boolean).join(' · ');
+      if (contact) L.push('Contact: ' + contact);
+      L.push('', p.summary || '(no details captured)');
+      return L.join('\n');
+    }
+    return [form.label + ' — ' + form.title(p), ''].concat(regLines(p, 0)).join('\n');
+  }
+  function regFind(collection, id) {
+    const form = REG_FORMS[collection];
+    return form ? form.cache().find(function(d) { return docId(d) === id; }) : null;
+  }
+  function regActionButtons(collection, id, hasEmail) {
+    return '<button class="btn btn-outline btn-sm" onclick="regCopy(\'' + collection + '\',\'' + id + '\')">Copy details</button>' +
+      '<button class="btn btn-outline btn-sm" onclick="regPrint(\'' + collection + '\',\'' + id + '\')">Print</button>' +
+      (hasEmail ? '<button class="btn btn-outline btn-sm" onclick="regEmail(\'' + collection + '\',\'' + id + '\')">Email family</button>' : '');
+  }
+  async function regCopy(collection, id) {
+    const doc = regFind(collection, id);
+    if (!doc) { showToast('Could not find that submission — reload the tab.', 'error'); return; }
+    const text = regText(collection, doc);
+    try {
+      await navigator.clipboard.writeText(text);
+    } catch (e) {
+      const ta = document.createElement('textarea');
+      ta.value = text; ta.style.position = 'fixed'; ta.style.opacity = '0';
+      document.body.appendChild(ta); ta.select();
+      try { document.execCommand('copy'); } catch (e2) { document.body.removeChild(ta); showToast('Copy failed.', 'error'); return; }
+      document.body.removeChild(ta);
+    }
+    showToast('Details copied.', 'success');
+  }
+  function regPrint(collection, id) {
+    const doc = regFind(collection, id);
+    if (!doc) { showToast('Could not find that submission — reload the tab.', 'error'); return; }
+    const form = REG_FORMS[collection];
+    const w = window.open('', '_blank');
+    if (!w) { showToast('Allow pop-ups to print.', 'error'); return; }
+    w.document.write('<!doctype html><html><head><meta charset="utf-8"><title>' + escHtml(form.label) + '</title>' +
+      '<style>body{font-family:Georgia,serif;color:#3D2B2B;max-width:720px;margin:32px auto;padding:0 24px;}h1{font-size:20px;color:#5C1A2E;border-bottom:2px solid #C9A84C;padding-bottom:8px;}pre{font-family:inherit;font-size:14px;line-height:1.6;white-space:pre-wrap;}</style></head><body>' +
+      '<h1>Saint Rose Philippine Duchesne Parish — ' + escHtml(form.label) + '</h1><pre>' + escHtml(regText(collection, doc)) + '</pre></body></html>');
+    w.document.close();
+    w.focus();
+    setTimeout(function() { w.print(); }, 300);
+  }
+  function regEmail(collection, id) {
+    const doc = regFind(collection, id);
+    if (!doc) { showToast('Could not find that submission — reload the tab.', 'error'); return; }
+    const form = REG_FORMS[collection], p = regPlain(doc);
+    const emails = form.emails(p).filter(Boolean).filter(function(e, i, a) { return a.indexOf(e) === i; });
+    if (!emails.length) { showToast('No email address on this submission.', 'error'); return; }
+    window.open('https://mail.google.com/mail/?view=cm&fs=1&to=' + encodeURIComponent(emails[0]) + (emails[1] ? '&cc=' + encodeURIComponent(emails[1]) : '') +
+      '&su=' + encodeURIComponent(form.subject) + '&body=' + encodeURIComponent(form.body(p)), '_blank');
+  }
+
+  // Full-field CSV. Scalar fields become columns, nested maps (payment, fees,
+  // consent sections) are flattened with a prefix, and a `children` list gets one
+  // row per child with "Child ..." columns. Cells that start like a formula are
+  // neutralized because these forms are public, unauthenticated writes.
+  function csvCell(v) {
+    let s = String(v == null ? '' : v);
+    if (/^[=@]/.test(s) || /^[+\-][^\d\s().]/.test(s)) s = "'" + s;
+    return '"' + s.replace(/"/g, '""') + '"';
+  }
+  function regFlatten(obj, prefix, out) {
+    Object.keys(obj).forEach(function(k) {
+      const v = obj[k], label = (prefix ? prefix + ' ' : '') + humanKey(k);
+      if (Array.isArray(v)) {
+        out[label] = v.map(function(x) {
+          return (x && typeof x === 'object')
+            ? Object.keys(x).filter(function(kk) { return !regEmpty(x[kk]); }).map(function(kk) { return humanKey(kk) + ': ' + fmtRegVal(kk, x[kk]); }).join(', ')
+            : fmtRegVal(k, x);
+        }).join(' | ');
+      } else if (v && typeof v === 'object') {
+        regFlatten(v, label, out);
+      } else {
+        out[label] = fmtRegVal(k, v);
+      }
+    });
+    return out;
+  }
+  function regCsvText(docs) {
+    const rows = [];
+    docs.forEach(function(doc) {
+      const p = regPlain(doc);
+      const kids = (Array.isArray(p.children) && p.children.length && typeof p.children[0] === 'object') ? p.children : null;
+      const base = Object.assign({}, p); delete base.children;
+      const flat = regFlatten(base, '', {});
+      if (!kids) { rows.push(flat); return; }
+      kids.forEach(function(c) { rows.push(Object.assign({}, flat, regFlatten(c, 'Child', {}))); });
+    });
+    const cols = [];
+    rows.forEach(function(r) { Object.keys(r).forEach(function(k) { if (cols.indexOf(k) < 0) cols.push(k); }); });
+    return cols.map(csvCell).join(',') + '\n' + rows.map(function(r) { return cols.map(function(c) { return csvCell(r[c]); }).join(','); }).join('\n');
+  }
+  function downloadRegCSV(docs, prefix) {
+    if (!docs.length) { showToast('Nothing to export.', 'error'); return; }
+    const blob = new Blob([regCsvText(docs)], { type: 'text/csv' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = prefix + '_' + new Date().toISOString().split('T')[0] + '.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+  }
+  function exportAllFFRegsCSV() { downloadRegCSV(ffRegsCache, 'faith_formation_all_fields'); }
+  function exportAllYMRegsCSV() { downloadRegCSV(ymRegsCache, 'youth_ministry_all_fields'); }
+  function exportFuneralCSV() { downloadRegCSV(funeralCache, 'funeral_planning_forms'); }
+
   // ── FAITH FORMATION REGISTRATIONS ──
   // Children's Ministry (PS-Grade 5) sign-ups from the website form
   // (faith-formation-registration.html -> faithFormationRegistrations).
@@ -5639,7 +5873,7 @@
     h += '</div>';
     h += '<div style="display:flex;gap:8px;margin-top:14px;flex-wrap:wrap;">';
     h += '<button class="btn btn-primary btn-sm" onclick="saveRecon(\'' + collection + '\',\'' + id + '\',\'' + reloadFn + '\')">Save Payment Info</button>';
-    if (familyEmail) h += '<a class="btn btn-outline btn-sm" href="mailto:' + escAttr(familyEmail) + '" style="text-decoration:none;">Email Family</a>';
+    h += regActionButtons(collection, id, !!familyEmail);
     h += '<button class="btn btn-outline btn-sm" onclick="deleteReg(\'' + collection + '\',\'' + id + '\',\'' + escAttr(lastName) + '\',\'' + reloadFn + '\',\'' + cardElId + '\')">Delete</button>';
     h += '</div></div>';
     return h;
@@ -9074,36 +9308,44 @@
   // ── FUNERAL PLANNING FORMS ──
   async function loadFuneralPlanning() {
     const list = document.getElementById('funeral-planning-list');
+    const handledList = document.getElementById('funeral-handled-list');
     list.innerHTML = '<div style="color:var(--dusty-rose);font-size:14px;">Loading...</div>';
     try {
       const res = await fs_get('funeralPlanningSubmissions');
-      const docs = (res.documents||[]).filter(d => gf(d,'status') === 'pending')
-        .sort((a,b) => gf(b,'createdAt').localeCompare(gf(a,'createdAt')));
+      const all = (res.documents||[]).sort((a,b) => String(gf(b,'createdAt')).localeCompare(String(gf(a,'createdAt'))));
+      funeralCache = all;
+      const docs = all.filter(d => gf(d,'status') === 'pending');
+      const handled = all.filter(d => gf(d,'status') !== 'pending');
       const badge = document.getElementById('funeral-plan-count');
       if (docs.length > 0) { badge.style.display = ''; badge.textContent = docs.length; }
       else { badge.style.display = 'none'; }
-      if (docs.length === 0) { list.innerHTML = '<div style="color:var(--dusty-rose);font-size:14px;padding:12px;">No pending funeral planning forms.</div>'; return; }
-      list.innerHTML = docs.map(doc => {
-        const id = docId(doc);
-        const name = gf(doc, 'deceasedName') || 'Unnamed';
-        const contactPerson = gf(doc, 'contactPerson');
-        const contactEmail = gf(doc, 'contactEmail');
-        const contactPhone = gf(doc, 'contactPhone');
-        const summary = gf(doc, 'summary') || '(no details captured)';
-        const date = new Date(gf(doc,'createdAt')||'').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'});
-        const contactLine = [contactPerson, contactEmail, contactPhone].filter(Boolean).map(escHtml).join(' · ');
-        return '<div id="fplan-' + id + '" style="padding:16px;border-bottom:1px solid var(--linen);">' +
-          '<div style="font-family:\'Cinzel\',serif;font-size:14px;color:var(--burgundy);margin-bottom:2px;">Funeral of ' + escHtml(name) + '</div>' +
-          (contactLine ? '<div style="font-size:11px;color:var(--dusty-rose);margin-bottom:2px;">' + contactLine + '</div>' : '') +
-          '<div style="font-size:11px;color:var(--dusty-rose);margin-bottom:10px;">' + date + '</div>' +
-          '<pre style="font-family:\'Faustina\',serif;font-size:13px;color:var(--soil);line-height:1.6;margin-bottom:12px;padding:12px;background:var(--sand);border-radius:6px;white-space:pre-wrap;word-break:break-word;">' + escHtml(summary) + '</pre>' +
-          '<div style="display:flex;gap:8px;">' +
-          '<button class="btn btn-primary btn-sm" onclick="markFuneralPlanningHandled(\'' + id + '\')">Mark Handled</button>' +
-          '<button class="btn btn-outline btn-sm" onclick="deleteFuneralPlanning(\'' + id + '\',\'' + escAttr(name) + '\')">Delete</button>' +
-          '</div>' +
-        '</div>';
-      }).join('');
+      list.innerHTML = docs.length ? docs.map(d => renderFuneralCard(d, false)).join('') : '<div style="color:var(--dusty-rose);font-size:14px;padding:12px;">No pending funeral planning forms.</div>';
+      const hc = document.getElementById('funeral-handled-count');
+      if (hc) hc.textContent = handled.length ? '(' + handled.length + ')' : '';
+      if (handledList) handledList.innerHTML = handled.length ? handled.map(d => renderFuneralCard(d, true)).join('') : '<div style="color:var(--dusty-rose);font-size:14px;padding:12px;">No handled forms yet.</div>';
     } catch(e) { list.innerHTML = '<div style="color:var(--dusty-rose);font-size:14px;">Error loading.</div>'; }
+  }
+
+  function renderFuneralCard(doc, isHandled) {
+    const id = docId(doc);
+    const name = gf(doc, 'deceasedName') || 'Unnamed';
+    const contactPerson = gf(doc, 'contactPerson');
+    const contactEmail = gf(doc, 'contactEmail');
+    const contactPhone = gf(doc, 'contactPhone');
+    const summary = gf(doc, 'summary') || '(no details captured)';
+    const date = new Date(gf(doc,'createdAt')||'').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric',hour:'2-digit',minute:'2-digit'});
+    const contactLine = [contactPerson, contactEmail, contactPhone].filter(Boolean).map(escHtml).join(' · ');
+    return '<div id="fplan-' + id + '" style="padding:16px;border-bottom:1px solid var(--linen);">' +
+      '<div style="font-family:\'Cinzel\',serif;font-size:14px;color:var(--burgundy);margin-bottom:2px;">Funeral of ' + escHtml(name) + '</div>' +
+      (contactLine ? '<div style="font-size:11px;color:var(--dusty-rose);margin-bottom:2px;">' + contactLine + '</div>' : '') +
+      '<div style="font-size:11px;color:var(--dusty-rose);margin-bottom:10px;">' + date + '</div>' +
+      '<pre style="font-family:\'Faustina\',serif;font-size:13px;color:var(--soil);line-height:1.6;margin-bottom:12px;padding:12px;background:var(--sand);border-radius:6px;white-space:pre-wrap;word-break:break-word;">' + escHtml(summary) + '</pre>' +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;">' +
+      (isHandled ? '' : '<button class="btn btn-primary btn-sm" onclick="markFuneralPlanningHandled(\'' + id + '\')">Mark Handled</button>') +
+      regActionButtons('funeralPlanningSubmissions', id, !!contactEmail) +
+      '<button class="btn btn-outline btn-sm" onclick="deleteFuneralPlanning(\'' + id + '\',\'' + escAttr(name) + '\')">Delete</button>' +
+      '</div>' +
+    '</div>';
   }
 
   async function markFuneralPlanningHandled(id) {
