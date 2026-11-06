@@ -799,6 +799,21 @@
             <div style="font-size:12px;color:var(--dusty-rose);margin-top:6px;">Adds a "Learn More" button to the announcement in the app.</div>
           </div>
           <div class="form-group">
+            <label class="form-label">Hero image (optional)</label>
+            <div style="font-size:12px;color:var(--dusty-rose);margin-bottom:8px;">A wide picture behind the title at the top of the announcement. The app tints it with the parish burgundy so the title stays easy to read. Without one, the title sits on a plain burgundy bar.</div>
+            <div id="ann-hero-current"></div>
+            <div id="ann-hero-editor" style="display:none;margin-bottom:10px;">
+              <canvas id="ann-hero-canvas" width="1200" height="500" style="width:100%;max-width:480px;border-radius:8px;background:var(--linen);touch-action:none;cursor:grab;display:block;"></canvas>
+              <div style="display:flex;align-items:center;gap:10px;max-width:480px;margin-top:8px;font-size:12px;color:var(--soil);">Zoom <input type="range" id="ann-hero-zoom" min="1" max="3" step="0.01" value="1" style="flex:1;" oninput="annHeroZoom(this.value)" /></div>
+              <div style="font-size:11px;color:var(--dusty-rose);margin-top:6px;">Drag the picture to reposition it. This frame is exactly what the app shows.</div>
+              <div class="btn-row" style="margin-top:10px;">
+                <button type="button" class="btn btn-primary btn-sm" onclick="applyAnnHero()">Use this image</button>
+                <button type="button" class="btn btn-outline btn-sm" onclick="cancelAnnHero()">Cancel</button>
+              </div>
+            </div>
+            <label class="btn btn-outline btn-sm" style="cursor:pointer;display:inline-block;">+ Choose hero image<input type="file" accept="image/*" style="display:none;" onchange="handleAnnHeroPick(this)" /></label>
+          </div>
+          <div class="form-group">
             <label class="form-label">Event details (optional)</label>
             <div style="font-size:12px;color:var(--dusty-rose);margin-bottom:8px;">Shows the date, time and place at the top of the announcement in the app, with an "Add to Calendar" button. Leave blank for a regular announcement.</div>
             <div class="form-grid">
@@ -4109,10 +4124,105 @@
   // every other photo swap in the portal.
   function removeAnnPhoto(i) { annPhotos.splice(i, 1); renderAnnPhotos(); }
 
+  // Hero image: a wide banner behind the title in the app. Framed here at a fixed
+  // 2.4:1 (drag to reposition, slider to zoom) so what you see is what the app
+  // shows. Stored on the announcement as heroImageUrl.
+  var annHeroUrl = '';
+  var annHeroEd = { img: null, zoom: 1, panX: 0, panY: 0 };
+  const ANN_HERO_W = 1200, ANN_HERO_H = 500;
+  function annHeroGeom() {
+    const e = annHeroEd;
+    const cover = Math.max(ANN_HERO_W / e.img.naturalWidth, ANN_HERO_H / e.img.naturalHeight), s = cover * e.zoom;
+    const w = e.img.naturalWidth * s, h = e.img.naturalHeight * s;
+    const maxX = Math.max(0, (w - ANN_HERO_W) / 2), maxY = Math.max(0, (h - ANN_HERO_H) / 2);
+    e.panX = Math.max(-maxX, Math.min(maxX, e.panX));
+    e.panY = Math.max(-maxY, Math.min(maxY, e.panY));
+    return { w: w, h: h, x: (ANN_HERO_W - w) / 2 + e.panX, y: (ANN_HERO_H - h) / 2 + e.panY };
+  }
+  function annHeroDraw() {
+    const cv = document.getElementById('ann-hero-canvas');
+    if (!cv || !annHeroEd.img) return;
+    const g = annHeroGeom(), ctx = cv.getContext('2d');
+    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, ANN_HERO_W, ANN_HERO_H);
+    ctx.drawImage(annHeroEd.img, g.x, g.y, g.w, g.h);
+  }
+  function annHeroZoom(v) {
+    if (!annHeroEd.img) return;
+    annHeroEd.zoom = Math.max(1, Math.min(3, parseFloat(v) || 1));
+    annHeroDraw();
+  }
+  function handleAnnHeroPick(input) {
+    const file = input.files && input.files[0];
+    input.value = '';
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const img = new Image();
+      img.onload = function() {
+        annHeroEd = { img: img, zoom: 1, panX: 0, panY: 0 };
+        document.getElementById('ann-hero-zoom').value = 1;
+        document.getElementById('ann-hero-editor').style.display = 'block';
+        annHeroDraw();
+      };
+      img.onerror = function() { showToast('Could not read that image.', 'error'); };
+      img.src = e.target.result;
+    };
+    reader.onerror = function() { showToast('Could not read that file.', 'error'); };
+    reader.readAsDataURL(file);
+  }
+  function cancelAnnHero() {
+    annHeroEd = { img: null, zoom: 1, panX: 0, panY: 0 };
+    const ed = document.getElementById('ann-hero-editor');
+    if (ed) ed.style.display = 'none';
+  }
+  async function applyAnnHero() {
+    if (!annHeroEd.img) return;
+    annHeroDraw();
+    const base64 = document.getElementById('ann-hero-canvas').toDataURL('image/jpeg', 0.85).split(',')[1];
+    try {
+      annHeroUrl = await uploadDevFile(base64, 'announcement-hero.jpg', 'announcements', 'image/jpeg');
+      cancelAnnHero();
+      renderAnnHero();
+      showToast('Hero image added — post or update to save it.', 'success');
+    } catch (e) { console.error('Announcement hero upload error:', e); showToast('Upload failed: ' + (e && e.message || e), 'error'); }
+  }
+  function removeAnnHero() { annHeroUrl = ''; renderAnnHero(); }
+  function renderAnnHero() {
+    const el = document.getElementById('ann-hero-current');
+    if (!el) return;
+    el.innerHTML = annHeroUrl
+      ? '<div style="margin-bottom:10px;"><img src="' + annAttr(annHeroUrl) + '" alt="" style="width:100%;max-width:480px;aspect-ratio:2.4/1;object-fit:cover;border-radius:8px;display:block;background:var(--linen);" />' +
+        '<button type="button" class="btn btn-outline btn-sm" style="margin-top:8px;" onclick="removeAnnHero()">Remove hero image</button></div>'
+      : '';
+  }
+  (function wireAnnHeroCanvas() {
+    const cv = document.getElementById('ann-hero-canvas');
+    if (!cv) return;
+    let drag = null;
+    cv.addEventListener('pointerdown', function(ev) {
+      if (!annHeroEd.img) return;
+      drag = { x: ev.clientX, y: ev.clientY, px: annHeroEd.panX, py: annHeroEd.panY };
+      try { cv.setPointerCapture(ev.pointerId); } catch (e) {}
+    });
+    cv.addEventListener('pointermove', function(ev) {
+      if (!drag) return;
+      const ratio = cv.width / cv.getBoundingClientRect().width;
+      annHeroEd.panX = drag.px + (ev.clientX - drag.x) * ratio;
+      annHeroEd.panY = drag.py + (ev.clientY - drag.y) * ratio;
+      annHeroDraw();
+    });
+    const end = function() { drag = null; };
+    cv.addEventListener('pointerup', end);
+    cv.addEventListener('pointercancel', end);
+  })();
+
   function clearAnnExtras() {
     ['ann-event-date', 'ann-event-start', 'ann-event-end', 'ann-event-timenote', 'ann-event-location'].forEach(function(id) { const el = document.getElementById(id); if (el) el.value = ''; });
     annPhotos = [];
     renderAnnPhotos();
+    annHeroUrl = '';
+    cancelAnnHero();
+    renderAnnHero();
   }
   function loadAnnExtras(doc) {
     const f = doc.fields || {};
@@ -4129,6 +4239,9 @@
       return { url: ps('url'), name: ps('name'), role: ps('role') };
     }).filter(function(p) { return p.url; });
     renderAnnPhotos();
+    annHeroUrl = s('heroImageUrl');
+    cancelAnnHero();
+    renderAnnHero();
   }
   // Returns the Firestore fields for the extras, or null (after a toast) when
   // the event details don't add up. Always returns every key so an edit that
@@ -4144,7 +4257,7 @@
     });
     return {
       eventDate: { stringValue: date }, eventStartTime: { stringValue: start }, eventEndTime: { stringValue: end },
-      eventTimeNote: { stringValue: note }, eventLocation: { stringValue: loc },
+      eventTimeNote: { stringValue: note }, eventLocation: { stringValue: loc }, heroImageUrl: { stringValue: annHeroUrl || '' },
       photos: { arrayValue: { values: photos } }
     };
   }
