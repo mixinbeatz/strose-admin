@@ -847,6 +847,12 @@
             <label class="btn btn-outline btn-sm" id="ann-photo-add" style="cursor:pointer;display:inline-block;">+ Add photo<input type="file" accept="image/*" style="display:none;" onchange="handleAnnPhotoPick(this)" /></label>
           </div>
           <div class="form-group">
+            <label class="form-label">Pictures (optional, up to 3)</label>
+            <div style="font-size:12px;color:var(--dusty-rose);margin-bottom:8px;">Regular pictures shown full width, not cropped, with an optional caption. Tap-to-enlarge in the app. Good for a flyer, a group photo or an event shot.</div>
+            <div id="ann-pictures-list"></div>
+            <label class="btn btn-outline btn-sm" id="ann-picture-add" style="cursor:pointer;display:inline-block;">+ Add picture<input type="file" accept="image/*" style="display:none;" onchange="handleAnnPicturePick(this)" /></label>
+          </div>
+          <div class="form-group">
             <label class="form-label">Expires</label>
             <div id="ann-expiry-note" style="font-size:12px;color:var(--dusty-rose);margin-bottom:8px;"></div>
             <div class="expiry-options">
@@ -4093,7 +4099,20 @@
   function renderAnnPhotos() {
     const el = document.getElementById('ann-photos-list');
     if (!el) return;
+    const pel = document.getElementById('ann-pictures-list');
+    if (pel) pel.innerHTML = annPhotos.map(function(p, i) {
+      if (p.kind !== 'picture') return '';
+      return '<div style="display:flex;gap:12px;align-items:center;margin-bottom:10px;flex-wrap:wrap;">' +
+        '<img src="' + annAttr(p.url) + '" alt="" style="width:96px;max-height:96px;object-fit:contain;border-radius:8px;flex-shrink:0;background:var(--linen);" />' +
+        '<div style="flex:1;min-width:200px;"><input class="form-input" placeholder="Caption (optional)" value="' + annAttr(p.caption) + '" oninput="annPhotos[' + i + '].caption=this.value" /></div>' +
+        '<button type="button" class="btn btn-outline btn-sm" onclick="removeAnnPhoto(' + i + ')">Remove</button>' +
+      '</div>';
+    }).join('');
+    const nPics = annPhotos.filter(function(p) { return p.kind === 'picture'; }).length;
+    const addPic = document.getElementById('ann-picture-add');
+    if (addPic) addPic.style.display = nPics >= 3 ? 'none' : 'inline-block';
     el.innerHTML = annPhotos.map(function(p, i) {
+      if (p.kind === 'picture') return '';
       return '<div style="display:flex;gap:12px;align-items:center;margin-bottom:10px;flex-wrap:wrap;">' +
         '<img src="' + annAttr(p.url) + '" alt="" style="width:64px;height:64px;border-radius:32px;object-fit:cover;flex-shrink:0;background:var(--linen);" />' +
         '<div style="flex:1;min-width:200px;display:grid;gap:6px;">' +
@@ -4104,21 +4123,56 @@
       '</div>';
     }).join('');
     const add = document.getElementById('ann-photo-add');
-    if (add) add.style.display = annPhotos.length >= 3 ? 'none' : 'inline-block';
+    if (add) add.style.display = (annPhotos.length - nPics) >= 3 ? 'none' : 'inline-block';
   }
   function handleAnnPhotoPick(input) {
     const file = input.files && input.files[0];
     input.value = '';
     if (!file) return;
-    if (annPhotos.length >= 3) { showToast('Up to 3 photos per announcement.', 'error'); return; }
+    if (annPhotos.filter(function(p) { return p.kind !== 'picture'; }).length >= 3) { showToast('Up to 3 photos per announcement.', 'error'); return; }
     openPhotoCropper(file, async function(r) {
       try {
         const url = await uploadDevFile(r.base64, 'announcement-photo.jpg', 'announcements', r.contentType);
-        annPhotos.push({ url: url, name: '', role: '' });
+        annPhotos.push({ kind: 'headshot', url: url, name: '', role: '' });
         renderAnnPhotos();
         showToast('Photo added — fill in the name and role, then post.', 'success');
       } catch (e) { console.error('Announcement photo upload error:', e); showToast('Upload failed: ' + (e && e.message || e), 'error'); }
     });
+  }
+  // Fit within max px on the long edge, never enlarging.
+  function fitWithin(w, h, max) {
+    if (w <= max && h <= max) return { w: w, h: h };
+    const k = max / Math.max(w, h);
+    return { w: Math.round(w * k), h: Math.round(h * k) };
+  }
+  function handleAnnPicturePick(input) {
+    const file = input.files && input.files[0];
+    input.value = '';
+    if (!file) return;
+    if (annPhotos.filter(function(p) { return p.kind === 'picture'; }).length >= 3) { showToast('Up to 3 pictures per announcement.', 'error'); return; }
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const img = new Image();
+      img.onload = async function() {
+        try {
+          const d = fitWithin(img.naturalWidth, img.naturalHeight, 1600);
+          const cv = document.createElement('canvas');
+          cv.width = d.w; cv.height = d.h;
+          const ctx = cv.getContext('2d');
+          ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, d.w, d.h);
+          ctx.drawImage(img, 0, 0, d.w, d.h);
+          const base64 = cv.toDataURL('image/jpeg', 0.85).split(',')[1];
+          const url = await uploadDevFile(base64, 'announcement-picture.jpg', 'announcements', 'image/jpeg');
+          annPhotos.push({ kind: 'picture', url: url, caption: '', w: d.w, h: d.h });
+          renderAnnPhotos();
+          showToast('Picture added. Add a caption if you like, then post.', 'success');
+        } catch (err) { console.error('Announcement picture upload error:', err); showToast('Upload failed: ' + (err && err.message || err), 'error'); }
+      };
+      img.onerror = function() { showToast('Could not read that image.', 'error'); };
+      img.src = e.target.result;
+    };
+    reader.onerror = function() { showToast('Could not read that file.', 'error'); };
+    reader.readAsDataURL(file);
   }
   // Removes it from this announcement only; the file stays in Storage, same as
   // every other photo swap in the portal.
@@ -4236,7 +4290,9 @@
     annPhotos = arr.map(function(v) {
       const pf = (v.mapValue && v.mapValue.fields) || {};
       const ps = function(k) { return (pf[k] && pf[k].stringValue) || ''; };
-      return { url: ps('url'), name: ps('name'), role: ps('role') };
+      const pn = function(k) { const x = pf[k]; return x ? parseInt(x.integerValue || x.doubleValue || 0, 10) || 0 : 0; };
+      if (ps('kind') === 'picture') return { kind: 'picture', url: ps('url'), caption: ps('caption'), w: pn('w'), h: pn('h') };
+      return { kind: 'headshot', url: ps('url'), name: ps('name'), role: ps('role') };
     }).filter(function(p) { return p.url; });
     renderAnnPhotos();
     annHeroUrl = s('heroImageUrl');
@@ -4253,6 +4309,11 @@
     if (end && !start) { showToast('Add a start time, or clear the end time.', 'error'); return null; }
     if (start && end && end <= start) { showToast('The end time must be after the start time.', 'error'); return null; }
     const photos = annPhotos.filter(function(p) { return p.url; }).map(function(p) {
+      if (p.kind === 'picture') {
+        const pf = { kind: { stringValue: 'picture' }, url: { stringValue: p.url }, caption: { stringValue: (p.caption || '').trim() } };
+        if (p.w > 0 && p.h > 0) { pf.w = { integerValue: String(p.w) }; pf.h = { integerValue: String(p.h) }; }
+        return { mapValue: { fields: pf } };
+      }
       return { mapValue: { fields: { url: { stringValue: p.url }, name: { stringValue: (p.name || '').trim() }, role: { stringValue: (p.role || '').trim() } } } };
     });
     return {
