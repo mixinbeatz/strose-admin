@@ -946,6 +946,18 @@
             </div>
             <textarea class="form-textarea large" id="ref-body" placeholder="Paste the full text of Fr. Bing's reflection here..." onpaste="handleSmartPaste(event)"></textarea>
           </div>
+          <div class="form-group">
+            <label class="form-label">Hero image (optional)</label>
+            <div style="font-size:12px;color:var(--dusty-rose);margin-bottom:8px;">A wide picture behind the title at the top of the reflection in the app. The app tints it with the parish burgundy so the title stays easy to read. Without one, the title sits on a plain burgundy bar. (Shows on phones with the newest app update.)</div>
+            <div id="ref-hero-current"></div>
+            <label class="btn btn-outline btn-sm" style="cursor:pointer;display:inline-block;">Choose hero image<input type="file" accept="image/*" style="display:none;" onchange="pickReflectionHero(this,'weekly',0)" /></label>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Pictures (optional, up to 3)</label>
+            <div style="font-size:12px;color:var(--dusty-rose);margin-bottom:8px;">Regular pictures shown full width at the bottom of the reflection, not cropped, with an optional caption. Tap-to-enlarge in the app.</div>
+            <div id="ref-pictures-list"></div>
+            <label class="btn btn-outline btn-sm" id="ref-picture-add" style="cursor:pointer;display:inline-block;">+ Add picture<input type="file" accept="image/*" style="display:none;" onchange="handleRefPicturePick(this)" /></label>
+          </div>
           <div class="btn-row">
             <button class="btn btn-primary" onclick="postReflection()">Update Reflection</button>
           </div>
@@ -2483,6 +2495,22 @@
     <div class="cropper-actions">
       <button class="btn btn-outline btn-sm" onclick="closeCropper()">Cancel</button>
       <button class="btn btn-primary btn-sm" onclick="cropperApply()">Use This Framing</button>
+    </div>
+  </div>
+</div>
+
+<div class="cropper" id="hero-cropper">
+  <div class="cropper-card" style="max-width:560px;">
+    <div class="cropper-title">Position &amp; Zoom Hero Image</div>
+    <canvas id="hero-crop-canvas" width="1200" height="500" style="width:100%;border-radius:8px;background:var(--linen);touch-action:none;cursor:grab;display:block;"></canvas>
+    <div class="cropper-controls">
+      <span>Zoom</span>
+      <input type="range" id="hero-crop-zoom" min="1" max="3" step="0.01" value="1" oninput="heroCropZoom(this.value)" />
+    </div>
+    <div class="cropper-hint">Drag the picture to reposition it. This frame is what the app shows behind the title.</div>
+    <div class="cropper-actions">
+      <button class="btn btn-outline btn-sm" onclick="closeHeroCropper()">Cancel</button>
+      <button class="btn btn-primary btn-sm" id="hero-crop-apply" onclick="applyHeroCropper()">Use This Framing</button>
     </div>
   </div>
 </div>
@@ -4542,6 +4570,191 @@
     } catch(e){showToast('Error posting.','error');}
   }
 
+  // ── REFLECTION PHOTOS ──
+  // Hero image (a wide banner behind the title in the app's reflection reader) for the
+  // weekly and daily reflections, plus up to 3 captioned pictures at the bottom of the
+  // weekly one. Same look as announcements. Stored on the reflection doc as heroImageUrl
+  // and photos[{kind:'picture',url,caption,w,h}]. Uploads reuse the announcements storage
+  // folder (staff-writable, raster images under 5 MB). Older app versions ignore the fields.
+  var refHeroUrl = '';
+  var refPhotos = [];
+  var dailyHeroUrls = ['', '', '', '', '', '', ''];
+  var heroCrop = { img: null, zoom: 1, panX: 0, panY: 0, onUrl: null, busy: false };
+  const HERO_W = 1200, HERO_H = 500;
+  function heroCropGeom() {
+    const e = heroCrop;
+    const cover = Math.max(HERO_W / e.img.naturalWidth, HERO_H / e.img.naturalHeight), sc = cover * e.zoom;
+    const w = e.img.naturalWidth * sc, h = e.img.naturalHeight * sc;
+    const maxX = Math.max(0, (w - HERO_W) / 2), maxY = Math.max(0, (h - HERO_H) / 2);
+    e.panX = Math.max(-maxX, Math.min(maxX, e.panX));
+    e.panY = Math.max(-maxY, Math.min(maxY, e.panY));
+    return { w: w, h: h, x: (HERO_W - w) / 2 + e.panX, y: (HERO_H - h) / 2 + e.panY };
+  }
+  function heroCropDraw() {
+    const cv = document.getElementById('hero-crop-canvas');
+    if (!cv || !heroCrop.img) return;
+    const g = heroCropGeom(), ctx = cv.getContext('2d');
+    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, HERO_W, HERO_H);
+    ctx.drawImage(heroCrop.img, g.x, g.y, g.w, g.h);
+  }
+  function heroCropZoom(v) {
+    if (!heroCrop.img) return;
+    heroCrop.zoom = Math.max(1, Math.min(3, parseFloat(v) || 1));
+    heroCropDraw();
+  }
+  function openHeroCropper(file, onUrl) {
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const img = new Image();
+      img.onload = function() {
+        heroCrop = { img: img, zoom: 1, panX: 0, panY: 0, onUrl: onUrl, busy: false };
+        document.getElementById('hero-crop-zoom').value = 1;
+        const btn = document.getElementById('hero-crop-apply');
+        if (btn) { btn.disabled = false; btn.textContent = 'Use This Framing'; }
+        document.getElementById('hero-cropper').classList.add('show');
+        heroCropDraw();
+      };
+      img.onerror = function() { showToast('Could not read that image.', 'error'); };
+      img.src = e.target.result;
+    };
+    reader.onerror = function() { showToast('Could not read that file.', 'error'); };
+    reader.readAsDataURL(file);
+  }
+  function closeHeroCropper() {
+    document.getElementById('hero-cropper').classList.remove('show');
+    heroCrop = { img: null, zoom: 1, panX: 0, panY: 0, onUrl: null, busy: false };
+  }
+  async function applyHeroCropper() {
+    if (!heroCrop.img || heroCrop.busy) return;
+    heroCrop.busy = true;
+    const btn = document.getElementById('hero-crop-apply');
+    if (btn) { btn.disabled = true; btn.textContent = 'Uploading…'; }
+    heroCropDraw();
+    const base64 = document.getElementById('hero-crop-canvas').toDataURL('image/jpeg', 0.85).split(',')[1];
+    const cb = heroCrop.onUrl;
+    try {
+      const url = await uploadDevFile(base64, 'reflection-hero.jpg', 'announcements', 'image/jpeg');
+      closeHeroCropper();
+      if (cb) cb(url);
+    } catch (e) {
+      console.error('Reflection hero upload error:', e);
+      heroCrop.busy = false;
+      if (btn) { btn.disabled = false; btn.textContent = 'Use This Framing'; }
+      showToast('Upload failed: ' + (e && e.message || e), 'error');
+    }
+  }
+  (function wireHeroCropCanvas() {
+    const cv = document.getElementById('hero-crop-canvas');
+    if (!cv) return;
+    let drag = null;
+    cv.addEventListener('pointerdown', function(ev) {
+      if (!heroCrop.img) return;
+      drag = { x: ev.clientX, y: ev.clientY, px: heroCrop.panX, py: heroCrop.panY };
+      try { cv.setPointerCapture(ev.pointerId); } catch (e) {}
+    });
+    cv.addEventListener('pointermove', function(ev) {
+      if (!drag) return;
+      const ratio = cv.width / cv.getBoundingClientRect().width;
+      heroCrop.panX = drag.px + (ev.clientX - drag.x) * ratio;
+      heroCrop.panY = drag.py + (ev.clientY - drag.y) * ratio;
+      heroCropDraw();
+    });
+    const end = function() { drag = null; };
+    cv.addEventListener('pointerup', end);
+    cv.addEventListener('pointercancel', end);
+  })();
+  function heroThumbHtml(url, removeCall) {
+    return '<div style="margin-bottom:10px;"><img src="' + annAttr(url) + '" alt="" style="width:100%;max-width:480px;aspect-ratio:2.4/1;object-fit:cover;border-radius:8px;display:block;background:var(--linen);" />' +
+      '<button type="button" class="btn btn-outline btn-sm" style="margin-top:8px;" onclick="' + removeCall + '">Remove hero image</button></div>';
+  }
+  function renderReflectionHeroes() {
+    const w = document.getElementById('ref-hero-current');
+    if (w) w.innerHTML = refHeroUrl ? heroThumbHtml(refHeroUrl, "removeReflectionHero('weekly',0)") : '';
+    for (let i = 0; i < 7; i++) {
+      const el = document.getElementById('daily-hero-current-' + i);
+      if (el) el.innerHTML = dailyHeroUrls[i] ? heroThumbHtml(dailyHeroUrls[i], "removeReflectionHero('daily'," + i + ")") : '';
+    }
+  }
+  function pickReflectionHero(input, kind, idx) {
+    const file = input.files && input.files[0];
+    input.value = '';
+    if (!file) return;
+    openHeroCropper(file, function(url) {
+      if (kind === 'weekly') refHeroUrl = url; else dailyHeroUrls[idx] = url;
+      renderReflectionHeroes();
+      showToast('Hero image added — save to keep it.', 'success');
+    });
+  }
+  function removeReflectionHero(kind, idx) {
+    if (kind === 'weekly') refHeroUrl = ''; else dailyHeroUrls[idx] = '';
+    renderReflectionHeroes();
+  }
+  function renderRefPhotos() {
+    const pel = document.getElementById('ref-pictures-list');
+    if (pel) pel.innerHTML = refPhotos.map(function(p, i) {
+      return '<div style="display:flex;gap:12px;align-items:center;margin-bottom:10px;flex-wrap:wrap;">' +
+        '<img src="' + annAttr(p.url) + '" alt="" style="width:96px;max-height:96px;object-fit:contain;border-radius:8px;flex-shrink:0;background:var(--linen);" />' +
+        '<div style="flex:1;min-width:200px;"><input class="form-input" placeholder="Caption (optional)" value="' + annAttr(p.caption) + '" oninput="refPhotos[' + i + '].caption=this.value" /></div>' +
+        '<button type="button" class="btn btn-outline btn-sm" onclick="removeRefPhoto(' + i + ')">Remove</button>' +
+      '</div>';
+    }).join('');
+    const add = document.getElementById('ref-picture-add');
+    if (add) add.style.display = refPhotos.length >= 3 ? 'none' : 'inline-block';
+  }
+  function removeRefPhoto(i) { refPhotos.splice(i, 1); renderRefPhotos(); }
+  function handleRefPicturePick(input) {
+    const file = input.files && input.files[0];
+    input.value = '';
+    if (!file) return;
+    if (refPhotos.length >= 3) { showToast('Up to 3 pictures per reflection.', 'error'); return; }
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const img = new Image();
+      img.onload = async function() {
+        try {
+          const d = fitWithin(img.naturalWidth, img.naturalHeight, 1600);
+          const cv = document.createElement('canvas');
+          cv.width = d.w; cv.height = d.h;
+          const ctx = cv.getContext('2d');
+          ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, d.w, d.h);
+          ctx.drawImage(img, 0, 0, d.w, d.h);
+          const base64 = cv.toDataURL('image/jpeg', 0.85).split(',')[1];
+          const url = await uploadDevFile(base64, 'reflection-picture.jpg', 'announcements', 'image/jpeg');
+          refPhotos.push({ kind: 'picture', url: url, caption: '', w: d.w, h: d.h });
+          renderRefPhotos();
+          showToast('Picture added. Add a caption if you like, then save.', 'success');
+        } catch (err) { console.error('Reflection picture upload error:', err); showToast('Upload failed: ' + (err && err.message || err), 'error'); }
+      };
+      img.onerror = function() { showToast('Could not read that image.', 'error'); };
+      img.src = e.target.result;
+    };
+    reader.onerror = function() { showToast('Could not read that file.', 'error'); };
+    reader.readAsDataURL(file);
+  }
+  function refPhotosToFs() {
+    return refPhotos.filter(function(p) { return p && p.url; }).map(function(p) {
+      const pf = { kind: { stringValue: 'picture' }, url: { stringValue: p.url }, caption: { stringValue: (p.caption || '').trim() } };
+      if (p.w > 0 && p.h > 0) { pf.w = { integerValue: String(p.w) }; pf.h = { integerValue: String(p.h) }; }
+      return { mapValue: { fields: pf } };
+    });
+  }
+  function reflectionPhotosFromDoc(doc) {
+    const vals = (doc && doc.fields && doc.fields.photos && doc.fields.photos.arrayValue && doc.fields.photos.arrayValue.values) || [];
+    return vals.map(function(v) {
+      const f = (v.mapValue && v.mapValue.fields) || {};
+      return {
+        kind: 'picture',
+        url: (f.url && f.url.stringValue) || '',
+        caption: (f.caption && f.caption.stringValue) || '',
+        w: parseInt((f.w && f.w.integerValue) || '0', 10) || 0,
+        h: parseInt((f.h && f.h.integerValue) || '0', 10) || 0
+      };
+    }).filter(function(p) { return p.url; });
+  }
+  renderReflectionHeroes();
+  renderRefPhotos();
+
   // ── REFLECTION ──
   function loadReflectionIntoForm(isLive) {
     const r = isLive ? window._liveReflection : window._scheduledReflection;
@@ -4550,6 +4763,9 @@
     document.getElementById('ref-author').value = r.author || '';
     document.getElementById('ref-body').value = r.body || '';
     document.getElementById('ref-liturgical').value = r.liturgicalDate || '';
+    refHeroUrl = r.heroImageUrl || '';
+    refPhotos = (r.photos || []).map(function(p) { return { kind: 'picture', url: p.url, caption: p.caption || '', w: p.w || 0, h: p.h || 0 }; });
+    renderReflectionHeroes(); renderRefPhotos();
   }
   function renderReflectionCard(r, isLive) {
     const title=gf(r,'heading')||'(no title)';
@@ -4584,7 +4800,7 @@
         .sort((a,b) => (gf(a,'publishAt')||'').localeCompare(gf(b,'publishAt')||''));
       if(liveDocs.length>0){
         const r=liveDocs[0];
-        window._liveReflection = {title: gf(r,'heading'), author: gf(r,'author'), body: gf(r,'body'), liturgicalDate: gf(r,'liturgicalDate'), publishAt: gf(r,'publishAt')};
+        window._liveReflection = {title: gf(r,'heading'), author: gf(r,'author'), body: gf(r,'body'), liturgicalDate: gf(r,'liturgicalDate'), publishAt: gf(r,'publishAt'), heroImageUrl: gf(r,'heroImageUrl'), photos: reflectionPhotosFromDoc(r)};
         if(currentEl) currentEl.innerHTML = renderReflectionCard(r, true);
       } else {
         window._liveReflection = null;
@@ -4593,7 +4809,7 @@
       if(futureDocs.length>0){
         if(scheduledCard) scheduledCard.style.display='block';
         if(scheduledEl) scheduledEl.innerHTML = renderReflectionCard(futureDocs[0], false);
-        window._scheduledReflection = {id: docId(futureDocs[0]), title: gf(futureDocs[0],'heading'), author: gf(futureDocs[0],'author'), body: gf(futureDocs[0],'body'), liturgicalDate: gf(futureDocs[0],'liturgicalDate'), publishAt: gf(futureDocs[0],'publishAt')};
+        window._scheduledReflection = {id: docId(futureDocs[0]), title: gf(futureDocs[0],'heading'), author: gf(futureDocs[0],'author'), body: gf(futureDocs[0],'body'), liturgicalDate: gf(futureDocs[0],'liturgicalDate'), publishAt: gf(futureDocs[0],'publishAt'), heroImageUrl: gf(futureDocs[0],'heroImageUrl'), photos: reflectionPhotosFromDoc(futureDocs[0])};
       } else {
         window._scheduledReflection = null;
         if(scheduledCard) scheduledCard.style.display='none';
@@ -4669,7 +4885,7 @@
       for (const doc of futureDocs){
         await fs_delete(doc.name.split('/documents/parishes/saint-rose-anthem/')[1]);
       }
-      await fs_post('weeklyReflection',{heading:{stringValue:heading},subtitle:{stringValue:heading},fullTitle:{stringValue:heading},author:{stringValue:author},body:{stringValue:body},liturgicalDate:{stringValue:liturgicalDate},publishAt:{stringValue:publishAt},link:{stringValue:''},updatedAt:{stringValue:new Date().toISOString()}});
+      await fs_post('weeklyReflection',{heading:{stringValue:heading},subtitle:{stringValue:heading},fullTitle:{stringValue:heading},author:{stringValue:author},body:{stringValue:body},liturgicalDate:{stringValue:liturgicalDate},publishAt:{stringValue:publishAt},link:{stringValue:''},heroImageUrl:{stringValue:refHeroUrl||''},photos:{arrayValue:{values:refPhotosToFs()}},updatedAt:{stringValue:new Date().toISOString()}});
       document.getElementById('ref-success').style.display='block';
       showToast('Reflection scheduled!','success');
       setTimeout(()=>{document.getElementById('ref-success').style.display='none';},4000);
@@ -4713,6 +4929,7 @@
     if (!container) return;
     const today = new Date();
     container.innerHTML = '';
+    dailyHeroUrls = ['', '', '', '', '', '', ''];
     for (let i = 0; i < 7; i++) {
       const d = new Date(today);
       d.setDate(today.getDate() + i);
@@ -4731,6 +4948,8 @@
         '</div>' +
         '<textarea class="form-textarea" id="daily-body-' + i + '" placeholder="Paste reflection text here..." style="min-height:100px;" onpaste="handleSmartPaste(event)"></textarea>' +
         '<input type="text" class="form-input" id="daily-music-' + i + '" placeholder="YouTube music link (optional) - e.g. https://youtu.be/XXXXX" style="margin-top:8px;" />' +
+        '<div style="margin-top:10px;"><div id="daily-hero-current-' + i + '"></div>' +
+        '<label class="btn btn-outline btn-sm" style="cursor:pointer;display:inline-block;">Add hero image (optional)<input type="file" accept="image/*" style="display:none;" onchange="pickReflectionHero(this,\'daily\',' + i + ')" /></label></div>' +
         '</div>';
     }
   }
@@ -4748,8 +4967,10 @@
           document.getElementById('daily-body-' + i).value = gf(match,'body') || '';
           const musicEl = document.getElementById('daily-music-' + i);
           if (musicEl) musicEl.value = gf(match,'musicUrl') || '';
+          dailyHeroUrls[i] = gf(match,'heroImageUrl') || '';
         }
       }
+      renderReflectionHeroes();
       showToast('Scheduled reflections loaded.','success');
       const today = new Date().toLocaleDateString('en-CA', {timeZone: 'America/Phoenix'});
       const upcoming = docs.filter(function(d){ return gf(d,'date') >= today; });
@@ -5397,6 +5618,7 @@
           title:{stringValue:title},
           body:{stringValue:body},
           musicUrl:{stringValue:musicUrl},
+          heroImageUrl:{stringValue:dailyHeroUrls[i]||''},
           postedBy:{stringValue:'Parish Staff'},
           createdAt:{stringValue:new Date().toISOString()}
         });
@@ -5426,7 +5648,7 @@
       const musicUrl = gf(doc,'musicUrl') || '';
       const id = doc.name.split('/').pop();
       return '<div style="padding:12px 0;border-bottom:0.5px solid var(--linen);display:flex;justify-content:space-between;align-items:flex-start;">' +
-        '<div><div style="font-family:Cinzel,serif;font-size:13px;color:var(--burgundy);">' + date + (musicUrl ? ' &middot; Music' : '') + '</div>' +
+        '<div><div style="font-family:Cinzel,serif;font-size:13px;color:var(--burgundy);">' + date + (musicUrl ? ' &middot; Music' : '') + (gf(doc,'heroImageUrl') ? ' &middot; Hero' : '') + '</div>' +
         '<div style="font-size:15px;color:var(--soil);margin-top:2px;">' + title + '</div>' +
         '<div style="font-size:12px;color:var(--dusty-rose);margin-top:2px;">' + body.substring(0,80) + (body.length>80?'...':'') + '</div></div>' +
         '<button onclick="deleteScheduled(\'' + id + '\')" style="background:none;border:none;color:#CC3333;cursor:pointer;font-size:13px;padding:4px 8px;">Delete</button>' +
@@ -5460,6 +5682,7 @@
         title: {stringValue: title},
         body: {stringValue: body},
         musicUrl: {stringValue: musicUrl},
+        heroImageUrl: {stringValue: dailyHeroUrls[0] || ''},
         postedBy: {stringValue: 'Parish Staff'},
         createdAt: {stringValue: new Date().toISOString()}
       });
