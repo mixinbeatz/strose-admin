@@ -5682,6 +5682,7 @@
           <div style="display:flex;gap:8px;flex-wrap:wrap;">
             <button class="btn btn-outline btn-sm" onclick="toggleAdvertiserActive('${id}',${active})">${active?'⏸ Pause':'▶ Reactivate'}</button>
             <button class="btn btn-outline btn-sm" onclick="const b=document.getElementById('adedit-${id}');b.style.display=b.style.display==='none'?'block':'none';">✎ Edit details</button>
+            <button class="btn btn-danger btn-sm" onclick="deleteAdvertiser('${id}','${escAttr(name)}')">🗑 Delete</button>
           </div>
           <div id="adedit-${id}" style="display:none;margin-top:12px;border-top:1px solid var(--linen);padding-top:12px;">
             <div class="form-group"><label class="form-label">Business Name</label><input class="form-input" id="ad-${id}-name" value="${av(name)}"></div>
@@ -5699,6 +5700,17 @@
         </div>`;
       }).join('');
     } catch(e){list.innerHTML='<div style="color:var(--danger);">Error loading advertisers.</div>';}
+  }
+
+  async function deleteAdvertiser(id,name){
+    if(!confirm('Permanently delete "'+name+'" from the Advertiser Directory? This cannot be undone. (To hide it without deleting, use Pause instead.)'))return;
+    try{
+      await fs_delete(`advertisers/${id}`);
+      const el=document.getElementById('advertiser-'+id); if(el) el.remove();
+      showToast(name+' deleted.','success');
+      loadAdvertisers();
+      loadDashboard(); // keep the Active Listings count current
+    }catch(e){showToast('Error deleting: '+(e.message||'unknown'),'error');}
   }
 
   async function toggleAdvertiserActive(id,cur){
