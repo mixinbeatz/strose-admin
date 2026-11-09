@@ -5230,7 +5230,7 @@
       '</div>';
     html += '<div class="stats-row three">' +
       stat('App opens, all time', en ? metricNum(en.sessionCount) : '\u2014', en && en.lastSessionAt ? 'Last: ' + new Date(en.lastSessionAt).toLocaleString() : '') +
-      stat('Directory views, all time', en ? metricNum(en.directoryViews) : '\u2014', '') +
+      stat('Directory views, all time', en ? metricNum(en.directoryViews == null ? 0 : en.directoryViews) : '\u2014', '') +
       stat('Ministry chat members', ch ? metricNum(ch.totalMemberships) : '\u2014', ch ? 'across ' + metricNum(ch.byMinistry.length) + ' ministries' : '') +
       '</div>';
     html += '<div class="m-grid2">' +
