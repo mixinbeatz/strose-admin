@@ -5247,9 +5247,34 @@
       '<div class="card"><div class="card-title">Members by ministry</div><div class="info-box" style="margin-bottom:12px;">What approved members picked when they signed up.</div>' + (f ? metricBars(f.ministries) : na) + '</div>' +
       '<div class="card"><div class="card-title">Ministry chat members</div><div class="info-box" style="margin-bottom:12px;">People with chat access turned on, per ministry.</div>' + (ch ? metricBars(ch.byMinistry) : na) + '</div>' +
       '</div>';
-    html += '<div class="card"><div class="card-title">App &amp; portal usage</div>' +
-      '<div class="info-box">Screens, features and notification opt-ins are collected in Google Analytics. Showing them here is the next step. Until then, open it directly.</div>' +
-      '<a class="btn btn-outline btn-sm" href="https://analytics.google.com" target="_blank" rel="noopener" style="text-decoration:none;display:inline-block;">Open Google Analytics</a></div>';
+    const us = d.usage;
+    const gaLink = '<a class="btn btn-outline btn-sm" href="https://analytics.google.com" target="_blank" rel="noopener" style="text-decoration:none;display:inline-block;margin-top:12px;">Open Google Analytics</a>';
+    if (!us || us.error) {
+      html += '<div class="card"><div class="card-title">App &amp; portal usage</div>' +
+        '<div class="info-box">Usage numbers are not available right now.' + (us && us.error ? ' <span style="opacity:.8;">(' + escHtml(us.error) + ')</span>' : '') + '</div>' + gaLink + '</div>';
+    } else {
+      const evLabels = {
+        push_open: 'Notification taps', content_open: 'Reflections and bulletin opens', sign_up: 'Account sign-ups', login: 'Logins',
+        notification_permission: 'Notification permission answered', announcement_open: 'Announcement opens', add_to_calendar: 'Added to calendar',
+        poll_vote: 'Poll votes', external_link: 'External links opened', watch_live_tap: 'Watch Live taps', text_size_change: 'Text size changes',
+        contact_request_submit: 'Contact requests sent', account_delete: 'Account deletions', family_age_confirmed: 'Age confirmations (Parish Family)',
+        family_signup_submit: 'Parish Family sign-ups sent', council_inquiry_submit: 'Council questions sent', ministry_chat_message: 'Ministry chat messages'
+      };
+      const platLabel = function(n) { return n === 'iOS' ? 'iOS app' : n === 'Android' ? 'Android app' : n === 'web' ? 'Portal and web' : n; };
+      html += '<div class="stats-row three">' +
+        stat('Active users, 30 days', metricNum(us.users30), metricNum(us.users7) + ' in the last 7 days') +
+        stat('Screen and page views, 30 days', metricNum(us.views30), '') +
+        stat('Events, 30 days', metricNum(us.events30), '') +
+        '</div>';
+      html += '<div class="m-grid2">' +
+        '<div class="card"><div class="card-title">Where people are (30 days)</div><div class="info-box" style="margin-bottom:12px;">Active users by app or portal.</div>' +
+          metricBars((us.platforms || []).map(function(r) { return { name: platLabel(r.name), count: r.count }; })) + '</div>' +
+        '<div class="card"><div class="card-title">Most viewed screens and pages</div><div class="info-box" style="margin-bottom:12px;">Last 30 days, app and portal together.</div>' +
+          metricBars(us.screens || []) + '</div></div>';
+      html += '<div class="card"><div class="card-title">What people do (30 days)</div>' +
+        metricBars((us.events || []).map(function(r) { return { name: evLabels[r.name] || r.name, count: r.count }; })) + gaLink + '</div>';
+      html += '<div style="font-size:12px;color:var(--dusty-rose);margin:4px 4px 12px;line-height:1.6;">From Google Analytics. Usage is anonymous, and numbers can lag a few hours. Test devices and staff are included.</div>';
+    }
     html += '<div style="font-size:12px;color:var(--dusty-rose);margin:4px 4px 24px;line-height:1.6;">Devices counts phones registered for notifications; a device is "active" if the app was opened in that window. A reinstalled phone can briefly count twice.</div>';
     document.getElementById('metrics-body').innerHTML = html;
   }
