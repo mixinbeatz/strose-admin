@@ -5271,6 +5271,8 @@
           metricBars((us.platforms || []).map(function(r) { return { name: platLabel(r.name), count: r.count }; })) + '</div>' +
         '<div class="card"><div class="card-title">Most viewed screens and pages</div><div class="info-box" style="margin-bottom:12px;">Last 30 days, app and portal together.</div>' +
           metricBars(us.screens || []) + '</div></div>';
+      html += '<div class="card"><div class="card-title">App versions in use (30 days)</div><div class="info-box" style="margin-bottom:12px;">Active users by app version. Only builds that include analytics are counted (Android build 3 and later, and iOS after 1.0.3), so older versions will not appear here until people update.</div>' +
+        metricBars(us.versions || []) + '</div>';
       html += '<div class="card"><div class="card-title">What people do (30 days)</div>' +
         metricBars((us.events || []).map(function(r) { return { name: evLabels[r.name] || r.name, count: r.count }; })) + gaLink + '</div>';
       html += '<div style="font-size:12px;color:var(--dusty-rose);margin:4px 4px 12px;line-height:1.6;">From Google Analytics. Usage is anonymous, and numbers can lag a few hours. Test devices and staff are included.</div>';
