@@ -2297,7 +2297,7 @@
         </div>
         <div class="card">
           <div class="card-title">📇 Published Advertisers</div>
-          <div class="info-box">Approving a request above publishes the business into the public Advertiser Directory on the website. Pause a listing to hide it from the site without deleting it (e.g. a lapsed subscription); reactivate or edit its details any time.</div>
+          <div class="info-box">Approving a request above publishes the business into the public Advertiser Directory on the website and the app. Archive a listing to hide it from both without losing anything (e.g. a cancellation or lapsed subscription); restore it any time. Delete is only available on archived listings.</div>
           <div id="advertisers-list"><div style="color:var(--dusty-rose);font-size:14px;">Loading...</div></div>
         </div>
       </div>
@@ -5656,7 +5656,8 @@
       if(docs.length===0){list.innerHTML=`<div class="empty-state"><div class="empty-icon">📇</div><div class="empty-title">No published advertisers yet</div><div class="empty-sub">Approving a partner request above publishes it here.</div></div>`;return;}
       docs.sort((a,b)=>String(gf(a,'name')).localeCompare(String(gf(b,'name'))));
       const av=s=>escHtml(s).replace(/"/g,'&quot;');  // value="" attribute escape
-      list.innerHTML=docs.map(doc=>{
+      const wasOpen=!!(document.getElementById('adv-archived')&&document.getElementById('adv-archived').open);
+      const renderAdv=doc=>{
         const id=docId(doc);
         const name=gf(doc,'name'),cat=gf(doc,'category'),tier=(gf(doc,'tier')||'standard');
         const active=gf(doc,'active')!==false;
@@ -5670,7 +5671,7 @@
         const csHtml=cs?`<div style="font-size:12px;font-weight:600;margin:6px 0;color:${cs.color};">⏳ ${escHtml(cs.label)}</div>`:'';
         return `<div class="partner-card" id="advertiser-${id}" style="${active?'':'opacity:0.55;'}">
           <div class="partner-card-header">
-            <div class="partner-name">${escHtml(name)}${active?'':' <span style="font-size:12px;color:var(--danger);">· paused</span>'}</div>
+            <div class="partner-name">${escHtml(name)}${active?'':' <span style="font-size:12px;color:var(--danger);">· archived</span>'}</div>
             <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;">
               <span class="tier-badge ${isPremium?'tier-premium':'tier-standard'}">${isPremium?'Premium':'Standard'}</span>
               <span class="tier-badge ${isPaying?'billing-paying':'billing-comped'}">${isPaying?'Paying':'Comped'}</span>
@@ -5680,9 +5681,9 @@
           ${csHtml}
           ${desc?`<div class="partner-desc">${escHtml(desc)}</div>`:''}
           <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <button class="btn btn-outline btn-sm" onclick="toggleAdvertiserActive('${id}',${active})">${active?'⏸ Pause':'▶ Reactivate'}</button>
+            <button class="btn btn-outline btn-sm" onclick="toggleAdvertiserActive('${id}',${active})">${active?'🗄 Archive':'↩ Restore'}</button>
             <button class="btn btn-outline btn-sm" onclick="const b=document.getElementById('adedit-${id}');b.style.display=b.style.display==='none'?'block':'none';">✎ Edit details</button>
-            <button class="btn btn-danger btn-sm" onclick="deleteAdvertiser('${id}','${escAttr(name)}')">🗑 Delete</button>
+            ${active?'':`<button class="btn btn-danger btn-sm" onclick="deleteAdvertiser('${id}','${escAttr(name)}')">🗑 Delete permanently</button>`}
           </div>
           <div id="adedit-${id}" style="display:none;margin-top:12px;border-top:1px solid var(--linen);padding-top:12px;">
             <div class="form-group"><label class="form-label">Business Name</label><input class="form-input" id="ad-${id}-name" value="${av(name)}"></div>
@@ -5698,12 +5699,19 @@
             <button class="btn btn-success btn-sm" onclick="saveAdvertiser('${id}')">Save changes</button>
           </div>
         </div>`;
-      }).join('');
+      };
+      const activeDocs=docs.filter(d=>gf(d,'active')!==false);
+      const archivedDocs=docs.filter(d=>gf(d,'active')===false);
+      let out=activeDocs.length?activeDocs.map(renderAdv).join(''):`<div class="empty-state"><div class="empty-icon">📇</div><div class="empty-title">No active advertisers</div><div class="empty-sub">${archivedDocs.length?'Everyone is archived. Restore a listing below to show it again.':'Approving a partner request above publishes it here.'}</div></div>`;
+      if(archivedDocs.length){
+        out+=`<details id="adv-archived" style="margin-top:20px;"${wasOpen?' open':''}><summary style="cursor:pointer;font-family:Cinzel,serif;color:var(--burgundy);padding:8px 0;">🗄 Archived (${archivedDocs.length}) — hidden from the app and website</summary><div style="margin-top:10px;">${archivedDocs.map(renderAdv).join('')}</div></details>`;
+      }
+      list.innerHTML=out;
     } catch(e){list.innerHTML='<div style="color:var(--danger);">Error loading advertisers.</div>';}
   }
 
   async function deleteAdvertiser(id,name){
-    if(!confirm('Permanently delete "'+name+'" from the Advertiser Directory? This cannot be undone. (To hide it without deleting, use Pause instead.)'))return;
+    if(!confirm('Permanently delete "'+name+'" from the Advertiser Directory? This cannot be undone, and the listing and its details will be gone for good.'))return;
     try{
       await fs_delete(`advertisers/${id}`);
       const el=document.getElementById('advertiser-'+id); if(el) el.remove();
@@ -5716,7 +5724,7 @@
   async function toggleAdvertiserActive(id,cur){
     try{
       await fs_patch(`advertisers/${id}`,{active:{booleanValue:!cur}});
-      showToast(cur?'Advertiser paused — now hidden from the website directory.':'Advertiser reactivated — now visible on the website.','success');
+      showToast(cur?'Advertiser archived — hidden from the app and website. Restore it any time.':'Advertiser restored — visible again in the app and on the website.','success');
       loadAdvertisers();
     }catch(e){showToast('Error updating advertiser.','error');}
   }
