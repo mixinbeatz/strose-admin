@@ -296,6 +296,22 @@
   .ann-pv-frame { background: #cfc5b9; border-radius: 22px; padding: 14px 14px 0; height: 640px; display: flex; flex-direction: column; justify-content: flex-end; overflow: hidden; }
   .ann-pv-sheet { background: #fff; border-radius: 20px 20px 0 0; display: flex; flex-direction: column; max-height: 100%; min-height: 0; }
   .ann-pv-link { color: #5C1A2E; text-decoration: underline; font-weight: 600; }
+  /* Metrics page */
+  .m-bars { display: flex; flex-direction: column; gap: 10px; }
+  .m-bar-row { display: grid; grid-template-columns: minmax(90px, 200px) 1fr 44px; align-items: center; gap: 10px; font-size: 14px; }
+  .m-bar-label { color: var(--soil); overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .m-bar-track { background: var(--sand); border-radius: 6px; height: 14px; overflow: hidden; }
+  .m-bar-fill { background: var(--burgundy); height: 100%; border-radius: 6px; min-width: 2px; }
+  .m-bar-val { text-align: right; color: var(--burgundy); font-family: 'Cinzel', serif; }
+  .m-cols { display: flex; align-items: flex-end; gap: 10px; height: 140px; padding-top: 8px; }
+  .m-col { flex: 1; display: flex; flex-direction: column; align-items: center; justify-content: flex-end; height: 100%; gap: 6px; }
+  .m-col-fill { width: 100%; max-width: 44px; background: var(--burgundy); border-radius: 6px 6px 0 0; min-height: 2px; }
+  .m-col-val { font-size: 12px; color: var(--burgundy); font-family: 'Cinzel', serif; }
+  .m-col-label { font-size: 11px; color: var(--dusty-rose); text-align: center; }
+  .m-queue { display: flex; justify-content: space-between; align-items: center; padding: 10px 0; border-bottom: 1px solid var(--linen); font-size: 15px; }
+  .m-queue:last-child { border-bottom: none; }
+  .m-grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; }
+  @media (max-width: 860px) { .m-grid2 { grid-template-columns: 1fr; } .m-bar-row { grid-template-columns: minmax(80px, 140px) 1fr 40px; } }
 </style>
 <!-- Analytics: Google Analytics 4 (web data stream), privacy-safe by design.
      Paste the portal stream's Measurement ID below (looks like G-XXXXXXXXXX). While it is
@@ -441,6 +457,7 @@
       </div>
       <div class="nav-section-toggle collapsed owner-admin-only" style="display:none" onclick="toggleNavSection(this)"><span>Staff &amp; Access</span><span class="nav-chevron">▾</span></div>
       <div class="nav-group collapsed">
+        <div class="nav-item owner-admin-only" style="display:none" onclick="showPage('metrics',this);loadMetrics()"><span class="nav-icon">📊</span> Metrics</div>
         <div class="nav-item owner-admin-only" style="display:none" onclick="showPage('onboard-leader',this)"><span class="nav-icon">🔑</span> Onboard Ministry Leader</div>
         <div class="nav-item owner-admin-only" style="display:none" onclick="showPage('onboard-council',this)"><span class="nav-icon">🏛️</span> Onboard Council Lead</div>
         <div class="nav-item owner-admin-only" style="display:none" onclick="showPage('leader-tracker',this);loadLeaderTracker()"><span class="nav-icon">📋</span> Ministry Leaders</div>
@@ -1726,10 +1743,25 @@
       </div>
 
       <!-- MINISTRY LEADER TRACKER -->
+      <div class="page" id="page-metrics">
+        <div class="card">
+          <div class="card-title">📊 Metrics</div>
+          <div class="info-box">A snapshot of the parish community and the app. Totals only -- no names or messages. Numbers refresh each time you open this page.</div>
+          <div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+            <span id="metrics-updated" style="font-size:13px;color:var(--dusty-rose);"></span>
+            <button class="btn btn-outline btn-sm" onclick="loadMetrics()">Refresh</button>
+          </div>
+        </div>
+        <div id="metrics-body"></div>
+      </div>
       <div class="page" id="page-leader-tracker">
         <div class="card">
           <div class="card-title">📋 Ministry Leaders</div>
           <div class="info-box">Every ministry and who's currently assigned to lead it. Ministries with no leader show as Unassigned -- use Onboard Ministry Leader to fill the slot.</div>
+          <div style="margin:0 0 14px;padding:10px 12px;background:var(--linen);border-radius:6px;">
+            <div style="font-size:13px;color:var(--soil);margin-bottom:8px;">Add members who already picked a ministry at sign-up to that ministry's group chat (only where the ministry's chat is on; nobody already set up or removed is changed).</div>
+            <button class="btn btn-outline btn-sm" id="chat-backfill-btn" onclick="backfillMinistryChat()">Add existing members to ministry chats</button>
+          </div>
           <div id="leader-tracker-loading" style="color:var(--dusty-rose);font-size:14px;">Loading...</div>
           <div id="leader-tracker-list" style="display:none;"></div>
         </div>
@@ -2716,7 +2748,7 @@
     if(el) el.classList.add('active');
     window.scrollTo(0,0);
     closeSidebar();
-    const titles = {dashboard:'Dashboard',events:'Events',announcement:'Post Announcement',fastblast:'Fast Blast',reflection:'Weekly Reflection','parish-development':'Parish Development',daily:'Daily Reflection',songsheet:'Mass Songsheet',welcome:'Welcome Message','hero-media':'Hero Section','welcome-media':'Welcome Section',gallery:'Homepage Gallery','around-parish':'Around the Parish','parish-dev-media':'Parish Development','bulletin-images':'Bulletin Images','ministry-booklet':'Ministry Booklet','form-settings':'Form Settings','mass-schedule':'Mass Schedule','live-screen':'Live Screen',councils:'Pastoral, Finance & Development Council','council-inquiries':'Council Inquiries','signup-forms':'Forms & Sign-ups','parish-staff':'Parish Staff Directory','ministry-documents':'Ministry Documents','serving-roles':'Serving Roles','funeral-planning':'Funeral Planning Forms','onboard-council':'Onboard Council Lead','music-ministry':'Music Ministry','music-members':'Music Ministry Members',approvals:'Parish Family Approvals',partners:'Advertising Requests',directory:'Parish Family Directory','reported-listings':'Reported Listings','needs-review':'Needs Review','ministry-post':'Post to Members','cda-members':'My Members','submit-event':'Submit Event','event-requests':'Event Requests','contact-requests':'Contact Requests',intention:'Mass Intentions','my-ministry':'My Ministry','onboard-leader':'Onboard Ministry Leader','leader-tracker':'Ministry Leaders'};
+    const titles = {metrics:'Metrics',dashboard:'Dashboard',events:'Events',announcement:'Post Announcement',fastblast:'Fast Blast',reflection:'Weekly Reflection','parish-development':'Parish Development',daily:'Daily Reflection',songsheet:'Mass Songsheet',welcome:'Welcome Message','hero-media':'Hero Section','welcome-media':'Welcome Section',gallery:'Homepage Gallery','around-parish':'Around the Parish','parish-dev-media':'Parish Development','bulletin-images':'Bulletin Images','ministry-booklet':'Ministry Booklet','form-settings':'Form Settings','mass-schedule':'Mass Schedule','live-screen':'Live Screen',councils:'Pastoral, Finance & Development Council','council-inquiries':'Council Inquiries','signup-forms':'Forms & Sign-ups','parish-staff':'Parish Staff Directory','ministry-documents':'Ministry Documents','serving-roles':'Serving Roles','funeral-planning':'Funeral Planning Forms','onboard-council':'Onboard Council Lead','music-ministry':'Music Ministry','music-members':'Music Ministry Members',approvals:'Parish Family Approvals',partners:'Advertising Requests',directory:'Parish Family Directory','reported-listings':'Reported Listings','needs-review':'Needs Review','ministry-post':'Post to Members','cda-members':'My Members','submit-event':'Submit Event','event-requests':'Event Requests','contact-requests':'Contact Requests',intention:'Mass Intentions','my-ministry':'My Ministry','onboard-leader':'Onboard Ministry Leader','leader-tracker':'Ministry Leaders'};
     document.getElementById('page-title').textContent = titles[id]||id;
     var mpt = document.getElementById('mobile-page-title'); if(mpt) mpt.textContent = titles[id]||id;
     _portalPage = id;
@@ -5126,6 +5158,116 @@
       loadLeaderTracker();
     } catch (e) {
       showToast(e.message || 'Error revoking role.', 'error');
+    }
+  }
+  async function backfillMinistryChat() {
+    const btn = document.getElementById('chat-backfill-btn');
+    btn.disabled = true;
+    try {
+      async function call(dryRun) {
+        const r = await fetch(FUNCTIONS_BASE + '/backfillMinistryChat', {
+          method: 'POST',
+          headers: await authHeaders({ 'Content-Type': 'application/json' }),
+          body: JSON.stringify({ dryRun: dryRun })
+        });
+        const d = await r.json();
+        if (!r.ok) throw new Error(d.error || 'Request failed.');
+        return d;
+      }
+      const preview = await call(true);
+      if (!preview.wouldAddOrAdded) { showToast('Everyone is already set up. Nothing to add.', 'success'); return; }
+      const lines = Object.keys(preview.perMinistry).map(function(id) { return ministryDisplayName(id) + ': ' + preview.perMinistry[id]; }).join(', ');
+      if (!confirm('Add ' + preview.wouldAddOrAdded + ' chat memberships? ' + lines)) return;
+      const done = await call(false);
+      showToast('Added ' + done.wouldAddOrAdded + ' chat memberships.', 'success');
+    } catch (e) {
+      showToast(e.message || 'Could not run the catch-up.', 'error');
+    } finally {
+      btn.disabled = false;
+    }
+  }
+  // ── METRICS (owner/admin) ──
+  function metricNum(v) { return (v === null || v === undefined || isNaN(Number(v))) ? '\u2014' : Number(v).toLocaleString(); }
+  function metricBars(rows) {
+    if (!rows || !rows.length) return '<div style="color:var(--dusty-rose);font-size:14px;">Nothing yet.</div>';
+    const max = Math.max.apply(null, rows.map(function(r) { return r.count; })) || 1;
+    return '<div class="m-bars">' + rows.map(function(r) {
+      return '<div class="m-bar-row"><div class="m-bar-label" title="' + escHtml(r.name) + '">' + escHtml(r.name) + '</div>' +
+        '<div class="m-bar-track"><div class="m-bar-fill" style="width:' + Math.round(r.count / max * 100) + '%"></div></div>' +
+        '<div class="m-bar-val">' + metricNum(r.count) + '</div></div>';
+    }).join('') + '</div>';
+  }
+  function metricCols(values) {
+    const max = Math.max.apply(null, values.concat([1]));
+    return '<div class="m-cols">' + values.map(function(v, i) {
+      const ago = values.length - 1 - i;
+      return '<div class="m-col"><div class="m-col-val">' + metricNum(v) + '</div>' +
+        '<div class="m-col-fill" style="height:' + Math.round(v / max * 100) + '%"></div>' +
+        '<div class="m-col-label">' + (ago === 0 ? 'This wk' : ago + 'w ago') + '</div></div>';
+    }).join('') + '</div>';
+  }
+  function renderMetrics(d) {
+    const f = d.families, dv = d.devices, en = d.engagement, ch = d.chat, q = d.queues || {};
+    const upd = document.getElementById('metrics-updated');
+    if (upd) upd.textContent = 'Updated ' + new Date(d.generatedAt).toLocaleString();
+    const stat = function(label, value, sub) {
+      return '<div class="stat-card"><div class="stat-label">' + label + '</div><div class="stat-value">' + value + '</div>' +
+        (sub ? '<div class="stat-sub">' + sub + '</div>' : '') + '</div>';
+    };
+    const na = '<div style="color:var(--dusty-rose);font-size:14px;">Unavailable right now.</div>';
+    const queueRow = function(label, n, page) {
+      const has = n !== null && n !== undefined;
+      const badge = '<strong style="color:' + (has && n > 0 ? 'var(--burgundy)' : 'var(--dusty-rose)') + ';font-family:Cinzel,serif;">' + metricNum(n) + '</strong>';
+      const link = page ? ' <a href="#" onclick="showPage(\'' + page + '\');return false;" style="font-size:13px;margin-left:8px;color:var(--burgundy);">Open \u2192</a>' : '';
+      return '<div class="m-queue"><span>' + label + '</span><span>' + badge + link + '</span></div>';
+    };
+    let html = '';
+    html += '<div class="stats-row">' +
+      stat('Parish Family members', f ? metricNum(f.approved) : '\u2014', f ? metricNum(f.pending) + ' waiting for approval' : '') +
+      stat('Sign-ups, last 30 days', f ? metricNum(f.signups30) : '\u2014', f ? metricNum(f.signups7) + ' in the last 7 days' : '') +
+      stat('Active devices, 30 days', dv ? metricNum(dv.active30) : '\u2014', dv ? 'iOS ' + metricNum(dv.active30Ios) + ' \u00b7 Android ' + metricNum(dv.active30Android) : '') +
+      stat('Active devices, 7 days', dv ? metricNum(dv.active7) : '\u2014', dv ? metricNum(dv.total) + ' registered in total' : '') +
+      '</div>';
+    html += '<div class="stats-row three">' +
+      stat('App opens, all time', en ? metricNum(en.sessionCount) : '\u2014', en && en.lastSessionAt ? 'Last: ' + new Date(en.lastSessionAt).toLocaleString() : '') +
+      stat('Directory views, all time', en ? metricNum(en.directoryViews) : '\u2014', '') +
+      stat('Ministry chat members', ch ? metricNum(ch.totalMemberships) : '\u2014', ch ? 'across ' + metricNum(ch.byMinistry.length) + ' ministries' : '') +
+      '</div>';
+    html += '<div class="m-grid2">' +
+      '<div class="card"><div class="card-title">Sign-ups per week</div>' + (f ? metricCols(f.weekly) : na) + '</div>' +
+      '<div class="card"><div class="card-title">Waiting on you</div>' +
+        queueRow('Directory profiles to approve', f ? f.pending : null, 'approvals') +
+        queueRow('Reported directory listings', f ? f.reported : null, 'reported-listings') +
+        queueRow('Event requests', q.eventRequests, 'event-requests') +
+        queueRow('Advertising requests', q.advertisingRequests, 'partners') +
+        queueRow('Council questions awaiting a reply', q.councilInquiries, '') +
+        queueRow('Contact requests', q.contactRequests, '') +
+      '</div></div>';
+    html += '<div class="m-grid2">' +
+      '<div class="card"><div class="card-title">Members by ministry</div><div class="info-box" style="margin-bottom:12px;">What approved members picked when they signed up.</div>' + (f ? metricBars(f.ministries) : na) + '</div>' +
+      '<div class="card"><div class="card-title">Ministry chat members</div><div class="info-box" style="margin-bottom:12px;">People with chat access turned on, per ministry.</div>' + (ch ? metricBars(ch.byMinistry) : na) + '</div>' +
+      '</div>';
+    html += '<div class="card"><div class="card-title">App &amp; portal usage</div>' +
+      '<div class="info-box">Screens, features and notification opt-ins are collected in Google Analytics. Showing them here is the next step. Until then, open it directly.</div>' +
+      '<a class="btn btn-outline btn-sm" href="https://analytics.google.com" target="_blank" rel="noopener" style="text-decoration:none;display:inline-block;">Open Google Analytics</a></div>';
+    html += '<div style="font-size:12px;color:var(--dusty-rose);margin:4px 4px 24px;line-height:1.6;">Devices counts phones registered for notifications; a device is "active" if the app was opened in that window. A reinstalled phone can briefly count twice.</div>';
+    document.getElementById('metrics-body').innerHTML = html;
+  }
+  async function loadMetrics() {
+    const body = document.getElementById('metrics-body');
+    if (!body) return;
+    body.innerHTML = '<div style="color:var(--dusty-rose);font-size:14px;margin:12px 4px;">Loading...</div>';
+    try {
+      const r = await fetch(FUNCTIONS_BASE + '/getParishMetrics', {
+        method: 'POST',
+        headers: await authHeaders({ 'Content-Type': 'application/json' }),
+        body: '{}'
+      });
+      const d = await r.json();
+      if (!r.ok) throw new Error(d.error || 'Request failed.');
+      renderMetrics(d);
+    } catch (e) {
+      body.innerHTML = '<div class="card"><div class="info-box">Could not load metrics: ' + escHtml(e.message || 'unknown error') + '</div></div>';
     }
   }
   async function loadLeaderTracker() {
