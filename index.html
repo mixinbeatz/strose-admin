@@ -2094,6 +2094,7 @@
       <!-- GENERIC MANAGE MINISTRY (used for every ministry in the registry except
            Men's/Music, which have their own dedicated pages above) -->
       <div class="page" id="page-manage-ministry">
+        <div class="ann-layout"><div class="ann-form-col">
         <div class="card">
           <div class="card-title">⛪ <span id="mmg-heading-name">Ministry</span> Info</div>
           <div class="info-box">Edit this ministry's information below. Changes appear on the website and in the app immediately.</div>
@@ -2134,9 +2135,35 @@
               </label>
               <div style="font-size:12px;color:var(--dusty-rose);margin-top:4px;">Shows an "Open Chat" button for this ministry in the app's Ministry tab. Members still need chat access granted individually before they can read or post.</div>
             </div>
+            <div class="form-group">
+              <label class="form-label">Hero photo (optional)</label>
+              <div style="font-size:12px;color:var(--dusty-rose);margin-bottom:8px;">A wide banner at the top of this ministry's card in the app, with the ministry name over it. Drag to frame it. Without one, the card looks like it does today.</div>
+              <div class="mmx-hero"></div>
+              <label class="btn btn-outline btn-sm" style="cursor:pointer;display:inline-block;">Choose hero photo<input type="file" accept="image/*" style="display:none;" onchange="pickMinistryHero(this)" /></label>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Pictures (optional, up to 3)</label>
+              <div style="font-size:12px;color:var(--dusty-rose);margin-bottom:8px;">Shown full width under the description, not cropped. Add a caption if you like. Tap-to-enlarge in the app.</div>
+              <div class="mmx-pics"></div>
+              <label class="btn btn-outline btn-sm mmx-pic-add" style="cursor:pointer;display:inline-block;">+ Add picture<input type="file" accept="image/*" style="display:none;" onchange="handleMinistryPicturePick(this)" /></label>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Sign-up buttons (optional, up to 3)</label>
+              <div style="font-size:12px;color:var(--dusty-rose);margin-bottom:8px;">Each one is a button in the app that opens your link, for example "Join Catholic Daughters" or "Bake Sale Sign-up". These are in addition to the Link above.</div>
+              <div class="mmx-signups"></div>
+              <button type="button" class="btn btn-outline btn-sm mmx-signup-add" onclick="addMinistrySignup()">+ Add button</button>
+            </div>
             <button class="btn btn-primary" onclick="saveManageMinistry()">Save Changes</button>
           </div>
         </div>
+        </div>
+        <aside class="ann-preview-col">
+          <div class="card" style="margin-bottom:0;">
+            <div class="card-title">📱 How it looks in the app</div>
+            <div class="ann-pv-frame"><div class="ann-pv-sheet mmx-preview"></div></div>
+            <div style="font-size:12px;color:var(--dusty-rose);margin-top:8px;">Updates as you type. Close to what people see; fonts and spacing on a phone may differ slightly. Buttons and tap-to-enlarge only work in the app.</div>
+          </div>
+        </aside></div>
         <div class="card" style="margin-top:16px;">
           <div class="card-title">✝️ Post to Members</div>
           <div class="info-box">Post a message to this ministry's members in the app. Members who have opted in will receive a push notification.</div>
@@ -2202,6 +2229,7 @@
 
       <!-- MY MINISTRY -->
       <div class="page" id="page-my-ministry">
+        <div class="ann-layout"><div class="ann-form-col">
         <div class="card">
           <div class="card-title">⛪ My Ministry</div>
           <div class="info-box">Edit your ministry's information below. Changes appear in the app immediately.</div>
@@ -2239,9 +2267,35 @@
               <label class="form-label">Link (optional)</label>
               <input type="text" class="form-input" id="mm-link" placeholder="https://..." />
             </div>
+            <div class="form-group">
+              <label class="form-label">Hero photo (optional)</label>
+              <div style="font-size:12px;color:var(--dusty-rose);margin-bottom:8px;">A wide banner at the top of this ministry's card in the app, with the ministry name over it. Drag to frame it. Without one, the card looks like it does today.</div>
+              <div class="mmx-hero"></div>
+              <label class="btn btn-outline btn-sm" style="cursor:pointer;display:inline-block;">Choose hero photo<input type="file" accept="image/*" style="display:none;" onchange="pickMinistryHero(this)" /></label>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Pictures (optional, up to 3)</label>
+              <div style="font-size:12px;color:var(--dusty-rose);margin-bottom:8px;">Shown full width under the description, not cropped. Add a caption if you like. Tap-to-enlarge in the app.</div>
+              <div class="mmx-pics"></div>
+              <label class="btn btn-outline btn-sm mmx-pic-add" style="cursor:pointer;display:inline-block;">+ Add picture<input type="file" accept="image/*" style="display:none;" onchange="handleMinistryPicturePick(this)" /></label>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Sign-up buttons (optional, up to 3)</label>
+              <div style="font-size:12px;color:var(--dusty-rose);margin-bottom:8px;">Each one is a button in the app that opens your link, for example "Join Catholic Daughters" or "Bake Sale Sign-up". These are in addition to the Link above.</div>
+              <div class="mmx-signups"></div>
+              <button type="button" class="btn btn-outline btn-sm mmx-signup-add" onclick="addMinistrySignup()">+ Add button</button>
+            </div>
             <button class="btn btn-primary" onclick="saveMyMinistry()">Save Changes</button>
           </div>
         </div>
+        </div>
+        <aside class="ann-preview-col">
+          <div class="card" style="margin-bottom:0;">
+            <div class="card-title">📱 How it looks in the app</div>
+            <div class="ann-pv-frame"><div class="ann-pv-sheet mmx-preview"></div></div>
+            <div style="font-size:12px;color:var(--dusty-rose);margin-top:8px;">Updates as you type. Close to what people see; fonts and spacing on a phone may differ slightly. Buttons and tap-to-enlarge only work in the app.</div>
+          </div>
+        </aside></div>
       </div>
       <!-- MINISTRY POST -->
       <div class="page" id="page-ministry-post">
@@ -4590,6 +4644,155 @@
     } catch(e){showToast('Error posting.','error');}
   }
 
+  // ── MINISTRY EXTRAS ──
+  // Hero photo, up to 3 pictures and up to 3 sign-up buttons on a ministry's card in the
+  // app, edited from My Ministry (leaders) and the per-ministry page (staff). Stored on
+  // ministries/{id} as heroImageUrl, photos[{kind,url,caption,w,h}] and signups[{label,url}].
+  // Photos upload to ministryPhotos/{ministryId}/ (leaders may only write their own folder).
+  var mmx = { hero: '', photos: [], signups: [] };
+  function mmxIsStaffPage() { const p = document.getElementById('page-manage-ministry'); return !!(p && p.classList.contains('active')); }
+  function mmxId() { return mmxIsStaffPage() ? currentManagedMinistryId : activeMinistry(); }
+  function mmxLoad(doc) {
+    mmx.hero = gf(doc, 'heroImageUrl') || '';
+    mmx.photos = reflectionPhotosFromDoc(doc);
+    const vals = (doc && doc.fields && doc.fields.signups && doc.fields.signups.arrayValue && doc.fields.signups.arrayValue.values) || [];
+    mmx.signups = vals.map(function(v) {
+      const f = (v.mapValue && v.mapValue.fields) || {};
+      return { label: (f.label && f.label.stringValue) || '', url: (f.url && f.url.stringValue) || '' };
+    }).filter(function(x) { return x.label || x.url; });
+    mmxRender();
+  }
+  function mmxCleanSignups() {
+    return mmx.signups.map(function(x) { return { label: (x.label || '').trim(), url: normalizeAnnLink((x.url || '').trim()) }; })
+      .filter(function(x) { return x.label && x.url; }).slice(0, 3);
+  }
+  function mmxFields() {
+    return {
+      heroImageUrl: { stringValue: mmx.hero || '' },
+      photos: { arrayValue: { values: mmx.photos.filter(function(p) { return p && p.url; }).map(function(p) {
+        const pf = { kind: { stringValue: 'picture' }, url: { stringValue: p.url }, caption: { stringValue: (p.caption || '').trim() } };
+        if (p.w > 0 && p.h > 0) { pf.w = { integerValue: String(p.w) }; pf.h = { integerValue: String(p.h) }; }
+        return { mapValue: { fields: pf } };
+      }) } },
+      signups: { arrayValue: { values: mmxCleanSignups().map(function(x) {
+        return { mapValue: { fields: { label: { stringValue: x.label }, url: { stringValue: x.url } } } };
+      }) } }
+    };
+  }
+  function mmxRender() {
+    document.querySelectorAll('.mmx-hero').forEach(function(el) {
+      el.innerHTML = mmx.hero ? heroThumbHtml(mmx.hero, 'removeMinistryHero()').replace('Remove hero image', 'Remove hero photo') : '';
+    });
+    document.querySelectorAll('.mmx-pics').forEach(function(el) {
+      el.innerHTML = mmx.photos.map(function(p, i) {
+        return '<div style="display:flex;gap:12px;align-items:center;margin-bottom:10px;flex-wrap:wrap;">' +
+          '<img src="' + annAttr(p.url) + '" alt="" style="width:96px;max-height:96px;object-fit:contain;border-radius:8px;flex-shrink:0;background:var(--linen);" />' +
+          '<div style="flex:1;min-width:200px;"><input class="form-input" placeholder="Caption (optional)" value="' + annAttr(p.caption) + '" oninput="mmx.photos[' + i + '].caption=this.value;mmxPreview()" /></div>' +
+          '<button type="button" class="btn btn-outline btn-sm" onclick="removeMinistryPhoto(' + i + ')">Remove</button></div>';
+      }).join('');
+    });
+    document.querySelectorAll('.mmx-signups').forEach(function(el) {
+      el.innerHTML = mmx.signups.map(function(x, i) {
+        return '<div style="display:flex;gap:8px;align-items:center;margin-bottom:10px;flex-wrap:wrap;">' +
+          '<input class="form-input" style="flex:1;min-width:140px;" placeholder="Button text, e.g. Join Us" value="' + annAttr(x.label) + '" oninput="mmx.signups[' + i + '].label=this.value;mmxPreview()" />' +
+          '<input class="form-input" style="flex:2;min-width:180px;" placeholder="https://..." value="' + annAttr(x.url) + '" oninput="mmx.signups[' + i + '].url=this.value;mmxPreview()" />' +
+          '<button type="button" class="btn btn-outline btn-sm" onclick="removeMinistrySignup(' + i + ')">Remove</button></div>';
+      }).join('');
+    });
+    document.querySelectorAll('.mmx-pic-add').forEach(function(el) { el.style.display = mmx.photos.length >= 3 ? 'none' : 'inline-block'; });
+    document.querySelectorAll('.mmx-signup-add').forEach(function(el) { el.style.display = mmx.signups.length >= 3 ? 'none' : 'inline-block'; });
+    mmxPreview();
+  }
+  function removeMinistryHero() { mmx.hero = ''; mmxRender(); }
+  function removeMinistryPhoto(i) { mmx.photos.splice(i, 1); mmxRender(); }
+  function addMinistrySignup() { if (mmx.signups.length < 3) { mmx.signups.push({ label: '', url: '' }); mmxRender(); } }
+  function removeMinistrySignup(i) { mmx.signups.splice(i, 1); mmxRender(); }
+  function pickMinistryHero(input) {
+    const file = input.files && input.files[0];
+    input.value = '';
+    if (!file) return;
+    const id = mmxId();
+    if (!id) { showToast('No ministry selected.', 'error'); return; }
+    openHeroCropper(file, function(url) { mmx.hero = url; mmxRender(); showToast('Hero photo added — save to keep it.', 'success'); }, 'ministryPhotos/' + id);
+  }
+  function handleMinistryPicturePick(input) {
+    const file = input.files && input.files[0];
+    input.value = '';
+    if (!file) return;
+    const id = mmxId();
+    if (!id) { showToast('No ministry selected.', 'error'); return; }
+    if (mmx.photos.length >= 3) { showToast('Up to 3 pictures per ministry.', 'error'); return; }
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      const img = new Image();
+      img.onload = async function() {
+        try {
+          const d = fitWithin(img.naturalWidth, img.naturalHeight, 1600);
+          const cv = document.createElement('canvas');
+          cv.width = d.w; cv.height = d.h;
+          const ctx = cv.getContext('2d');
+          ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, d.w, d.h);
+          ctx.drawImage(img, 0, 0, d.w, d.h);
+          const base64 = cv.toDataURL('image/jpeg', 0.85).split(',')[1];
+          const url = await uploadDevFile(base64, 'ministry-picture.jpg', 'ministryPhotos/' + id, 'image/jpeg');
+          mmx.photos.push({ kind: 'picture', url: url, caption: '', w: d.w, h: d.h });
+          mmxRender();
+          showToast('Picture added. Add a caption if you like, then save.', 'success');
+        } catch (err) { console.error('Ministry picture upload error:', err); showToast('Upload failed: ' + (err && err.message || err), 'error'); }
+      };
+      img.onerror = function() { showToast('Could not read that image.', 'error'); };
+      img.src = e.target.result;
+    };
+    reader.onerror = function() { showToast('Could not read that file.', 'error'); };
+    reader.readAsDataURL(file);
+  }
+  // Live preview of the app's ministry card (screens/EventsScreen.tsx).
+  function mmxPreview() {
+    const staff = mmxIsStaffPage();
+    const p = staff ? 'mmg-' : 'mm-';
+    const v = function(id) { const x = document.getElementById(p + id); return x ? x.value.trim() : ''; };
+    const name = staff ? ((document.getElementById('mmg-heading-name') || {}).textContent || '') : v('name');
+    const chat = staff && document.getElementById('mmg-chat-enabled') && document.getElementById('mmg-chat-enabled').checked;
+    const btn = function(txt, bg) { return '<div style="background:' + bg + ';color:#E8DDD0;border-radius:10px;padding:13px;text-align:center;font-family:Cinzel,serif;font-weight:700;font-size:16px;margin-bottom:10px;">' + escHtml(txt) + '</div>'; };
+    let h = '<div style="padding:14px 24px 0;flex-shrink:0;"><div style="width:40px;height:4px;border-radius:2px;background:#E8DDD0;margin:0 auto 14px;"></div></div>' +
+      '<div style="overflow-y:auto;padding:0 24px 24px;font-family:Faustina,serif;color:#3D2B2B;min-height:0;background:#F7F3EE;">';
+    if (mmx.hero) {
+      h += '<div style="position:relative;border-radius:12px;overflow:hidden;min-height:150px;background:#5C1A2E url(\'' + annAttr(mmx.hero) + '\') center/cover;display:flex;flex-direction:column;justify-content:flex-end;padding:16px;margin-bottom:6px;">' +
+        '<div style="position:absolute;inset:0;background:rgba(92,26,46,0.55);"></div><div style="position:absolute;left:0;right:0;bottom:0;height:60%;background:rgba(51,18,25,0.45);"></div>' +
+        '<div style="position:relative;font-size:13px;letter-spacing:1px;color:#E8DDD0;opacity:.85;">MINISTRY</div>' +
+        '<div style="position:relative;font-family:Cinzel,serif;font-weight:700;font-size:22px;color:#E8DDD0;line-height:1.25;">' + escHtml(name) + '</div>' +
+        '<div style="position:relative;height:3px;background:#C9A84C;margin-top:10px;border-radius:2px;"></div></div>';
+    } else {
+      h += '<div style="font-size:13px;letter-spacing:.8px;color:#C17A8A;margin-bottom:6px;">MINISTRY</div><div style="font-family:Cinzel,serif;font-weight:700;font-size:24px;margin-bottom:16px;">' + escHtml(name) + '</div>';
+    }
+    h += '<div style="height:1px;background:#E8DDD0;margin:14px 0;"></div>' +
+      '<div style="font-size:14px;opacity:.8;margin-bottom:6px;">' + escHtml(v('schedule')) + '</div><div style="font-size:14px;opacity:.8;margin-bottom:6px;">' + escHtml(v('location')) + '</div>' +
+      (v('contact') ? '<div style="font-size:14px;opacity:.8;margin-top:4px;">Contact: ' + escHtml(v('contact')) + '</div>' : '') +
+      '<div style="height:1px;background:#E8DDD0;margin:14px 0;"></div>' +
+      '<div style="font-size:17px;line-height:1.5;opacity:.85;">' + (v('description') ? annMarkupHtml(v('description')) : '<span style="opacity:.5;">Your description appears here.</span>') + '</div>';
+    mmx.photos.forEach(function(ph) {
+      if (!ph.url) return;
+      h += '<div style="margin-top:20px;"><img src="' + annAttr(ph.url) + '" alt="" style="width:100%;display:block;border-radius:12px;background:#E8DDD0;' + (ph.w > 0 && ph.h > 0 ? 'aspect-ratio:' + ph.w + '/' + ph.h + ';object-fit:cover;' : '') + '" />' +
+        (ph.caption ? '<div style="font-size:14px;font-style:italic;text-align:center;margin-top:6px;opacity:.8;">' + escHtml(ph.caption) + '</div>' : '') + '</div>';
+    });
+    h += '<div style="margin-top:22px;">';
+    if (v('phone')) h += btn('Call ' + (v('contact') || 'Ministry'), '#5C1A2E');
+    if (v('email')) h += btn('Email ' + (v('contact') || 'Ministry'), '#C17A8A');
+    if (v('link')) h += btn('Sign Up →', '#5C1A2E');
+    mmxCleanSignups().forEach(function(x) { h += btn(x.label + ' →', '#5C1A2E'); });
+    if (chat) h += btn('Open ' + name + ' Chat →', '#7B5EA7');
+    h += '</div></div>';
+    document.querySelectorAll('.mmx-preview').forEach(function(el) { el.innerHTML = h; });
+  }
+  (function wireMinistryPreview() {
+    ['page-my-ministry', 'page-manage-ministry'].forEach(function(id) {
+      const pg = document.getElementById(id);
+      if (!pg) return;
+      ['input', 'change'].forEach(function(ev) { pg.addEventListener(ev, function(e) { if (e.target && e.target.closest && e.target.closest('.ann-form-col')) mmxPreview(); }); });
+    });
+  })();
+  mmxRender();
+
   // ── REFLECTION LIVE PREVIEW ──
   // Mirrors the app's reflection readers (App.tsx ReflectionHeader): plain burgundy bar
   // or hero banner with tint + gold rule, formatted body, author line and pictures (weekly).
@@ -4673,13 +4876,13 @@
     heroCrop.zoom = Math.max(1, Math.min(3, parseFloat(v) || 1));
     heroCropDraw();
   }
-  function openHeroCropper(file, onUrl) {
+  function openHeroCropper(file, onUrl, folder) {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = function(e) {
       const img = new Image();
       img.onload = function() {
-        heroCrop = { img: img, zoom: 1, panX: 0, panY: 0, onUrl: onUrl, busy: false };
+        heroCrop = { img: img, zoom: 1, panX: 0, panY: 0, onUrl: onUrl, folder: folder || 'announcements', busy: false };
         document.getElementById('hero-crop-zoom').value = 1;
         const btn = document.getElementById('hero-crop-apply');
         if (btn) { btn.disabled = false; btn.textContent = 'Use This Framing'; }
@@ -4705,7 +4908,7 @@
     const base64 = document.getElementById('hero-crop-canvas').toDataURL('image/jpeg', 0.85).split(',')[1];
     const cb = heroCrop.onUrl;
     try {
-      const url = await uploadDevFile(base64, 'reflection-hero.jpg', 'announcements', 'image/jpeg');
+      const url = await uploadDevFile(base64, 'reflection-hero.jpg', heroCrop.folder || 'announcements', 'image/jpeg');
       closeHeroCropper();
       if (cb) cb(url);
     } catch (e) {
@@ -9427,6 +9630,7 @@
       document.getElementById('mm-phone').value = gf(res, 'phone') || '';
       document.getElementById('mm-email').value = gf(res, 'email') || '';
       document.getElementById('mm-link').value = gf(res, 'link') || '';
+      mmxLoad(res);
       document.getElementById('my-ministry-loading').style.display = 'none';
       document.getElementById('my-ministry-form').style.display = 'block';
     } catch(e) {
@@ -9444,6 +9648,7 @@
       phone: {stringValue: document.getElementById('mm-phone').value.trim()},
       email: {stringValue: document.getElementById('mm-email').value.trim()},
       link: {stringValue: document.getElementById('mm-link').value.trim()},
+      heroImageUrl: mmxFields().heroImageUrl, photos: mmxFields().photos, signups: mmxFields().signups,
     };
     try {
       await fs_patch('ministries/' + ministryId, fields);
@@ -10038,6 +10243,7 @@
       document.getElementById('mmg-phone').value = gf(res, 'phone') || '';
       document.getElementById('mmg-email').value = gf(res, 'email') || '';
       document.getElementById('mmg-link').value = gf(res, 'link') || '';
+      mmxLoad(res);
       document.getElementById('mmg-chat-enabled').checked = gf(res, 'chatEnabled') === true;
       document.getElementById('mmg-loading').style.display = 'none';
       document.getElementById('mmg-form').style.display = 'block';
@@ -10056,6 +10262,7 @@
       phone: {stringValue: document.getElementById('mmg-phone').value.trim()},
       email: {stringValue: document.getElementById('mmg-email').value.trim()},
       link: {stringValue: document.getElementById('mmg-link').value.trim()},
+      heroImageUrl: mmxFields().heroImageUrl, photos: mmxFields().photos, signups: mmxFields().signups,
       chatEnabled: {booleanValue: document.getElementById('mmg-chat-enabled').checked},
     };
     try {
