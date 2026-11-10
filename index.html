@@ -2574,14 +2574,14 @@
 </div>
 
 <div class="cropper" id="hero-cropper">
-  <div class="cropper-card" style="max-width:560px;">
+  <div class="cropper-card" style="max-width:760px;">
     <div class="cropper-title">Position &amp; Zoom Hero Image</div>
-    <canvas id="hero-crop-canvas" width="1200" height="500" style="width:100%;border-radius:8px;background:var(--linen);touch-action:none;cursor:grab;display:block;"></canvas>
+    <canvas id="hero-crop-canvas" width="1200" height="800" style="max-width:100%;max-height:52vh;width:auto;height:auto;margin:0 auto;border-radius:8px;background:var(--linen);touch-action:none;cursor:grab;display:block;"></canvas>
     <div class="cropper-controls">
       <span>Zoom</span>
-      <input type="range" id="hero-crop-zoom" min="1" max="3" step="0.01" value="1" oninput="heroCropZoom(this.value)" />
+      <input type="range" id="hero-crop-zoom" min="1" max="4" step="0.01" value="1" oninput="heroCropZoom(this.value)" />
     </div>
-    <div class="cropper-hint">Drag the picture to reposition it. This frame is what the app shows behind the title.</div>
+    <div class="cropper-hint">You are seeing the whole photo. The bright box is what the app shows: drag it (or click anywhere on the photo) to choose the spot, and use the slider or mouse wheel to zoom in or out.</div>
     <div class="cropper-actions">
       <button class="btn btn-outline btn-sm" onclick="closeHeroCropper()">Cancel</button>
       <button class="btn btn-primary btn-sm" id="hero-crop-apply" onclick="applyHeroCropper()">Use This Framing</button>
@@ -4854,26 +4854,36 @@
   var refPhotos = [];
   var dailyHeroUrls = ['', '', '', '', '', '', ''];
   var heroCrop = { img: null, zoom: 1, panX: 0, panY: 0, onUrl: null, busy: false };
-  const HERO_W = 1200, HERO_H = 500;
-  function heroCropGeom() {
-    const e = heroCrop;
-    const cover = Math.max(HERO_W / e.img.naturalWidth, HERO_H / e.img.naturalHeight), sc = cover * e.zoom;
-    const w = e.img.naturalWidth * sc, h = e.img.naturalHeight * sc;
-    const maxX = Math.max(0, (w - HERO_W) / 2), maxY = Math.max(0, (h - HERO_H) / 2);
-    e.panX = Math.max(-maxX, Math.min(maxX, e.panX));
-    e.panY = Math.max(-maxY, Math.min(maxY, e.panY));
-    return { w: w, h: h, x: (HERO_W - w) / 2 + e.panX, y: (HERO_H - h) / 2 + e.panY };
+  // HERO CROPPER V2: shows the WHOLE photo with a movable 2.4:1 frame. Drag the frame
+  // to choose what the app shows; the slider (or mouse wheel) makes the frame smaller =
+  // zooms in. Output is always 1200x500 (the banner shape).
+  const HERO_W = 1200, HERO_H = 500, HERO_RATIO = 1200 / 500;
+  function heroMaxW() { return Math.min(heroCrop.img.naturalWidth, heroCrop.img.naturalHeight * HERO_RATIO); }
+  function heroFrame() {
+    const e = heroCrop, iw = e.img.naturalWidth, ih = e.img.naturalHeight;
+    const fw = heroMaxW() / e.zoom, fh = fw / HERO_RATIO;
+    e.fx = Math.max(0, Math.min(iw - fw, e.fx));
+    e.fy = Math.max(0, Math.min(ih - fh, e.fy));
+    return { x: e.fx, y: e.fy, w: fw, h: fh };
   }
   function heroCropDraw() {
     const cv = document.getElementById('hero-crop-canvas');
     if (!cv || !heroCrop.img) return;
-    const g = heroCropGeom(), ctx = cv.getContext('2d');
-    ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, HERO_W, HERO_H);
-    ctx.drawImage(heroCrop.img, g.x, g.y, g.w, g.h);
+    const img = heroCrop.img, sc = cv.width / img.naturalWidth, f = heroFrame(), ctx = cv.getContext('2d');
+    ctx.clearRect(0, 0, cv.width, cv.height);
+    ctx.drawImage(img, 0, 0, cv.width, cv.height);
+    ctx.fillStyle = 'rgba(30,10,16,0.62)';
+    ctx.fillRect(0, 0, cv.width, cv.height);
+    ctx.drawImage(img, f.x, f.y, f.w, f.h, f.x * sc, f.y * sc, f.w * sc, f.h * sc);
+    ctx.strokeStyle = '#C9A84C'; ctx.lineWidth = Math.max(3, cv.width / 300);
+    ctx.strokeRect(f.x * sc, f.y * sc, f.w * sc, f.h * sc);
   }
   function heroCropZoom(v) {
     if (!heroCrop.img) return;
-    heroCrop.zoom = Math.max(1, Math.min(3, parseFloat(v) || 1));
+    const old = heroFrame(), cx = old.x + old.w / 2, cy = old.y + old.h / 2;
+    heroCrop.zoom = Math.max(1, Math.min(4, parseFloat(v) || 1));
+    const nw = heroMaxW() / heroCrop.zoom;
+    heroCrop.fx = cx - nw / 2; heroCrop.fy = cy - nw / HERO_RATIO / 2;   // zoom around the frame's centre
     heroCropDraw();
   }
   function openHeroCropper(file, onUrl, folder) {
@@ -4882,7 +4892,11 @@
     reader.onload = function(e) {
       const img = new Image();
       img.onload = function() {
-        heroCrop = { img: img, zoom: 1, panX: 0, panY: 0, onUrl: onUrl, folder: folder || 'announcements', busy: false };
+        const iw = img.naturalWidth, ih = img.naturalHeight, k = Math.min(1200 / iw, 800 / ih, 1);
+        const cv = document.getElementById('hero-crop-canvas');
+        cv.width = Math.max(1, Math.round(iw * k)); cv.height = Math.max(1, Math.round(ih * k));
+        heroCrop = { img: img, zoom: 1, fx: 0, fy: 0, onUrl: onUrl, folder: folder || 'announcements', busy: false };
+        const fw = heroMaxW(); heroCrop.fx = (iw - fw) / 2; heroCrop.fy = (ih - fw / HERO_RATIO) / 2;
         document.getElementById('hero-crop-zoom').value = 1;
         const btn = document.getElementById('hero-crop-apply');
         if (btn) { btn.disabled = false; btn.textContent = 'Use This Framing'; }
@@ -4897,22 +4911,26 @@
   }
   function closeHeroCropper() {
     document.getElementById('hero-cropper').classList.remove('show');
-    heroCrop = { img: null, zoom: 1, panX: 0, panY: 0, onUrl: null, busy: false };
+    heroCrop = { img: null, zoom: 1, fx: 0, fy: 0, onUrl: null, busy: false };
   }
   async function applyHeroCropper() {
     if (!heroCrop.img || heroCrop.busy) return;
     heroCrop.busy = true;
     const btn = document.getElementById('hero-crop-apply');
     if (btn) { btn.disabled = true; btn.textContent = 'Uploading…'; }
-    heroCropDraw();
-    const base64 = document.getElementById('hero-crop-canvas').toDataURL('image/jpeg', 0.85).split(',')[1];
+    const f = heroFrame(), out = document.createElement('canvas');
+    out.width = HERO_W; out.height = HERO_H;
+    const octx = out.getContext('2d');
+    octx.fillStyle = '#fff'; octx.fillRect(0, 0, HERO_W, HERO_H);
+    octx.drawImage(heroCrop.img, f.x, f.y, f.w, f.h, 0, 0, HERO_W, HERO_H);
+    const base64 = out.toDataURL('image/jpeg', 0.85).split(',')[1];
     const cb = heroCrop.onUrl;
     try {
       const url = await uploadDevFile(base64, 'reflection-hero.jpg', heroCrop.folder || 'announcements', 'image/jpeg');
       closeHeroCropper();
       if (cb) cb(url);
     } catch (e) {
-      console.error('Reflection hero upload error:', e);
+      console.error('Hero upload error:', e);
       heroCrop.busy = false;
       if (btn) { btn.disabled = false; btn.textContent = 'Use This Framing'; }
       showToast('Upload failed: ' + (e && e.message || e), 'error');
@@ -4922,21 +4940,36 @@
     const cv = document.getElementById('hero-crop-canvas');
     if (!cv) return;
     let drag = null;
+    const toImg = function(ev) {   // pointer position in source-image pixels
+      const r = cv.getBoundingClientRect();
+      const k = heroCrop.img.naturalWidth / r.width;
+      return { x: (ev.clientX - r.left) * k, y: (ev.clientY - r.top) * k };
+    };
     cv.addEventListener('pointerdown', function(ev) {
       if (!heroCrop.img) return;
-      drag = { x: ev.clientX, y: ev.clientY, px: heroCrop.panX, py: heroCrop.panY };
+      const p = toImg(ev), f = heroFrame();
+      // grabbing outside the frame re-centres it on that spot, then keeps dragging
+      if (p.x < f.x || p.x > f.x + f.w || p.y < f.y || p.y > f.y + f.h) { heroCrop.fx = p.x - f.w / 2; heroCrop.fy = p.y - f.h / 2; heroCropDraw(); }
+      drag = { p: p, fx: heroCrop.fx, fy: heroCrop.fy };
       try { cv.setPointerCapture(ev.pointerId); } catch (e) {}
     });
     cv.addEventListener('pointermove', function(ev) {
-      if (!drag) return;
-      const ratio = cv.width / cv.getBoundingClientRect().width;
-      heroCrop.panX = drag.px + (ev.clientX - drag.x) * ratio;
-      heroCrop.panY = drag.py + (ev.clientY - drag.y) * ratio;
+      if (!drag || !heroCrop.img) return;
+      const p = toImg(ev);
+      heroCrop.fx = drag.fx + (p.x - drag.p.x);
+      heroCrop.fy = drag.fy + (p.y - drag.p.y);
       heroCropDraw();
     });
     const end = function() { drag = null; };
     cv.addEventListener('pointerup', end);
     cv.addEventListener('pointercancel', end);
+    cv.addEventListener('wheel', function(ev) {
+      if (!heroCrop.img) return;
+      ev.preventDefault();
+      const z = Math.max(1, Math.min(4, heroCrop.zoom * (ev.deltaY < 0 ? 1.08 : 1 / 1.08)));
+      document.getElementById('hero-crop-zoom').value = z;
+      heroCropZoom(z);
+    }, { passive: false });
   })();
   function heroThumbHtml(url, removeCall) {
     return '<div style="margin-bottom:10px;"><img src="' + annAttr(url) + '" alt="" style="width:100%;max-width:480px;aspect-ratio:2.4/1;object-fit:cover;border-radius:8px;display:block;background:var(--linen);" />' +
