@@ -917,6 +917,7 @@
 
       <!-- WEEKLY REFLECTION -->
       <div class="page" id="page-reflection">
+        <div class="ann-layout"><div class="ann-form-col">
         <div class="card">
           <div class="card-title">📖 Weekly Reflection</div>
           <div class="info-box">This reflection appears on the Home screen. Paste Fr. Bing's full reflection text — parishioners will read it in a full-screen reader inside the app.</div>
@@ -963,6 +964,15 @@
           </div>
           <div class="post-success" id="ref-success">✓ Reflection updated successfully.</div>
         </div>
+        </div>
+        <aside class="ann-preview-col">
+          <div class="card" style="margin-bottom:0;">
+            <div class="card-title">📱 How it looks in the app</div>
+            <div id="ref-live-preview-label" style="font-size:12px;color:var(--burgundy);margin-bottom:8px;display:none;"></div>
+            <div class="ann-pv-frame"><div class="ann-pv-sheet" id="ref-live-preview"></div></div>
+            <div style="font-size:12px;color:var(--dusty-rose);margin-top:8px;">Updates as you type. Close to what people see; fonts and spacing on a phone may differ slightly. Tap-to-enlarge only works in the app.</div>
+          </div>
+        </aside></div>
         <div class="card" style="margin-top:16px;">
           <div class="card-title">🟢 Current Reflection (Live Now)</div>
           <div id="ref-preview"><div style="color:var(--dusty-rose);font-size:14px;">Loading...</div></div>
@@ -1143,6 +1153,7 @@
 
       <!-- DAILY REFLECTION -->
       <div class="page" id="page-daily">
+        <div class="ann-layout"><div class="ann-form-col">
         <div class="card">
           <div class="card-title">✝ Weekly Reflection Scheduler</div>
           <div class="info-box">Schedule up to 7 daily reflections at once. Each will automatically appear in the app at 4:00 AM on its scheduled date.</div>
@@ -1155,6 +1166,15 @@
           </div>
           <div class="post-success" id="daily-success">✓ Reflections scheduled successfully.</div>
         </div>
+        </div>
+        <aside class="ann-preview-col">
+          <div class="card" style="margin-bottom:0;">
+            <div class="card-title">📱 How it looks in the app</div>
+            <div id="daily-preview-label" style="font-size:12px;color:var(--burgundy);margin-bottom:8px;display:block;"></div>
+            <div class="ann-pv-frame"><div class="ann-pv-sheet" id="daily-preview"></div></div>
+            <div style="font-size:12px;color:var(--dusty-rose);margin-top:8px;">Shows the day you are editing. Click into any day to preview it. The music player only appears in the app.</div>
+          </div>
+        </aside></div>
         <div class="card" style="margin-top:16px;">
           <div class="card-title">📋 Scheduled Queue</div>
           <div id="scheduled-queue"><div style="color:var(--dusty-rose);font-size:14px;">Loading...</div></div>
@@ -4570,6 +4590,57 @@
     } catch(e){showToast('Error posting.','error');}
   }
 
+  // ── REFLECTION LIVE PREVIEW ──
+  // Mirrors the app's reflection readers (App.tsx ReflectionHeader): plain burgundy bar
+  // or hero banner with tint + gold rule, formatted body, author line and pictures (weekly).
+  var dailyPvIdx = 0;
+  function reflectionPreviewHtml(o) {
+    const hero = o.hero ? 'background-image:url(\'' + annAttr(o.hero) + '\');background-size:cover;background-position:center;' : '';
+    let h = '<div style="border-radius:20px 20px 0 0;overflow:hidden;background:#5C1A2E;position:relative;' + hero + (o.hero ? 'min-height:190px;padding:56px 20px 16px;' : 'padding:16px 20px;') + 'display:flex;flex-direction:column;justify-content:flex-end;flex-shrink:0;">' +
+      (o.hero ? '<div style="position:absolute;inset:0;background:rgba(92,26,46,0.55);"></div><div style="position:absolute;left:0;right:0;bottom:0;height:60%;background:rgba(51,18,25,0.45);"></div>' : '') +
+      '<div style="position:' + (o.hero ? 'absolute;top:16px;left:20px;' : 'relative;margin-bottom:6px;') + 'color:#E8DDD0;font-size:18px;opacity:.8;">✕</div>' +
+      (o.kicker ? '<div style="position:relative;font-family:Faustina,serif;font-size:13px;letter-spacing:1px;color:#E8DDD0;opacity:.8;">' + escHtml(o.kicker) + '</div>' : '') +
+      '<div style="position:relative;font-family:Cinzel,serif;font-weight:700;font-size:' + (o.hero ? '22' : '15') + 'px;color:' + (o.hero ? '#E8DDD0' : '#fff') + ';line-height:1.25;margin-top:2px;">' + (o.title ? escHtml(o.title) : '<span style="opacity:.5;">Your title</span>') + '</div>' +
+      (o.hero ? '<div style="position:relative;height:3px;background:#C9A84C;margin-top:10px;border-radius:2px;"></div>' : '') + '</div>';
+    h += '<div style="overflow-y:auto;padding:20px 24px 24px;font-family:Faustina,serif;color:#3D2B2B;min-height:0;background:#F7F3EE;">' +
+      '<div style="font-size:17px;line-height:1.6;">' + (o.body && o.body.trim() ? annMarkupHtml(o.body) : '<span style="opacity:.5;">Your reflection appears here.</span>') + '</div>';
+    if (o.author) h += '<div style="color:#5C1A2E;font-size:15px;font-style:italic;text-align:right;margin-top:20px;">— ' + escHtml(o.author) + '</div>';
+    (o.photos || []).forEach(function(p) {
+      if (!p || !p.url) return;
+      h += '<div style="margin-top:20px;"><img src="' + annAttr(p.url) + '" alt="" style="width:100%;display:block;border-radius:12px;background:#E8DDD0;' + (p.w > 0 && p.h > 0 ? 'aspect-ratio:' + p.w + '/' + p.h + ';object-fit:cover;' : '') + '" />' +
+        (p.caption ? '<div style="font-size:14px;font-style:italic;text-align:center;margin-top:6px;opacity:.8;">' + escHtml(p.caption) + '</div>' : '') + '</div>';
+    });
+    if (o.music) h += '<div style="margin-top:20px;border-left:3px solid #C9A84C;background:#3D2B2B;color:#E8DDD0;border-radius:14px;padding:26px 16px;text-align:center;font-size:14px;">▶ Music player</div>';
+    return h + '</div>';
+  }
+  function renderReflectionPreviews() {
+    const v = function(id) { const x = document.getElementById(id); return x ? x.value : ''; };
+    const w = document.getElementById('ref-live-preview');
+    if (w) w.innerHTML = reflectionPreviewHtml({
+      kicker: v('ref-liturgical').trim().toUpperCase(), title: v('ref-heading').trim(), hero: refHeroUrl,
+      body: v('ref-body'), author: v('ref-author').trim(), photos: refPhotos });
+    const d = document.getElementById('daily-preview');
+    if (d) {
+      const i = dailyPvIdx;
+      const date = v('daily-date-' + i);
+      const lbl = document.getElementById('daily-preview-label');
+      if (lbl) lbl.textContent = 'Previewing: ' + (annPvDate(date) || 'Day ' + (i + 1)) + ' — click into another day to switch';
+      d.innerHTML = reflectionPreviewHtml({
+        kicker: 'DAILY REFLECTION · ' + date, title: v('daily-title-' + i).trim() || 'Daily Reflection', hero: dailyHeroUrls[i],
+        body: v('daily-body-' + i), music: v('daily-music-' + i).trim() });
+    }
+  }
+  (function wireReflectionPreview() {
+    const wk = document.getElementById('page-reflection');
+    if (wk) ['input', 'change'].forEach(function(ev) { wk.addEventListener(ev, function(e) { if (e.target && e.target.closest && e.target.closest('.ann-form-col')) renderReflectionPreviews(); }); });
+    const dy = document.getElementById('page-daily');
+    if (dy) ['input', 'change', 'focusin'].forEach(function(ev) { dy.addEventListener(ev, function(e) {
+      const m = e.target && e.target.id && /^daily-(?:title|body|music)-(\d)$/.exec(e.target.id);
+      if (m) dailyPvIdx = parseInt(m[1], 10);
+      if (e.target && e.target.closest && e.target.closest('.ann-form-col')) renderReflectionPreviews();
+    }); });
+  })();
+
   // ── REFLECTION PHOTOS ──
   // Hero image (a wide banner behind the title in the app's reflection reader) for the
   // weekly and daily reflections, plus up to 3 captioned pictures at the bottom of the
@@ -4675,6 +4746,7 @@
       const el = document.getElementById('daily-hero-current-' + i);
       if (el) el.innerHTML = dailyHeroUrls[i] ? heroThumbHtml(dailyHeroUrls[i], "removeReflectionHero('daily'," + i + ")") : '';
     }
+    renderReflectionPreviews();
   }
   function pickReflectionHero(input, kind, idx) {
     const file = input.files && input.files[0];
@@ -4701,6 +4773,7 @@
     }).join('');
     const add = document.getElementById('ref-picture-add');
     if (add) add.style.display = refPhotos.length >= 3 ? 'none' : 'inline-block';
+    renderReflectionPreviews();
   }
   function removeRefPhoto(i) { refPhotos.splice(i, 1); renderRefPhotos(); }
   function handleRefPicturePick(input) {
@@ -4930,6 +5003,7 @@
     const today = new Date();
     container.innerHTML = '';
     dailyHeroUrls = ['', '', '', '', '', '', ''];
+    dailyPvIdx = 0;
     for (let i = 0; i < 7; i++) {
       const d = new Date(today);
       d.setDate(today.getDate() + i);
@@ -4952,6 +5026,7 @@
         '<label class="btn btn-outline btn-sm" style="cursor:pointer;display:inline-block;">Add hero image (optional)<input type="file" accept="image/*" style="display:none;" onchange="pickReflectionHero(this,\'daily\',' + i + ')" /></label></div>' +
         '</div>';
     }
+    renderReflectionPreviews();
   }
   async function loadScheduledReflections() {
     try {
@@ -10545,6 +10620,7 @@
       showToast('Reading document...', 'success');
       const text = await parseDocxToMarkdown(file);
       document.getElementById(textareaId).value = text;
+      document.getElementById(textareaId).dispatchEvent(new Event('input', { bubbles: true }));
       showToast('Imported! Bold text is marked with ** -- review before saving.', 'success');
     } catch (e) {
       showToast('Could not read that file: ' + (e.message || 'unknown error'), 'error');
