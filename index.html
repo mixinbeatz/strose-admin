@@ -1433,6 +1433,19 @@
           <div class="card-title">Photos</div>
           <div id="around-parish-slots"></div>
         </div>
+        <div class="card">
+          <div class="card-title">🗓️ Past Events</div>
+          <div class="info-box">When an event is over, save what is showing above as a <strong>past event</strong> and then put up the next set of photos. The app shows a "Past events" button under Around the Parish with the albums from the <strong>last 12 months</strong>. Older ones stop showing in the app automatically but stay here, so you can bring one back by changing its date or delete it for good.</div>
+          <div class="form-group">
+            <label class="form-label">Date of the event</label>
+            <input type="date" class="form-input" id="around-parish-archive-date" style="max-width:220px;" />
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-primary" onclick="archiveAroundParish()">Save current as a past event</button>
+          </div>
+          <div style="font-size:12px;color:var(--dusty-rose);margin-top:6px;">Saves the heading, text and photos exactly as they are saved above. It doesn't change what is showing now.</div>
+          <div id="around-parish-past-list" style="margin-top:20px;"></div>
+        </div>
       </div>
       <div class="page" id="page-parish-dev-media">
         <div class="card">
@@ -11155,6 +11168,7 @@
       document.getElementById('around-parish-text-body').value = AROUND_PARISH_DEFAULT_TEXT.body;
     }
     renderAroundParishSlots();
+    loadAroundParishPast();
   }
   function renderAroundParishSlots() {
     const el = document.getElementById('around-parish-slots');
@@ -11211,7 +11225,7 @@
   async function clearAroundParishSlot(slotKey) {
     if (!confirm('Clear this photo and go back to the placeholder?')) return;
     try {
-      await fs_patch('siteContent/aroundParish', { [slotKey + 'Url']: { stringValue: '' } });
+      await fs_patch('siteContent/aroundParish', { [slotKey + 'Url']: { stringValue: '' }, [slotKey + 'UrlApp']: { stringValue: '' } });
       aroundParishData[slotKey] = aroundParishData[slotKey] || { url: '', alt: '' };
       aroundParishData[slotKey].url = '';
       renderAroundParishSlots();
@@ -11229,6 +11243,116 @@
       setTimeout(() => document.getElementById('around-parish-text-success').style.display = 'none', 3000);
       showToast('Text saved!', 'success');
     } catch(e) { showToast('Error saving.', 'error'); }
+  }
+  // ── AROUND THE PARISH PAST EVENTS ──
+  // Albums live in the aroundParishPast collection: eyebrow, title, body, eventDate (YYYY-MM-DD),
+  // photos[{url, alt}]. The app lists the last 12 months; older albums stay here, flagged.
+  var aroundPast = [];
+  function apLocalToday() { const d = new Date(); return d.getFullYear() + '-' + String(d.getMonth() + 1).padStart(2, '0') + '-' + String(d.getDate()).padStart(2, '0'); }
+  function apOlderThanYear(date) { const t = new Date((date || '1970-01-01') + 'T12:00:00').getTime(); return t < Date.now() - 365 * 24 * 3600 * 1000; }
+  async function loadAroundParishPast() {
+    const dEl = document.getElementById('around-parish-archive-date');
+    if (dEl && !dEl.value) dEl.value = apLocalToday();
+    try {
+      const res = await fs_get('aroundParishPast');
+      aroundPast = (res.documents || []).map(function(d) {
+        const f = d.fields || {};
+        return {
+          id: docId(d),
+          eyebrow: (f.eyebrow && f.eyebrow.stringValue) || '',
+          title: (f.title && f.title.stringValue) || '',
+          body: (f.body && f.body.stringValue) || '',
+          date: (f.eventDate && f.eventDate.stringValue) || '',
+          photos: ((f.photos && f.photos.arrayValue && f.photos.arrayValue.values) || []).map(function(v) {
+            const pf = (v.mapValue && v.mapValue.fields) || {};
+            return { url: (pf.url && pf.url.stringValue) || '', alt: (pf.alt && pf.alt.stringValue) || '' };
+          }).filter(function(p) { return p.url; })
+        };
+      }).sort(function(a, b) { return (b.date || '').localeCompare(a.date || ''); });
+    } catch (e) { aroundPast = []; }
+    renderAroundParishPast();
+  }
+  function renderAroundParishPast() {
+    const el = document.getElementById('around-parish-past-list');
+    if (!el) return;
+    if (!aroundPast.length) { el.innerHTML = '<div style="color:var(--dusty-rose);font-size:14px;">No past events saved yet.</div>'; return; }
+    el.innerHTML = aroundPast.map(function(a, i) {
+      const old = apOlderThanYear(a.date);
+      return '<div style="border:1px solid var(--linen);border-radius:10px;padding:14px;margin-bottom:12px;">' +
+        (old ? '<div style="font-size:12px;color:var(--burgundy);margin-bottom:8px;">⏳ Older than a year — hidden in the app. Change the date to show it again, or delete it.</div>' : '') +
+        '<div style="display:flex;gap:10px;flex-wrap:wrap;margin-bottom:8px;">' +
+          '<input class="form-input" style="flex:2;min-width:200px;" placeholder="Title" value="' + annAttr(a.title) + '" oninput="aroundPast[' + i + '].title=this.value" />' +
+          '<input type="date" class="form-input" style="flex:1;min-width:150px;" value="' + annAttr(a.date) + '" onchange="aroundPast[' + i + '].date=this.value" />' +
+        '</div>' +
+        '<textarea class="form-input" rows="3" placeholder="Short text (optional)" oninput="aroundPast[' + i + '].body=this.value" style="margin-bottom:8px;">' + escHtml(a.body) + '</textarea>' +
+        '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">' +
+          a.photos.map(function(p, j) { return '<div style="position:relative;"><img src="' + annAttr(p.url) + '" alt="" style="width:84px;height:60px;object-fit:cover;border-radius:6px;display:block;" /><button type="button" title="Remove this photo" onclick="removeAroundPastPhoto(' + i + ',' + j + ')" style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:10px;border:none;background:#5C1A2E;color:#fff;font-size:12px;line-height:20px;cursor:pointer;padding:0;">✕</button></div>'; }).join('') +
+        '</div>' +
+        '<button class="btn btn-primary btn-sm" onclick="saveAroundPast(' + i + ')">Save changes</button> ' +
+        '<button class="btn btn-outline btn-sm" onclick="deleteAroundPast(' + i + ')">Delete</button>' +
+      '</div>';
+    }).join('');
+  }
+  function aroundPastFields(a) {
+    return {
+      eyebrow: { stringValue: a.eyebrow || '' },
+      title: { stringValue: (a.title || '').trim() },
+      body: { stringValue: (a.body || '').trim() },
+      eventDate: { stringValue: a.date || '' },
+      photos: { arrayValue: { values: a.photos.map(function(p) { return { mapValue: { fields: { url: { stringValue: p.url }, alt: { stringValue: p.alt || '' } } } }; }) } }
+    };
+  }
+  async function archiveAroundParish() {
+    const date = (document.getElementById('around-parish-archive-date') || {}).value;
+    if (!date) { showToast('Pick the date of the event first.', 'error'); return; }
+    try {
+      const res = await fs_get_doc('siteContent/aroundParish');
+      const f = res.fields || {};
+      const photos = [];
+      for (let i = 1; i <= 5; i++) {
+        const web = (f['slot' + i + 'Url'] && f['slot' + i + 'Url'].stringValue) || '';
+        const app = (f['slot' + i + 'UrlApp'] && f['slot' + i + 'UrlApp'].stringValue) || '';
+        if (!web) continue;
+        photos.push({ url: app || web, alt: (f['slot' + i + 'Alt'] && f['slot' + i + 'Alt'].stringValue) || '' });
+      }
+      const a = {
+        eyebrow: (f.textEyebrow && f.textEyebrow.stringValue) || '',
+        title: (f.textTitle && f.textTitle.stringValue) || '',
+        body: (f.textBody && f.textBody.stringValue) || '',
+        date: date, photos: photos
+      };
+      if (!photos.length) { showToast('There are no saved photos to archive yet.', 'error'); return; }
+      if (!a.title.trim()) { showToast('Save a heading above first, so the past event has a title.', 'error'); return; }
+      if (!confirm('Save "' + a.title + '" (' + photos.length + ' photo' + (photos.length === 1 ? '' : 's') + ') as a past event dated ' + date + '?')) return;
+      const out = aroundPastFields(a);
+      out.createdAt = { stringValue: new Date().toISOString() };
+      const r = await fs_post('aroundParishPast', out);
+      if (r && r.error) throw new Error(r.error.message || 'save failed');
+      showToast('Saved as a past event.', 'success');
+      loadAroundParishPast();
+    } catch (e) { console.error('archiveAroundParish', e); showToast('Could not save the past event.', 'error'); }
+  }
+  function removeAroundPastPhoto(i, j) { aroundPast[i].photos.splice(j, 1); renderAroundParishPast(); showToast('Photo removed — click Save changes to keep that.', 'success'); }
+  async function saveAroundPast(i) {
+    const a = aroundPast[i];
+    if (!a || !a.date) { showToast('Give it a date.', 'error'); return; }
+    if (!a.photos.length) { showToast('An album needs at least one photo — or delete it instead.', 'error'); return; }
+    try {
+      const r = await fs_patch('aroundParishPast/' + a.id, aroundPastFields(a));
+      if (r && r.error) throw new Error(r.error.message || 'save failed');
+      showToast('Saved.', 'success');
+      renderAroundParishPast();
+    } catch (e) { showToast('Error saving.', 'error'); }
+  }
+  async function deleteAroundPast(i) {
+    const a = aroundPast[i];
+    if (!a || !confirm('Delete "' + (a.title || 'this album') + '" for good? This can\'t be undone.')) return;
+    try {
+      await fs_delete('aroundParishPast/' + a.id);
+      aroundPast.splice(i, 1);
+      renderAroundParishPast();
+      showToast('Deleted.', 'success');
+    } catch (e) { showToast('Error deleting.', 'error'); }
   }
   // ── PARISH DEVELOPMENT MEDIA ── (fluid photo array, not fixed slots)
   let parishDevMediaData = { photos: [] };
