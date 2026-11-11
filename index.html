@@ -2142,6 +2142,11 @@
               <input type="text" class="form-input" id="mmg-link" placeholder="https://..." />
             </div>
             <div class="form-group">
+              <label class="form-label">Link button text (optional)</label>
+              <input type="text" class="form-input" id="mmg-link-label" placeholder="Sign Up" maxlength="30" />
+              <div style="font-size:12px;color:var(--dusty-rose);margin-top:4px;">What the Link button says in the app, for example "Donate here" or "Join Us". Leave empty for "Sign Up". Shows on phones with the newest app update.</div>
+            </div>
+            <div class="form-group">
               <label class="form-label" style="display:flex;align-items:center;gap:8px;cursor:pointer;">
                 <input type="checkbox" id="mmg-chat-enabled" style="width:auto;" />
                 Enable group chat for this ministry
@@ -2279,6 +2284,11 @@
             <div class="form-group">
               <label class="form-label">Link (optional)</label>
               <input type="text" class="form-input" id="mm-link" placeholder="https://..." />
+            </div>
+            <div class="form-group">
+              <label class="form-label">Link button text (optional)</label>
+              <input type="text" class="form-input" id="mm-link-label" placeholder="Sign Up" maxlength="30" />
+              <div style="font-size:12px;color:var(--dusty-rose);margin-top:4px;">What the Link button says in the app, for example "Donate here" or "Join Us". Leave empty for "Sign Up". Shows on phones with the newest app update.</div>
             </div>
             <div class="form-group">
               <label class="form-label">Hero photo (optional)</label>
@@ -4791,7 +4801,7 @@
     h += '<div style="margin-top:22px;">';
     if (v('phone')) h += btn('Call ' + (v('contact') || 'Ministry'), '#5C1A2E');
     if (v('email')) h += btn('Email ' + (v('contact') || 'Ministry'), '#C17A8A');
-    if (v('link')) h += btn('Sign Up →', '#5C1A2E');
+    if (v('link')) h += btn((v('link-label') || 'Sign Up') + ' →', '#5C1A2E');
     mmxCleanSignups().forEach(function(x) { h += btn(x.label + ' →', '#5C1A2E'); });
     if (chat) h += btn('Open ' + name + ' Chat →', '#7B5EA7');
     h += '</div></div>';
@@ -9676,6 +9686,7 @@
       document.getElementById('mm-phone').value = gf(res, 'phone') || '';
       document.getElementById('mm-email').value = gf(res, 'email') || '';
       document.getElementById('mm-link').value = gf(res, 'link') || '';
+      document.getElementById('mm-link-label').value = gf(res, 'linkLabel') || '';
       mmxLoad(res);
       document.getElementById('my-ministry-loading').style.display = 'none';
       document.getElementById('my-ministry-form').style.display = 'block';
@@ -9694,6 +9705,7 @@
       phone: {stringValue: document.getElementById('mm-phone').value.trim()},
       email: {stringValue: document.getElementById('mm-email').value.trim()},
       link: {stringValue: document.getElementById('mm-link').value.trim()},
+      linkLabel: {stringValue: document.getElementById('mm-link-label').value.trim()},
       heroImageUrl: mmxFields().heroImageUrl, photos: mmxFields().photos, signups: mmxFields().signups,
     };
     try {
@@ -10289,6 +10301,7 @@
       document.getElementById('mmg-phone').value = gf(res, 'phone') || '';
       document.getElementById('mmg-email').value = gf(res, 'email') || '';
       document.getElementById('mmg-link').value = gf(res, 'link') || '';
+      document.getElementById('mmg-link-label').value = gf(res, 'linkLabel') || '';
       mmxLoad(res);
       document.getElementById('mmg-chat-enabled').checked = gf(res, 'chatEnabled') === true;
       document.getElementById('mmg-loading').style.display = 'none';
@@ -10308,6 +10321,7 @@
       phone: {stringValue: document.getElementById('mmg-phone').value.trim()},
       email: {stringValue: document.getElementById('mmg-email').value.trim()},
       link: {stringValue: document.getElementById('mmg-link').value.trim()},
+      linkLabel: {stringValue: document.getElementById('mmg-link-label').value.trim()},
       heroImageUrl: mmxFields().heroImageUrl, photos: mmxFields().photos, signups: mmxFields().signups,
       chatEnabled: {booleanValue: document.getElementById('mmg-chat-enabled').checked},
     };
