@@ -4672,11 +4672,12 @@
   // app, edited from My Ministry (leaders) and the per-ministry page (staff). Stored on
   // ministries/{id} as heroImageUrl, photos[{kind,url,caption,w,h}] and signups[{label,url}].
   // Photos upload to ministryPhotos/{ministryId}/ (leaders may only write their own folder).
-  var mmx = { hero: '', photos: [], signups: [] };
+  var mmx = { hero: '', photos: [], signups: [], chat: false };
   function mmxIsStaffPage() { const p = document.getElementById('page-manage-ministry'); return !!(p && p.classList.contains('active')); }
   function mmxId() { return mmxIsStaffPage() ? currentManagedMinistryId : activeMinistry(); }
   function mmxLoad(doc) {
     mmx.hero = gf(doc, 'heroImageUrl') || '';
+    mmx.chat = gf(doc, 'chatEnabled') === true;
     mmx.photos = reflectionPhotosFromDoc(doc);
     const vals = (doc && doc.fields && doc.fields.signups && doc.fields.signups.arrayValue && doc.fields.signups.arrayValue.values) || [];
     mmx.signups = vals.map(function(v) {
@@ -4775,7 +4776,7 @@
     const p = staff ? 'mmg-' : 'mm-';
     const v = function(id) { const x = document.getElementById(p + id); return x ? x.value.trim() : ''; };
     const name = staff ? ((document.getElementById('mmg-heading-name') || {}).textContent || '') : v('name');
-    const chat = staff && document.getElementById('mmg-chat-enabled') && document.getElementById('mmg-chat-enabled').checked;
+    const chat = staff ? !!(document.getElementById('mmg-chat-enabled') && document.getElementById('mmg-chat-enabled').checked) : !!mmx.chat;
     const btn = function(txt, bg) { return '<div style="background:' + bg + ';color:#E8DDD0;border-radius:10px;padding:13px;text-align:center;font-family:Cinzel,serif;font-weight:700;font-size:16px;margin-bottom:10px;">' + escHtml(txt) + '</div>'; };
     let h = '<div style="padding:14px 24px 0;flex-shrink:0;"><div style="width:40px;height:4px;border-radius:2px;background:#E8DDD0;margin:0 auto 14px;"></div></div>' +
       '<div style="overflow-y:auto;padding:0 24px 24px;font-family:Faustina,serif;color:#3D2B2B;min-height:0;background:#F7F3EE;">';
