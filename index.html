@@ -4546,9 +4546,9 @@
     const link = normalizeAnnLink(val('ann-link'));
     const hero = annHeroUrl ? 'background-image:url(\'' + annAttr(annHeroUrl) + '\');background-size:cover;background-position:center;' : '';
     let h = '<div style="border-radius:20px 20px 0 0;overflow:hidden;background:#5C1A2E;position:relative;' + hero + (annHeroUrl ? 'min-height:180px;' : '') + 'display:flex;flex-direction:column;justify-content:flex-end;flex-shrink:0;">' +
-      (annHeroUrl ? '<div style="position:absolute;inset:0;background:rgba(92,26,46,0.62);"></div><div style="position:absolute;left:0;right:0;bottom:0;height:60%;background:rgba(51,18,25,0.45);"></div>' : '') +
+      (annHeroUrl ? '<!--ANN-PV-V2--><div style="position:absolute;inset:0;background:rgba(0,0,0,0.10);"></div><div style="position:absolute;left:0;right:0;bottom:0;height:75%;background:rgba(0,0,0,0.16);"></div><div style="position:absolute;left:0;right:0;bottom:0;height:50%;background:rgba(0,0,0,0.22);"></div>' : '') +
       '<div style="position:absolute;top:12px;left:0;right:0;display:flex;justify-content:center;"><div style="width:40px;height:4px;border-radius:2px;background:#E8DDD0;opacity:.6;"></div></div>' +
-      '<div style="position:relative;font-family:Cinzel,serif;font-weight:600;font-size:24px;color:#E8DDD0;padding:36px 24px 20px;line-height:1.25;">' + (title ? escHtml(title) : '<span style="opacity:.5;">Your title</span>') + '</div>' +
+      '<div style="position:relative;font-family:Cinzel,serif;font-weight:700;font-size:22px;text-align:center;text-shadow:0 1px 4px rgba(0,0,0,0.55);color:#E8DDD0;padding:36px 24px 18px;line-height:1.27;">' + (title ? escHtml(title) : '<span style="opacity:.5;">Your title</span>') + '</div>' +
       '<div style="position:relative;height:3px;background:#C9A84C;"></div></div>';
     h += '<div style="overflow-y:auto;padding:16px 24px 8px;font-family:Faustina,serif;color:#3D2B2B;min-height:0;">';
     if (date) {
