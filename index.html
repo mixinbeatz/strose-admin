@@ -9307,7 +9307,7 @@
       showToast('No saved schedule yet — showing defaults.', 'success');
     }
   }
-  async function saveMassSchedule() {
+  async function saveMassSchedule(btn) {
     const fieldsPayload = {};
     Object.keys(MASS_SCHEDULE_FIELD_IDS).forEach(key => {
       const el = document.getElementById(MASS_SCHEDULE_FIELD_IDS[key]);
@@ -9319,8 +9319,31 @@
       document.getElementById('mass-schedule-success').style.display = 'inline';
       setTimeout(() => document.getElementById('mass-schedule-success').style.display = 'none', 3000);
       showToast('Mass schedule saved!', 'success');
+      if (btn && btn.dataset) {
+        const was = btn.dataset.label || btn.textContent;
+        btn.textContent = 'Saved \u2713';
+        setTimeout(() => { btn.textContent = was; }, 2000);
+      }
     } catch(e) { showToast('Error saving.', 'error'); }
   }
+  // A Save button at the bottom of every Mass Schedule section, so nobody has to scroll to the end.
+  // Each one saves the whole schedule (all sections), same as the main button.
+  (function addMassScheduleSaveButtons() {
+    const page = document.getElementById('page-mass-schedule');
+    if (!page) return;
+    page.querySelectorAll('.card').forEach(card => {
+      if (!card.querySelector('input[id^="ms-"]')) return;
+      const wrap = document.createElement('div');
+      wrap.style.marginTop = '12px';
+      const b = document.createElement('button');
+      b.className = 'btn btn-primary';
+      b.textContent = 'Save';
+      b.dataset.label = 'Save';
+      b.onclick = function() { saveMassSchedule(b); };
+      wrap.appendChild(b);
+      card.appendChild(wrap);
+    });
+  })();
   // ── LIVE SCREEN ──
   // Featured video on the app's Video tab. Collection: parishes/saint-rose-anthem/settings,
   // doc: liveScreen. Public-read singleton, same pattern as siteContent/massSchedule above --
