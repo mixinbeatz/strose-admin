@@ -290,6 +290,8 @@
     .stats-row, .stats-row.three { grid-template-columns: 1fr 1fr; }
     .content { padding: 12px; padding-top: 0; }
   }
+  /* Save bar that stays pinned to the bottom of the screen while a long form scrolls */
+  .sticky-save { position: sticky; bottom: 0; z-index: 20; background: var(--white); padding: 12px 0 8px; margin-top: 16px; border-top: 1px solid var(--linen); }
   .ann-layout { display: grid; grid-template-columns: minmax(0,1fr) 400px; gap: 20px; align-items: start; }
   .ann-preview-col { position: sticky; top: 16px; }
   @media (max-width: 1100px) { .ann-layout { grid-template-columns: minmax(0,1fr); } .ann-preview-col { position: static; } }
@@ -1947,7 +1949,7 @@
               <label class="form-label">Link (optional)</label>
               <input type="text" class="form-input" id="music-link" placeholder="https://..." />
             </div>
-            <button class="btn btn-primary" onclick="saveMusicMinistryInfo()">Save Changes</button>
+            <div class="sticky-save"><button class="btn btn-primary" onclick="saveMusicMinistryInfo()">Save Changes</button></div>
           </div>
         </div>
         <div class="card" style="margin-top:16px;">
@@ -2041,7 +2043,7 @@
               <label class="form-label">Link (optional)</label>
               <input type="text" class="form-input" id="mens-link" placeholder="https://..." />
             </div>
-            <button class="btn btn-primary" onclick="saveMensMinistry()">Save Changes</button>
+            <div class="sticky-save"><button class="btn btn-primary" onclick="saveMensMinistry()">Save Changes</button></div>
           </div>
         </div>
         <div class="card" style="margin-top:16px;">
@@ -2177,7 +2179,7 @@
               <div class="mmx-signups"></div>
               <button type="button" class="btn btn-outline btn-sm mmx-signup-add" onclick="addMinistrySignup()">+ Add button</button>
             </div>
-            <button class="btn btn-primary" onclick="saveManageMinistry()">Save Changes</button>
+            <div class="sticky-save"><button class="btn btn-primary" onclick="saveManageMinistry()">Save Changes</button></div>
           </div>
         </div>
         </div>
@@ -2314,7 +2316,7 @@
               <div class="mmx-signups"></div>
               <button type="button" class="btn btn-outline btn-sm mmx-signup-add" onclick="addMinistrySignup()">+ Add button</button>
             </div>
-            <button class="btn btn-primary" onclick="saveMyMinistry()">Save Changes</button>
+            <div class="sticky-save"><button class="btn btn-primary" onclick="saveMyMinistry()">Save Changes</button></div>
           </div>
         </div>
         </div>
