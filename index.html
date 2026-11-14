@@ -1599,6 +1599,8 @@
           <div class="form-group"><label class="form-label">Time (row 2)</label><input type="text" class="form-input" id="ms-rosary-row2-time" /></div>
           <div class="form-group"><label class="form-label">Days (row 3)</label><input type="text" class="form-input" id="ms-rosary-row3-days" /></div>
           <div class="form-group"><label class="form-label">Time (row 3)</label><input type="text" class="form-input" id="ms-rosary-row3-time" /></div>
+          <div class="form-group"><label class="form-label">Days (row 4, optional)</label><input type="text" class="form-input" id="ms-rosary-row4-days" /></div>
+          <div class="form-group"><label class="form-label">Time (row 4, optional)</label><input type="text" class="form-input" id="ms-rosary-row4-time" /></div>
         </div>
         <div class="card">
           <div class="card-title">Parish Office Hours</div>
@@ -1613,6 +1615,10 @@
           <div class="form-group"><label class="form-label">Sunday Mass</label><input type="text" class="form-input" id="ms-gs-sunday-mass" /></div>
           <div class="form-group"><label class="form-label">Recitation of the Rosary (Sunday)</label><input type="text" class="form-input" id="ms-gs-rosary" /></div>
           <div class="form-group"><label class="form-label">Adoration</label><input type="text" class="form-input" id="ms-gs-adoration" /></div>
+        </div>
+        <div class="card">
+          <div class="card-title">St. Philip Benizi (Black Canyon City)</div>
+          <div class="form-group"><label class="form-label">Sunday Mass</label><input type="text" class="form-input" id="ms-spb-sunday-mass" /></div>
         </div>
         <div class="card">
           <button class="btn btn-primary" onclick="saveMassSchedule()">Save Mass Schedule</button>
@@ -9233,7 +9239,7 @@
   }
   // ── MASS SCHEDULE ──
   const MASS_SCHEDULE_DEFAULTS = {
-    dailyRow1Days: 'Monday, Tuesday, Wednesday, Thursday, Friday',
+    dailyRow1Days: 'Monday - Saturday',
     dailyRow1Time: '7:30 AM',
     dailyRow2Days: 'Monday, Tuesday, Thursday, Friday',
     dailyRow2Time: '12:15 PM',
@@ -9249,19 +9255,22 @@
     reconRow3Days: 'Saturday',
     reconRow3Time: '2:30 - 3:30 PM',
     rosaryRow1Days: 'Monday - Saturday',
-    rosaryRow1Time: '6:55 AM, 3:25 PM',
-    rosaryRow2Days: 'Sunday',
-    rosaryRow2Time: '7:25 AM, 10:25 AM',
-    rosaryRow3Days: 'Last Saturday of the Month',
-    rosaryRow3Time: '7:00 - 7:25 AM',
+    rosaryRow1Time: '6:55 AM',
+    rosaryRow2Days: 'Saturday',
+    rosaryRow2Time: '3:25 PM',
+    rosaryRow3Days: 'Sunday',
+    rosaryRow3Time: '7:25 AM, 10:25 AM',
+    rosaryRow4Days: 'Last Saturday of the Month',
+    rosaryRow4Time: '7:00 - 7:25 AM',
     officeRow1Days: 'Monday - Thursday',
     officeRow1Time: '8:00 AM - 4:00 PM',
     officeRow2Days: 'Friday',
     officeRow2Time: '8:00 AM - 12:00 PM',
     officeNote: 'Closed every Wednesday, 1-3 PM for Staff Meetings',
-    gsSundayMass: '9:00 AM',
-    gsRosary: '8:30 AM',
+    gsSundayMass: '10:00 AM',
+    gsRosary: '9:25 AM',
     gsAdoration: 'Thursdays 7:00 AM',
+    spbSundayMass: '8:30 AM',
   };
   const MASS_SCHEDULE_FIELD_IDS = {
     dailyRow1Days: 'ms-daily-row1-days', dailyRow1Time: 'ms-daily-row1-time',
@@ -9274,10 +9283,12 @@
     rosaryRow1Days: 'ms-rosary-row1-days', rosaryRow1Time: 'ms-rosary-row1-time',
     rosaryRow2Days: 'ms-rosary-row2-days', rosaryRow2Time: 'ms-rosary-row2-time',
     rosaryRow3Days: 'ms-rosary-row3-days', rosaryRow3Time: 'ms-rosary-row3-time',
+    rosaryRow4Days: 'ms-rosary-row4-days', rosaryRow4Time: 'ms-rosary-row4-time',
     officeRow1Days: 'ms-office-row1-days', officeRow1Time: 'ms-office-row1-time',
     officeRow2Days: 'ms-office-row2-days', officeRow2Time: 'ms-office-row2-time',
     officeNote: 'ms-office-note',
     gsSundayMass: 'ms-gs-sunday-mass', gsRosary: 'ms-gs-rosary', gsAdoration: 'ms-gs-adoration',
+    spbSundayMass: 'ms-spb-sunday-mass',
   };
   async function loadMassSchedule() {
     try {
