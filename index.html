@@ -1421,7 +1421,7 @@
         <div class="card">
           <div class="card-title">👁️ Currently live</div>
           <div class="info-box">This is what the website and app show right now. It only changes when you press <strong>Publish</strong> below.</div>
-          <div id="around-parish-preview" style="background:var(--linen);padding:40px;border-radius:8px;"></div>
+          <div id="around-parish-preview" style="border-radius:8px;"></div>
         </div>
         <div class="card">
           <div class="card-title">📸 Build the next set</div>
@@ -1441,7 +1441,7 @@
           <div class="form-label" style="margin-bottom:8px;">Photos</div>
           <div id="around-parish-slots"></div>
           <div class="form-label" style="margin:18px 0 8px;">Preview of what you are building</div>
-          <div id="around-parish-draft-preview" style="background:var(--linen);padding:40px;border-radius:8px;"></div>
+          <div id="around-parish-draft-preview" style="border-radius:8px;"></div>
           <div class="btn-row" style="margin-top:16px;">
             <button class="btn btn-primary" id="around-parish-publish-btn" onclick="publishAroundParish(this)">Publish</button>
             <button class="btn btn-outline" onclick="clearAroundParishDraft()">Clear form</button>
@@ -11255,44 +11255,48 @@
     title: 'Around the Parish',
     body: "A look at what's happening in our community — updated throughout the year.",
   };
-  const AROUND_PARISH_DEFAULT_IMAGES = {
-    slot1: 'https://mixinbeatz.github.io/strose-website/images/Roseicon.jpg',
-    slot2: 'https://mixinbeatz.github.io/strose-website/images/Roseicon.jpg',
-    slot3: 'https://mixinbeatz.github.io/strose-website/images/Roseicon.jpg',
-    slot4: 'https://mixinbeatz.github.io/strose-website/images/Roseicon.jpg',
-    slot5: 'https://mixinbeatz.github.io/strose-website/images/Roseicon.jpg',
-  };
   let aroundParishData = {};          // what is LIVE (read-only here): slotN -> {url, appUrl, alt}
   let aroundParishLiveText = { eyebrow: '', title: '', body: '' };
   let aroundParishDraft = { slots: {} };   // the NEW set being built; nothing is saved until Publish
   let aroundParishDraftReady = false;
+  // Draws the section exactly as the website does (1440px wide, same sizes and grid), then scales it to fit this card.
   function apPreviewHtml(eyebrow, title, body, imgs) {
-    return `
-      <div style="font-family:'Cinzel',serif;font-size:10px;letter-spacing:4px;color:var(--dusty-rose);margin-bottom:12px;">${escHtml(eyebrow)}</div>
-      <div style="font-family:'Cinzel',serif;font-size:26px;color:var(--burgundy);line-height:1.25;margin-bottom:16px;">${escHtml(title).replace(/\n/g,'<br>')}</div>
-      <div style="font-size:14px;line-height:1.7;color:var(--soil);opacity:0.85;max-width:480px;margin-bottom:24px;">${escHtml(body)}</div>
-      <div style="display:grid;grid-template-columns:3fr 1fr 1fr;grid-template-rows:140px 80px;gap:8px;">
-        <div style="grid-row:span 2;border-radius:4px;overflow:hidden;"><img src="${imgs[0]}" style="width:100%;height:100%;object-fit:cover;" /></div>
-        <div style="border-radius:4px;overflow:hidden;"><img src="${imgs[1]}" style="width:100%;height:100%;object-fit:cover;" /></div>
-        <div style="border-radius:4px;overflow:hidden;"><img src="${imgs[2]}" style="width:100%;height:100%;object-fit:cover;" /></div>
-        <div style="border-radius:4px;overflow:hidden;"><img src="${imgs[3]}" style="width:100%;height:100%;object-fit:cover;" /></div>
-        <div style="border-radius:4px;overflow:hidden;"><img src="${imgs[4]}" style="width:100%;height:100%;object-fit:cover;" /></div>
-      </div>`;
+    const cell = (u, tall) => `<div style="${tall ? 'grid-row:span 2;' : ''}border-radius:4px;overflow:hidden;background:rgba(61,43,43,0.08);">${u ? `<img src="${annAttr(u)}" alt="" style="width:100%;height:100%;object-fit:cover;display:block;" />` : ''}</div>`;
+    return `<div class="ap-fit" style="position:relative;overflow:hidden;border-radius:8px;"><div class="ap-fit-inner" style="width:1440px;transform-origin:0 0;background:var(--linen);padding:80px 60px;box-sizing:border-box;">
+      <span style="display:block;font-family:'Cinzel',serif;font-size:10px;letter-spacing:4px;color:var(--dusty-rose);margin-bottom:12px;">${escHtml(eyebrow)}</span>
+      <h2 style="font-family:'Cinzel',serif;font-size:42px;font-weight:400;color:var(--burgundy);line-height:1.2;margin:0 0 20px;">${escHtml(title).replace(/\n/g,'<br>')}</h2>
+      <p style="font-size:17px;line-height:1.8;color:var(--soil);opacity:0.85;max-width:580px;margin:0;">${escHtml(body)}</p>
+      <div style="display:grid;grid-template-columns:3fr 1fr 1fr;grid-template-rows:340px 200px;gap:10px;margin-top:40px;">
+        ${cell(imgs[0], true)}${cell(imgs[1])}${cell(imgs[2])}${cell(imgs[3])}${cell(imgs[4])}
+      </div></div></div>`;
   }
+  function apFitPreviews() {
+    document.querySelectorAll('#page-around-parish .ap-fit').forEach(o => {
+      const inner = o.firstElementChild;
+      const w = o.parentElement.clientWidth;
+      if (!w) return;
+      const sc = w / 1440;
+      inner.style.transform = 'scale(' + sc + ')';
+      o.style.height = Math.ceil(inner.offsetHeight * sc) + 'px';
+    });
+  }
+  window.addEventListener('resize', () => { try { apFitPreviews(); } catch (e) {} });
   function renderAroundParishPreview() {
     const el = document.getElementById('around-parish-preview');
     if (!el) return;
-    const imgs = AROUND_PARISH_SLOTS.map(s => (aroundParishData[s.key] && aroundParishData[s.key].url) || AROUND_PARISH_DEFAULT_IMAGES[s.key]);
-    el.innerHTML = apPreviewHtml(aroundParishLiveText.eyebrow || AROUND_PARISH_DEFAULT_TEXT.eyebrow, aroundParishLiveText.title || AROUND_PARISH_DEFAULT_TEXT.title, aroundParishLiveText.body || AROUND_PARISH_DEFAULT_TEXT.body, imgs);
+    const imgs = AROUND_PARISH_SLOTS.map(s => (aroundParishData[s.key] && aroundParishData[s.key].url) || '');
+    el.innerHTML = apPreviewHtml(aroundParishLiveText.eyebrow || AROUND_PARISH_DEFAULT_TEXT.eyebrow, aroundParishLiveText.title, aroundParishLiveText.body, imgs);
+    requestAnimationFrame(apFitPreviews);
   }
   function renderAroundParishDraftPreview() {
     const el = document.getElementById('around-parish-draft-preview');
     if (!el) return;
     const eyebrow = document.getElementById('around-parish-text-eyebrow')?.value || AROUND_PARISH_DEFAULT_TEXT.eyebrow;
-    const title = document.getElementById('around-parish-text-title')?.value || 'Your heading';
+    const title = document.getElementById('around-parish-text-title')?.value || '';
     const body = document.getElementById('around-parish-text-body')?.value || '';
-    const imgs = AROUND_PARISH_SLOTS.map(s => (aroundParishDraft.slots[s.key] && aroundParishDraft.slots[s.key].url) || AROUND_PARISH_DEFAULT_IMAGES[s.key]);
+    const imgs = AROUND_PARISH_SLOTS.map(s => (aroundParishDraft.slots[s.key] && aroundParishDraft.slots[s.key].url) || '');
     el.innerHTML = apPreviewHtml(eyebrow, title, body, imgs);
+    requestAnimationFrame(apFitPreviews);
   }
   async function loadAroundParish() {
     try {
@@ -11343,10 +11347,9 @@
     if (!el) return;
     el.innerHTML = AROUND_PARISH_SLOTS.map(s => {
       const data = aroundParishDraft.slots[s.key] || { url: '', alt: '' };
-      const displayUrl = data.url || AROUND_PARISH_DEFAULT_IMAGES[s.key];
       return `<div style="border:1px solid var(--linen);border-radius:10px;padding:16px;margin-bottom:14px;display:flex;gap:16px;align-items:center;">
         <div class="drop-zone" style="width:100px;height:70px;border-radius:6px;background:var(--linen);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDropUpload(event, (f) => handleAroundParishUpload('${s.key}', f))">
-          <img src="${displayUrl}" style="width:100%;height:100%;object-fit:cover;${data.url ? '' : 'opacity:0.4;'}" />
+          ${data.url ? `<img src="${annAttr(data.url)}" style="width:100%;height:100%;object-fit:cover;" />` : '<span style="font-size:11px;color:var(--dusty-rose);">Empty</span>'}
         </div>
         <div style="flex:1;">
           <div style="font-family:'Cinzel',serif;font-size:13px;color:var(--burgundy);margin-bottom:6px;">${s.label}${!data.url ? ' <span style="color:var(--dusty-rose);font-weight:400;">(empty)</span>' : ''}</div>
