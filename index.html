@@ -456,6 +456,7 @@
         <div class="nav-item staff-only" onclick="showPage('bulletin-images',this);loadBulletinImages()"><span class="nav-icon">🗞️</span> Bulletin Images</div>
         <div class="nav-item staff-only" onclick="showPage('ministry-booklet',this);loadMinistryBooklet()"><span class="nav-icon">📖</span> Ministry Booklet</div>
         <div class="nav-item staff-only" onclick="showPage('mass-schedule',this);loadMassSchedule()"><span class="nav-icon">⏰</span> Mass Schedule</div>
+        <div class="nav-item staff-only" onclick="showPage('sacraments',this);loadSacraments()"><span class="nav-icon">✝️</span> Sacraments</div>
       </div>
       <div class="nav-section-toggle collapsed owner-admin-only" style="display:none" onclick="toggleNavSection(this)"><span>Staff &amp; Access</span><span class="nav-chevron">▾</span></div>
       <div class="nav-group collapsed">
@@ -1560,6 +1561,34 @@
       </div>
 
       <!-- MINISTRY BOOKLET -->
+      <div class="page" id="page-sacraments">
+        <div class="card">
+          <div class="card-title">✝️ Sacraments</div>
+          <div class="info-box">The Sacraments card on the app's Parish tab (About). Change the text and buttons here and the app updates, no new build needed (the newest app update is required to see changes).</div>
+          <div class="form-group">
+            <label class="form-label">Message</label>
+            <textarea class="form-textarea" id="sac-body" style="min-height:140px;"></textarea>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Button 1 text</label>
+            <input type="text" class="form-input" id="sac-b1-label" maxlength="30" placeholder="Call Parish Office" />
+            <label class="form-label" style="margin-top:10px;">Button 1 link (optional)</label>
+            <input type="text" class="form-input" id="sac-b1-url" placeholder="Leave blank to call the parish office, or paste a https:// link" />
+          </div>
+          <div class="form-group">
+            <label class="form-label">Button 2 text (optional)</label>
+            <input type="text" class="form-input" id="sac-b2-label" maxlength="30" placeholder="e.g. Annulment &amp; Funeral Info" />
+            <label class="form-label" style="margin-top:10px;">Button 2 link</label>
+            <input type="text" class="form-input" id="sac-b2-url" placeholder="https://..." />
+            <div style="font-size:12px;color:var(--dusty-rose);margin-top:6px;">Button 2 only shows when it has both text and a link.</div>
+          </div>
+          <div class="btn-row">
+            <button class="btn btn-primary" id="sac-save-btn" onclick="saveSacraments(this)">Save Changes</button>
+            <button class="btn btn-outline" onclick="resetSacraments()">Reset to default</button>
+          </div>
+        </div>
+      </div>
+
       <div class="page" id="page-ministry-booklet">
         <div class="card">
           <div class="card-title">📖 Ministry Booklet</div>
@@ -2892,7 +2921,7 @@
     if(el) el.classList.add('active');
     window.scrollTo(0,0);
     closeSidebar();
-    const titles = {metrics:'Metrics',dashboard:'Dashboard',events:'Events',announcement:'Post Announcement',fastblast:'Fast Blast',reflection:'Weekly Reflection','parish-development':'Parish Development',daily:'Daily Reflection',songsheet:'Mass Songsheet',welcome:'Welcome Message','hero-media':'Hero Section','welcome-media':'Welcome Section',gallery:'Homepage Gallery','around-parish':'Around the Parish','parish-dev-media':'Parish Development','bulletin-images':'Bulletin Images','ministry-booklet':'Ministry Booklet','form-settings':'Form Settings','mass-schedule':'Mass Schedule','live-screen':'Live Screen',councils:'Pastoral, Finance & Development Council','council-inquiries':'Council Inquiries','signup-forms':'Forms & Sign-ups','parish-staff':'Parish Staff Directory','ministry-documents':'Ministry Documents','serving-roles':'Serving Roles','funeral-planning':'Funeral Planning Forms','onboard-council':'Onboard Council Lead','music-ministry':'Music Ministry','music-members':'Music Ministry Members',approvals:'Parish Family Approvals',partners:'Advertising Requests',directory:'Parish Family Directory','reported-listings':'Reported Listings','needs-review':'Needs Review','ministry-post':'Post to Members','cda-members':'My Members','submit-event':'Submit Event','event-requests':'Event Requests','contact-requests':'Contact Requests',intention:'Mass Intentions','my-ministry':'My Ministry','onboard-leader':'Onboard Ministry Leader','leader-tracker':'Ministry Leaders'};
+    const titles = {metrics:'Metrics',dashboard:'Dashboard',events:'Events',announcement:'Post Announcement',fastblast:'Fast Blast',reflection:'Weekly Reflection','parish-development':'Parish Development',daily:'Daily Reflection',songsheet:'Mass Songsheet',welcome:'Welcome Message','hero-media':'Hero Section','welcome-media':'Welcome Section',gallery:'Homepage Gallery','around-parish':'Around the Parish','parish-dev-media':'Parish Development','bulletin-images':'Bulletin Images','ministry-booklet':'Ministry Booklet','form-settings':'Form Settings','mass-schedule':'Mass Schedule',sacraments:'Sacraments','live-screen':'Live Screen',councils:'Pastoral, Finance & Development Council','council-inquiries':'Council Inquiries','signup-forms':'Forms & Sign-ups','parish-staff':'Parish Staff Directory','ministry-documents':'Ministry Documents','serving-roles':'Serving Roles','funeral-planning':'Funeral Planning Forms','onboard-council':'Onboard Council Lead','music-ministry':'Music Ministry','music-members':'Music Ministry Members',approvals:'Parish Family Approvals',partners:'Advertising Requests',directory:'Parish Family Directory','reported-listings':'Reported Listings','needs-review':'Needs Review','ministry-post':'Post to Members','cda-members':'My Members','submit-event':'Submit Event','event-requests':'Event Requests','contact-requests':'Contact Requests',intention:'Mass Intentions','my-ministry':'My Ministry','onboard-leader':'Onboard Ministry Leader','leader-tracker':'Ministry Leaders'};
     document.getElementById('page-title').textContent = titles[id]||id;
     var mpt = document.getElementById('mobile-page-title'); if(mpt) mpt.textContent = titles[id]||id;
     _portalPage = id;
@@ -8122,6 +8151,41 @@
     if (!file) return;
     if (!file.type.startsWith('image/')) { showToast('Please drop an image file.', 'error'); return; }
     callback({ files: [file] });
+  }
+
+  // ── SACRAMENTS CARD ──
+  // siteContent/sacraments: body, b1Label, b1Url, b2Label, b2Url. Read by the app's Parish tab (About).
+  const SACRAMENTS_DEFAULT_BODY = 'St. Rose celebrates all the sacraments — Baptism, First Eucharist, Confirmation, Reconciliation, Matrimony, Anointing of the Sick, and OCIA for adults entering the faith. Planning a wedding? Begin at least six months before your date.';
+  function fillSacraments(f) {
+    f = f || {};
+    const g = k => (f[k] && f[k].stringValue) || '';
+    document.getElementById('sac-body').value = g('body') || SACRAMENTS_DEFAULT_BODY;
+    document.getElementById('sac-b1-label').value = g('b1Label');
+    document.getElementById('sac-b1-url').value = g('b1Url');
+    document.getElementById('sac-b2-label').value = g('b2Label');
+    document.getElementById('sac-b2-url').value = g('b2Url');
+  }
+  async function loadSacraments() {
+    try { const doc = await fs_get_doc('siteContent/sacraments'); fillSacraments(doc && doc.fields); }
+    catch (e) { fillSacraments({}); }
+  }
+  function resetSacraments() { fillSacraments({}); showToast('Reset. Click Save Changes to publish.', 'success'); }
+  async function saveSacraments(btn) {
+    const v = id => (document.getElementById(id).value || '').trim();
+    const b1Url = v('sac-b1-url') ? normalizeAnnLink(v('sac-b1-url')) : '';
+    const b2Url = v('sac-b2-url') ? normalizeAnnLink(v('sac-b2-url')) : '';
+    if ((v('sac-b1-url') && !b1Url) || (v('sac-b2-url') && !b2Url)) { showToast('A link does not look right. It should start with https://', 'error'); return; }
+    if (!v('sac-body')) { showToast('Please write a message.', 'error'); return; }
+    try {
+      await fs_patch('siteContent/sacraments', {
+        body: { stringValue: v('sac-body') },
+        b1Label: { stringValue: v('sac-b1-label').slice(0, 30) }, b1Url: { stringValue: b1Url },
+        b2Label: { stringValue: v('sac-b2-label').slice(0, 30) }, b2Url: { stringValue: b2Url },
+        updatedAt: { stringValue: new Date().toISOString() }
+      });
+      showToast('Sacraments card saved!', 'success');
+      if (btn) { const was = btn.textContent; btn.textContent = 'Saved \u2713'; setTimeout(() => { btn.textContent = was; }, 2000); }
+    } catch (e) { showToast('Error saving.', 'error'); }
   }
 
   // ── MINISTRY BOOKLET ──
