@@ -2654,7 +2654,7 @@
       <span>Zoom</span>
       <input type="range" id="hero-crop-zoom" min="1" max="4" step="0.01" value="1" oninput="heroCropZoom(this.value)" />
     </div>
-    <div class="cropper-hint">You are seeing the whole photo. The bright box is what the app shows: drag it (or click anywhere on the photo) to choose the spot, and use the slider or mouse wheel to zoom in or out.</div>
+    <div class="cropper-hint">You are seeing the whole photo. The bright box is what shows on the website and in the app: drag it (or click anywhere on the photo) to choose the spot, and use the slider or mouse wheel to zoom in or out.</div>
     <div class="cropper-actions">
       <button class="btn btn-outline btn-sm" onclick="closeHeroCropper()">Cancel</button>
       <button class="btn btn-primary btn-sm" id="hero-crop-apply" onclick="applyHeroCropper()">Use This Framing</button>
@@ -4934,10 +4934,11 @@
   // to choose what the app shows; the slider (or mouse wheel) makes the frame smaller =
   // zooms in. Output is always 1200x500 (the banner shape).
   const HERO_W = 1200, HERO_H = 500, HERO_RATIO = 1200 / 500;
-  function heroMaxW() { return Math.min(heroCrop.img.naturalWidth, heroCrop.img.naturalHeight * HERO_RATIO); }
+  function heroRatio() { return heroCrop.ratio || HERO_RATIO; }
+  function heroMaxW() { return Math.min(heroCrop.img.naturalWidth, heroCrop.img.naturalHeight * heroRatio()); }
   function heroFrame() {
     const e = heroCrop, iw = e.img.naturalWidth, ih = e.img.naturalHeight;
-    const fw = heroMaxW() / e.zoom, fh = fw / HERO_RATIO;
+    const fw = heroMaxW() / e.zoom, fh = fw / heroRatio();
     e.fx = Math.max(0, Math.min(iw - fw, e.fx));
     e.fy = Math.max(0, Math.min(ih - fh, e.fy));
     return { x: e.fx, y: e.fy, w: fw, h: fh };
@@ -4959,10 +4960,10 @@
     const old = heroFrame(), cx = old.x + old.w / 2, cy = old.y + old.h / 2;
     heroCrop.zoom = Math.max(1, Math.min(4, parseFloat(v) || 1));
     const nw = heroMaxW() / heroCrop.zoom;
-    heroCrop.fx = cx - nw / 2; heroCrop.fy = cy - nw / HERO_RATIO / 2;   // zoom around the frame's centre
+    heroCrop.fx = cx - nw / 2; heroCrop.fy = cy - nw / heroRatio() / 2;   // zoom around the frame's centre
     heroCropDraw();
   }
-  function openHeroCropper(file, onUrl, folder) {
+  function openHeroCropper(file, onUrl, folder, opts) {
     if (!file) return;
     const reader = new FileReader();
     reader.onload = function(e) {
@@ -4971,8 +4972,9 @@
         const iw = img.naturalWidth, ih = img.naturalHeight, k = Math.min(1200 / iw, 800 / ih, 1);
         const cv = document.getElementById('hero-crop-canvas');
         cv.width = Math.max(1, Math.round(iw * k)); cv.height = Math.max(1, Math.round(ih * k));
-        heroCrop = { img: img, zoom: 1, fx: 0, fy: 0, onUrl: onUrl, folder: folder || 'announcements', busy: false };
-        const fw = heroMaxW(); heroCrop.fx = (iw - fw) / 2; heroCrop.fy = (ih - fw / HERO_RATIO) / 2;
+        opts = opts || {};
+        heroCrop = { img: img, zoom: 1, fx: 0, fy: 0, onUrl: onUrl, folder: folder || 'announcements', busy: false, ratio: opts.ratio || 0, outW: opts.outW || HERO_W, outH: opts.outH || HERO_H, onBase64: opts.onBase64 || null, file: file };
+        const fw = heroMaxW(); heroCrop.fx = (iw - fw) / 2; heroCrop.fy = (ih - fw / heroRatio()) / 2;
         document.getElementById('hero-crop-zoom').value = 1;
         const btn = document.getElementById('hero-crop-apply');
         if (btn) { btn.disabled = false; btn.textContent = 'Use This Framing'; }
@@ -4987,20 +4989,25 @@
   }
   function closeHeroCropper() {
     document.getElementById('hero-cropper').classList.remove('show');
-    heroCrop = { img: null, zoom: 1, fx: 0, fy: 0, onUrl: null, busy: false };
+    heroCrop = { img: null, zoom: 1, fx: 0, fy: 0, onUrl: null, busy: false, ratio: 0 };
   }
   async function applyHeroCropper() {
     if (!heroCrop.img || heroCrop.busy) return;
     heroCrop.busy = true;
     const btn = document.getElementById('hero-crop-apply');
     if (btn) { btn.disabled = true; btn.textContent = 'Uploading…'; }
-    const f = heroFrame(), out = document.createElement('canvas');
-    out.width = HERO_W; out.height = HERO_H;
+    const f = heroFrame(), out = document.createElement('canvas'), OW = heroCrop.outW || HERO_W, OH = heroCrop.outH || HERO_H;
+    out.width = OW; out.height = OH;
     const octx = out.getContext('2d');
-    octx.fillStyle = '#fff'; octx.fillRect(0, 0, HERO_W, HERO_H);
-    octx.drawImage(heroCrop.img, f.x, f.y, f.w, f.h, 0, 0, HERO_W, HERO_H);
+    octx.fillStyle = '#fff'; octx.fillRect(0, 0, OW, OH);
+    octx.drawImage(heroCrop.img, f.x, f.y, f.w, f.h, 0, 0, OW, OH);
     const base64 = out.toDataURL('image/jpeg', 0.85).split(',')[1];
-    const cb = heroCrop.onUrl;
+    const cb = heroCrop.onUrl, cb64 = heroCrop.onBase64, fname = heroCrop.file && heroCrop.file.name;
+    if (cb64) {
+      try { await cb64(base64, fname || 'photo.jpg'); closeHeroCropper(); }
+      catch (e) { console.error('Crop upload error:', e); heroCrop.busy = false; if (btn) { btn.disabled = false; btn.textContent = 'Use This Framing'; } showToast('Upload failed: ' + (e && e.message || e), 'error'); }
+      return;
+    }
     try {
       const url = await uploadDevFile(base64, 'reflection-hero.jpg', heroCrop.folder || 'announcements', 'image/jpeg');
       closeHeroCropper();
@@ -11244,11 +11251,11 @@
   }
   // ── AROUND THE PARISH ── (same pattern as Homepage Gallery, own Firestore doc)
   const AROUND_PARISH_SLOTS = [
-    { key: 'slot1', label: 'Main' },
-    { key: 'slot2', label: 'Top Left' },
-    { key: 'slot3', label: 'Top Right' },
-    { key: 'slot4', label: 'Bottom Left' },
-    { key: 'slot5', label: 'Bottom Right' },
+    { key: 'slot1', label: 'Main', ratio: 1.55 },
+    { key: 'slot2', label: 'Top Left', ratio: 0.835 },
+    { key: 'slot3', label: 'Top Right', ratio: 0.835 },
+    { key: 'slot4', label: 'Bottom Left', ratio: 1.42 },
+    { key: 'slot5', label: 'Bottom Right', ratio: 1.42 },
   ];
   const AROUND_PARISH_DEFAULT_TEXT = {
     eyebrow: 'COMMUNITY LIFE',
@@ -11364,22 +11371,22 @@
     }).join('');
     renderAroundParishDraftPreview();
   }
-  async function handleAroundParishUpload(slotKey, input) {
-    const file = input.files[0];
+  function handleAroundParishUpload(slotKey, input) {
+    const file = input.files && input.files[0];
+    if (input) input.value = '';
     if (!file) return;
-    try {
-      const base64 = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = e => resolve(e.target.result.split(',')[1]);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-      const { webUrl, appUrl } = await uploadDevFileDual(base64, file.name, 'around-parish');
-      const prev = aroundParishDraft.slots[slotKey] || { alt: '' };
-      aroundParishDraft.slots[slotKey] = { url: webUrl, appUrl: appUrl, alt: prev.alt || '' };
-      renderAroundParishSlots();
-      showToast('Photo added. It goes live when you press Publish.', 'success');
-    } catch(e) { showToast('Upload failed.', 'error'); }
+    const slot = AROUND_PARISH_SLOTS.filter(x => x.key === slotKey)[0];
+    const ratio = slot.ratio, outW = ratio >= 1 ? 1800 : 1200, outH = Math.round(outW / ratio);
+    openHeroCropper(file, null, 'around-parish', {
+      ratio: ratio, outW: outW, outH: outH,
+      onBase64: async function(base64, name) {
+        const { webUrl, appUrl } = await uploadDevFileDual(base64, name, 'around-parish');
+        const prev = aroundParishDraft.slots[slotKey] || { alt: '' };
+        aroundParishDraft.slots[slotKey] = { url: webUrl, appUrl: appUrl, alt: prev.alt || '' };
+        renderAroundParishSlots();
+        showToast('Photo added. It goes live when you press Publish.', 'success');
+      }
+    });
   }
   function setAroundParishDraftAlt(slotKey, value) {
     aroundParishDraft.slots[slotKey] = aroundParishDraft.slots[slotKey] || { url: '', appUrl: '', alt: '' };
