@@ -823,7 +823,12 @@
           <div class="form-group">
             <label class="form-label">Link (optional)</label>
             <input type="text" class="form-input" id="ann-link" placeholder="e.g. https://saintroseanthem.org/app" />
-            <div style="font-size:12px;color:var(--dusty-rose);margin-top:6px;">Adds a "Learn More" button to the announcement in the app.</div>
+            <div style="font-size:12px;color:var(--dusty-rose);margin-top:6px;">Adds a button to the announcement in the app.</div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Button text (optional)</label>
+            <input type="text" class="form-input" id="ann-link-label" maxlength="30" placeholder="Learn More" oninput="renderAnnPreview()" />
+            <div style="font-size:12px;color:var(--dusty-rose);margin-top:6px;">What the button says, e.g. Sign Up, Buy Tickets, Donate, Watch the Video. Leave blank for "Learn More". (Custom text shows on phones with the newest app update.)</div>
           </div>
           <div class="form-group">
             <label class="form-label">Hero image (optional)</label>
@@ -4586,7 +4591,7 @@
           (p.role ? '<div style="font-size:14px;color:#C17A8A;margin-top:2px;">' + escHtml(p.role) + '</div>' : '') + '</div>'; }).join('') + '</div>';
     }
     h += '</div><div style="padding:8px 24px 28px;flex-shrink:0;">' +
-      (link ? '<div style="background:#5C1A2E;color:#fff;border-radius:10px;padding:14px;text-align:center;font-family:Cinzel,serif;font-weight:600;font-size:17px;margin-top:8px;">Learn More →</div>' : '') +
+      (link ? '<div style="background:#5C1A2E;color:#fff;border-radius:10px;padding:14px;text-align:center;font-family:Cinzel,serif;font-weight:600;font-size:17px;margin-top:8px;">' + escHtml(((document.getElementById('ann-link-label')||{}).value||'').trim() || 'Learn More') + ' →</div>' : '') +
       '<div style="background:#E8DDD0;color:#3D2B2B;border-radius:10px;padding:14px;text-align:center;font-family:Cinzel,serif;font-weight:600;font-size:17px;margin-top:8px;">Close</div></div>';
     el.innerHTML = h;
   }
@@ -4656,6 +4661,7 @@
     if(!title||!body){showToast('Please fill in title and message.','error');return;}
     const rawLink=(document.getElementById('ann-link')?.value||'').trim();
     const linkUrl=normalizeAnnLink(rawLink);
+    const linkLabel=((document.getElementById('ann-link-label')||{}).value||'').trim().slice(0,30);
     if(rawLink && !linkUrl){showToast('That link does not look right. It should start with https://','error');return;}
     const expiresAt=(window._editingAnnouncementId && currentExpiry==='keep') ? (window._editingAnnouncementExpiry||'') : getExpiresAt(currentExpiry);
     if(currentExpiry==='event' && !expiresAt){showToast('Pick an event date first, or choose a different expiry.','error');return;}
@@ -4663,16 +4669,17 @@
     if(!extras) return;
     try {
       if (window._editingAnnouncementId) {
-        await fs_patch('announcements/' + window._editingAnnouncementId, Object.assign({title:{stringValue:title},body:{stringValue:body},linkUrl:{stringValue:linkUrl},expiresAt:{stringValue:expiresAt||''}}, extras));
+        await fs_patch('announcements/' + window._editingAnnouncementId, Object.assign({title:{stringValue:title},body:{stringValue:body},linkUrl:{stringValue:linkUrl},linkLabel:{stringValue:linkLabel},expiresAt:{stringValue:expiresAt||''}}, extras));
         resetAnnouncementForm();
         showToast('Announcement updated!','success');
       } else {
-        await fs_post('announcements',Object.assign({title:{stringValue:title},body:{stringValue:body},linkUrl:{stringValue:linkUrl},postedBy:{stringValue:'Parish Staff'},expiresAt:{stringValue:expiresAt||''},createdAt:{stringValue:new Date().toISOString()},notify:{booleanValue:!!(document.getElementById('ann-notify')||{checked:true}).checked}}, extras));
+        await fs_post('announcements',Object.assign({title:{stringValue:title},body:{stringValue:body},linkUrl:{stringValue:linkUrl},linkLabel:{stringValue:linkLabel},postedBy:{stringValue:'Parish Staff'},expiresAt:{stringValue:expiresAt||''},createdAt:{stringValue:new Date().toISOString()},notify:{booleanValue:!!(document.getElementById('ann-notify')||{checked:true}).checked}}, extras));
         showToast(((document.getElementById('ann-notify')||{checked:true}).checked)?'Announcement posted — notification sent!':'Announcement posted quietly (no notification).','success');
       }
       document.getElementById('ann-title').value='';
       document.getElementById('ann-body').value='';
       const _al=document.getElementById('ann-link'); if(_al) _al.value='';
+      const _ll2=document.getElementById('ann-link-label'); if(_ll2) _ll2.value='';
       clearAnnExtras();
       const _nt=document.getElementById('ann-notify'); if(_nt) _nt.checked=true;
       renderAnnPreview();
@@ -10636,6 +10643,7 @@
       document.getElementById('ann-title').value = title;
       document.getElementById('ann-body').value = body;
       document.getElementById('ann-link').value = doc.fields?.linkUrl?.stringValue || '';
+      const _ll = document.getElementById('ann-link-label'); if (_ll) _ll.value = doc.fields?.linkLabel?.stringValue || '';
       loadAnnExtras(doc);
       window._editingAnnouncementId = id;
       window._editingAnnouncementExpiry = exp;
@@ -10661,6 +10669,7 @@
     document.getElementById('ann-title').value = '';
     document.getElementById('ann-body').value = '';
     const _al = document.getElementById('ann-link'); if (_al) _al.value = '';
+    const _ll3 = document.getElementById('ann-link-label'); if (_ll3) _ll3.value = '';
     clearAnnExtras();
     const note = document.getElementById('ann-expiry-note'); if (note) note.textContent = '';
     document.querySelector('#page-announcement .card-title').textContent = '📢 Post an Announcement';
