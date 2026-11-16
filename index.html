@@ -868,18 +868,6 @@
             <div style="font-size:12px;color:var(--dusty-rose);margin-top:2px;">The start time is what goes on people's calendars. If you fill in "Time wording", that text is shown instead of the clock time.</div>
           </div>
           <div class="form-group">
-            <label class="form-label">Photos at the bottom (optional, up to 3)</label>
-            <div style="font-size:12px;color:var(--dusty-rose);margin-bottom:8px;">Round photos with a name and a role underneath, such as a guest priest or musician. You'll crop each one after choosing it.</div>
-            <div id="ann-photos-list"></div>
-            <label class="btn btn-outline btn-sm" id="ann-photo-add" style="cursor:pointer;display:inline-block;">+ Add photo<input type="file" accept="image/*" style="display:none;" onchange="handleAnnPhotoPick(this)" /></label>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Pictures (optional, up to 3)</label>
-            <div style="font-size:12px;color:var(--dusty-rose);margin-bottom:8px;">Regular pictures shown full width, not cropped, with an optional caption. Tap-to-enlarge in the app. Good for a flyer, a group photo or an event shot.</div>
-            <div id="ann-pictures-list"></div>
-            <label class="btn btn-outline btn-sm" id="ann-picture-add" style="cursor:pointer;display:inline-block;">+ Add picture<input type="file" accept="image/*" style="display:none;" onchange="handleAnnPicturePick(this)" /></label>
-          </div>
-          <div class="form-group">
             <label class="form-label">Expires</label>
             <div id="ann-expiry-note" style="font-size:12px;color:var(--dusty-rose);margin-bottom:8px;"></div>
             <div class="expiry-options">
@@ -894,6 +882,24 @@
             <div id="custom-expiry" style="display:none;margin-top:12px;">
               <input type="datetime-local" class="form-input" id="ann-custom-expiry" />
             </div>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Photos at the bottom (optional, up to 3)</label>
+            <div style="font-size:12px;color:var(--dusty-rose);margin-bottom:8px;">Round photos with a name and a role underneath, such as a guest priest or musician. You'll crop each one after choosing it.</div>
+            <div id="ann-photos-list"></div>
+            <label class="btn btn-outline btn-sm" id="ann-photo-add" style="cursor:pointer;display:inline-block;">+ Add photo<input type="file" accept="image/*" style="display:none;" onchange="handleAnnPhotoPick(this)" /></label>
+          </div>
+          <div class="form-group">
+            <label class="form-label">Pictures (optional, up to 3)</label>
+            <div style="font-size:12px;color:var(--dusty-rose);margin-bottom:8px;">Regular pictures shown full width, not cropped, with an optional caption. Tap-to-enlarge in the app. Good for a flyer, a group photo or an event shot.</div>
+            <div id="ann-pictures-list"></div>
+            <label class="btn btn-outline btn-sm" id="ann-picture-add" style="cursor:pointer;display:inline-block;">+ Add picture<input type="file" accept="image/*" style="display:none;" onchange="handleAnnPicturePick(this)" /></label>
+          </div>
+          <div class="form-group" id="ann-notify-wrap">
+            <label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer;font-size:15px;">
+              <input type="checkbox" id="ann-notify" checked style="margin-top:4px;width:18px;height:18px;flex-shrink:0;" />
+              <span><strong>Send a push notification</strong><br><span style="font-size:12px;color:var(--dusty-rose);">Uncheck to post quietly: it appears in the app's Announcements with no alert on phones. Applies to new posts only; editing never re-sends.</span></span>
+            </label>
           </div>
           <div class="btn-row">
             <button class="btn btn-primary" onclick="postAnnouncement()">Post Announcement</button>
@@ -4661,13 +4667,14 @@
         resetAnnouncementForm();
         showToast('Announcement updated!','success');
       } else {
-        await fs_post('announcements',Object.assign({title:{stringValue:title},body:{stringValue:body},linkUrl:{stringValue:linkUrl},postedBy:{stringValue:'Parish Staff'},expiresAt:{stringValue:expiresAt||''},createdAt:{stringValue:new Date().toISOString()}}, extras));
-        showToast('Announcement posted!','success');
+        await fs_post('announcements',Object.assign({title:{stringValue:title},body:{stringValue:body},linkUrl:{stringValue:linkUrl},postedBy:{stringValue:'Parish Staff'},expiresAt:{stringValue:expiresAt||''},createdAt:{stringValue:new Date().toISOString()},notify:{booleanValue:!!(document.getElementById('ann-notify')||{checked:true}).checked}}, extras));
+        showToast(((document.getElementById('ann-notify')||{checked:true}).checked)?'Announcement posted — notification sent!':'Announcement posted quietly (no notification).','success');
       }
       document.getElementById('ann-title').value='';
       document.getElementById('ann-body').value='';
       const _al=document.getElementById('ann-link'); if(_al) _al.value='';
       clearAnnExtras();
+      const _nt=document.getElementById('ann-notify'); if(_nt) _nt.checked=true;
       renderAnnPreview();
       document.getElementById('ann-success').style.display='block';
       setTimeout(()=>{document.getElementById('ann-success').style.display='none';},4000);
@@ -10642,6 +10649,7 @@
         : 'Currently no expiry — leave as is to keep it, or pick one.';
       document.querySelector('#page-announcement .card-title').textContent = '✏️ Edit Announcement';
       document.querySelector('[onclick="postAnnouncement()"]').textContent = 'Update Announcement';
+      const _nw = document.getElementById('ann-notify-wrap'); if (_nw) _nw.style.display = 'none';
       window.scrollTo(0, 0);
       showToast('Editing — make changes and click Update.', 'success');
     } catch (e) { showToast('Error opening announcement: ' + e.message, 'error'); }
@@ -10657,6 +10665,8 @@
     const note = document.getElementById('ann-expiry-note'); if (note) note.textContent = '';
     document.querySelector('#page-announcement .card-title').textContent = '📢 Post an Announcement';
     document.querySelector('[onclick="postAnnouncement()"]').textContent = 'Post Announcement';
+    const _nw2 = document.getElementById('ann-notify-wrap'); if (_nw2) _nw2.style.display = '';
+    const _nt2 = document.getElementById('ann-notify'); if (_nt2) _nt2.checked = true;
     const chip = document.querySelector('#page-announcement .expiry-chip[onclick*="\'week\'"]');
     if (chip) selectExpiry(chip, 'week');
     renderAnnPreview();
