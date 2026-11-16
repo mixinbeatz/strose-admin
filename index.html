@@ -1419,45 +1419,47 @@
       </div>
       <div class="page" id="page-around-parish">
         <div class="card">
-          <div class="card-title">👁️ Live Preview</div>
-          <div class="info-box">This mirrors how the section looks on the homepage right now, including anything you haven't saved yet.</div>
+          <div class="card-title">👁️ Currently live</div>
+          <div class="info-box">This is what the website and app show right now. It only changes when you press <strong>Publish</strong> below.</div>
           <div id="around-parish-preview" style="background:var(--linen);padding:40px;border-radius:8px;"></div>
         </div>
         <div class="card">
-          <div class="card-title">📸 Around the Parish</div>
-          <div class="info-box">This section appears on the website homepage, after Dedication Day. Change the photos and text anytime — perfect for keeping the site fresh with recent parish life (Bingo Night now, Christmas later, etc).</div>
+          <div class="card-title">📸 Build the next set</div>
+          <div class="info-box">Start from a blank page: add the heading, text and photos, then press <strong>Publish</strong> to put it on the website homepage (after Dedication Day) and in the app. Nothing goes live until you publish, and you will be offered the chance to keep the current set as a past event first.</div>
           <div class="form-group">
             <label class="form-label">Eyebrow (small text above heading)</label>
-            <input type="text" class="form-input" id="around-parish-text-eyebrow" placeholder="e.g. COMMUNITY LIFE" oninput="renderAroundParishPreview()" />
+            <input type="text" class="form-input" id="around-parish-text-eyebrow" placeholder="e.g. COMMUNITY LIFE" oninput="renderAroundParishDraftPreview()" />
           </div>
           <div class="form-group">
             <label class="form-label">Heading</label>
-            <textarea class="form-input" id="around-parish-text-title" rows="2" placeholder="e.g. Around the Parish" oninput="renderAroundParishPreview()"></textarea>
+            <textarea class="form-input" id="around-parish-text-title" rows="2" placeholder="e.g. Bingo Night" oninput="renderAroundParishDraftPreview()"></textarea>
           </div>
           <div class="form-group">
             <label class="form-label">Body paragraph</label>
-            <textarea class="form-input" id="around-parish-text-body" rows="4" placeholder="What's this set of photos about?" oninput="renderAroundParishPreview()"></textarea>
+            <textarea class="form-input" id="around-parish-text-body" rows="4" placeholder="What's this set of photos about?" oninput="renderAroundParishDraftPreview()"></textarea>
           </div>
-          <div class="btn-row">
-            <button class="btn btn-primary" onclick="saveAroundParishText()">Save Text</button>
-          </div>
-          <div class="post-success" id="around-parish-text-success">✓ Text saved.</div>
-        </div>
-        <div class="card">
-          <div class="card-title">Photos</div>
+          <div class="form-label" style="margin-bottom:8px;">Photos</div>
           <div id="around-parish-slots"></div>
+          <div class="form-label" style="margin:18px 0 8px;">Preview of what you are building</div>
+          <div id="around-parish-draft-preview" style="background:var(--linen);padding:40px;border-radius:8px;"></div>
+          <div class="btn-row" style="margin-top:16px;">
+            <button class="btn btn-primary" id="around-parish-publish-btn" onclick="publishAroundParish(this)">Publish</button>
+            <button class="btn btn-outline" onclick="clearAroundParishDraft()">Clear form</button>
+            <button class="btn btn-outline" onclick="copyLiveToAroundParishDraft()">Copy what is live into the form</button>
+          </div>
+          <div class="post-success" id="around-parish-text-success">✓ Published.</div>
         </div>
         <div class="card">
           <div class="card-title">🗓️ Past Events</div>
-          <div class="info-box">When an event is over, save what is showing above as a <strong>past event</strong> and then put up the next set of photos. The app shows a "Past events" button under Around the Parish with the albums from the <strong>last 12 months</strong>. Older ones stop showing in the app automatically but stay here, so you can bring one back by changing its date or delete it for good.</div>
+          <div class="info-box">When an event is over, save what is live as a <strong>past event</strong> and then put up the next set of photos. The app shows a "Past events" button under Around the Parish with the albums from the <strong>last 12 months</strong>. Older ones stop showing in the app automatically but stay here, so you can bring one back by changing its date or delete it for good.</div>
           <div class="form-group">
             <label class="form-label">Date of the event</label>
             <input type="date" class="form-input" id="around-parish-archive-date" style="max-width:220px;" />
           </div>
           <div class="btn-row">
-            <button class="btn btn-primary" onclick="archiveAroundParish()">Save current as a past event</button>
+            <button class="btn btn-primary" onclick="archiveAroundParish()">Save the live set as a past event</button>
           </div>
-          <div style="font-size:12px;color:var(--dusty-rose);margin-top:6px;">Saves the heading, text and photos exactly as they are saved above. It doesn't change what is showing now.</div>
+          <div style="font-size:12px;color:var(--dusty-rose);margin-top:6px;">Saves the heading, text and photos that are live right now. It doesn't change what is showing.</div>
           <div id="around-parish-past-list" style="margin-top:20px;"></div>
         </div>
       </div>
@@ -11260,15 +11262,12 @@
     slot4: 'https://mixinbeatz.github.io/strose-website/images/Roseicon.jpg',
     slot5: 'https://mixinbeatz.github.io/strose-website/images/Roseicon.jpg',
   };
-  let aroundParishData = {};
-  function renderAroundParishPreview() {
-    const el = document.getElementById('around-parish-preview');
-    if (!el) return;
-    const eyebrow = document.getElementById('around-parish-text-eyebrow')?.value || AROUND_PARISH_DEFAULT_TEXT.eyebrow;
-    const title = document.getElementById('around-parish-text-title')?.value || AROUND_PARISH_DEFAULT_TEXT.title;
-    const body = document.getElementById('around-parish-text-body')?.value || AROUND_PARISH_DEFAULT_TEXT.body;
-    const imgs = AROUND_PARISH_SLOTS.map(s => (aroundParishData[s.key] && aroundParishData[s.key].url) || AROUND_PARISH_DEFAULT_IMAGES[s.key]);
-    el.innerHTML = `
+  let aroundParishData = {};          // what is LIVE (read-only here): slotN -> {url, appUrl, alt}
+  let aroundParishLiveText = { eyebrow: '', title: '', body: '' };
+  let aroundParishDraft = { slots: {} };   // the NEW set being built; nothing is saved until Publish
+  let aroundParishDraftReady = false;
+  function apPreviewHtml(eyebrow, title, body, imgs) {
+    return `
       <div style="font-family:'Cinzel',serif;font-size:10px;letter-spacing:4px;color:var(--dusty-rose);margin-bottom:12px;">${escHtml(eyebrow)}</div>
       <div style="font-family:'Cinzel',serif;font-size:26px;color:var(--burgundy);line-height:1.25;margin-bottom:16px;">${escHtml(title).replace(/\n/g,'<br>')}</div>
       <div style="font-size:14px;line-height:1.7;color:var(--soil);opacity:0.85;max-width:480px;margin-bottom:24px;">${escHtml(body)}</div>
@@ -11278,8 +11277,22 @@
         <div style="border-radius:4px;overflow:hidden;"><img src="${imgs[2]}" style="width:100%;height:100%;object-fit:cover;" /></div>
         <div style="border-radius:4px;overflow:hidden;"><img src="${imgs[3]}" style="width:100%;height:100%;object-fit:cover;" /></div>
         <div style="border-radius:4px;overflow:hidden;"><img src="${imgs[4]}" style="width:100%;height:100%;object-fit:cover;" /></div>
-      </div>
-    `;
+      </div>`;
+  }
+  function renderAroundParishPreview() {
+    const el = document.getElementById('around-parish-preview');
+    if (!el) return;
+    const imgs = AROUND_PARISH_SLOTS.map(s => (aroundParishData[s.key] && aroundParishData[s.key].url) || AROUND_PARISH_DEFAULT_IMAGES[s.key]);
+    el.innerHTML = apPreviewHtml(aroundParishLiveText.eyebrow || AROUND_PARISH_DEFAULT_TEXT.eyebrow, aroundParishLiveText.title || AROUND_PARISH_DEFAULT_TEXT.title, aroundParishLiveText.body || AROUND_PARISH_DEFAULT_TEXT.body, imgs);
+  }
+  function renderAroundParishDraftPreview() {
+    const el = document.getElementById('around-parish-draft-preview');
+    if (!el) return;
+    const eyebrow = document.getElementById('around-parish-text-eyebrow')?.value || AROUND_PARISH_DEFAULT_TEXT.eyebrow;
+    const title = document.getElementById('around-parish-text-title')?.value || 'Your heading';
+    const body = document.getElementById('around-parish-text-body')?.value || '';
+    const imgs = AROUND_PARISH_SLOTS.map(s => (aroundParishDraft.slots[s.key] && aroundParishDraft.slots[s.key].url) || AROUND_PARISH_DEFAULT_IMAGES[s.key]);
+    el.innerHTML = apPreviewHtml(eyebrow, title, body, imgs);
   }
   async function loadAroundParish() {
     try {
@@ -11288,44 +11301,65 @@
       AROUND_PARISH_SLOTS.forEach(s => {
         aroundParishData[s.key] = {
           url: res.fields?.[s.key + 'Url']?.stringValue || '',
+          appUrl: res.fields?.[s.key + 'UrlApp']?.stringValue || '',
           alt: res.fields?.[s.key + 'Alt']?.stringValue || '',
         };
       });
-      document.getElementById('around-parish-text-eyebrow').value = res.fields?.textEyebrow?.stringValue || AROUND_PARISH_DEFAULT_TEXT.eyebrow;
-      document.getElementById('around-parish-text-title').value = res.fields?.textTitle?.stringValue || AROUND_PARISH_DEFAULT_TEXT.title;
-      document.getElementById('around-parish-text-body').value = res.fields?.textBody?.stringValue || AROUND_PARISH_DEFAULT_TEXT.body;
+      aroundParishLiveText = {
+        eyebrow: res.fields?.textEyebrow?.stringValue || '',
+        title: res.fields?.textTitle?.stringValue || '',
+        body: res.fields?.textBody?.stringValue || '',
+      };
     } catch(e) {
       aroundParishData = {};
-      AROUND_PARISH_SLOTS.forEach(s => { aroundParishData[s.key] = { url: '', alt: '' }; });
-      document.getElementById('around-parish-text-eyebrow').value = AROUND_PARISH_DEFAULT_TEXT.eyebrow;
-      document.getElementById('around-parish-text-title').value = AROUND_PARISH_DEFAULT_TEXT.title;
-      document.getElementById('around-parish-text-body').value = AROUND_PARISH_DEFAULT_TEXT.body;
+      AROUND_PARISH_SLOTS.forEach(s => { aroundParishData[s.key] = { url: '', appUrl: '', alt: '' }; });
+      aroundParishLiveText = { eyebrow: '', title: '', body: '' };
     }
-    renderAroundParishSlots();
+    renderAroundParishPreview();
+    // The builder starts blank. Re-opening the page keeps any half-built set instead of wiping it.
+    if (!aroundParishDraftReady) { aroundParishDraftReady = true; clearAroundParishDraft(true); }
+    else { renderAroundParishSlots(); }
     loadAroundParishPast();
+  }
+  function clearAroundParishDraft(silent) {
+    aroundParishDraft = { slots: {} };
+    ['eyebrow', 'title', 'body'].forEach(k => { const el = document.getElementById('around-parish-text-' + k); if (el) el.value = ''; });
+    renderAroundParishSlots();
+    if (silent !== true) showToast('Form cleared. What is live was not changed.', 'success');
+  }
+  function copyLiveToAroundParishDraft() {
+    const hasDraft = (document.getElementById('around-parish-text-title').value || '').trim() || Object.keys(aroundParishDraft.slots).some(k => aroundParishDraft.slots[k] && aroundParishDraft.slots[k].url);
+    if (hasDraft && !confirm('Replace what is in the form with the set that is live now?')) return;
+    aroundParishDraft = { slots: {} };
+    AROUND_PARISH_SLOTS.forEach(s => { const d = aroundParishData[s.key]; if (d && d.url) aroundParishDraft.slots[s.key] = { url: d.url, appUrl: d.appUrl || '', alt: d.alt || '' }; });
+    document.getElementById('around-parish-text-eyebrow').value = aroundParishLiveText.eyebrow;
+    document.getElementById('around-parish-text-title').value = aroundParishLiveText.title;
+    document.getElementById('around-parish-text-body').value = aroundParishLiveText.body;
+    renderAroundParishSlots();
+    showToast('Copied. Change what you like, then Publish.', 'success');
   }
   function renderAroundParishSlots() {
     const el = document.getElementById('around-parish-slots');
     if (!el) return;
     el.innerHTML = AROUND_PARISH_SLOTS.map(s => {
-      const data = aroundParishData[s.key] || { url: '', alt: '' };
+      const data = aroundParishDraft.slots[s.key] || { url: '', alt: '' };
       const displayUrl = data.url || AROUND_PARISH_DEFAULT_IMAGES[s.key];
       return `<div style="border:1px solid var(--linen);border-radius:10px;padding:16px;margin-bottom:14px;display:flex;gap:16px;align-items:center;">
         <div class="drop-zone" style="width:100px;height:70px;border-radius:6px;background:var(--linen);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDropUpload(event, (f) => handleAroundParishUpload('${s.key}', f))">
-          <img src="${displayUrl}" style="width:100%;height:100%;object-fit:cover;" onclick="openLightbox('${displayUrl}')" />
+          <img src="${displayUrl}" style="width:100%;height:100%;object-fit:cover;${data.url ? '' : 'opacity:0.4;'}" />
         </div>
         <div style="flex:1;">
-          <div style="font-family:'Cinzel',serif;font-size:13px;color:var(--burgundy);margin-bottom:6px;">${s.label}${!data.url ? ' <span style=\"color:var(--dusty-rose);font-weight:400;\">(placeholder)</span>' : ''}</div>
-          <input type="text" class="form-input" placeholder="Alt text (optional)" value="${data.alt.replace(/"/g,'&quot;')}" onchange="saveAroundParishAlt('${s.key}',this.value)" style="margin-bottom:8px;font-size:13px;" />
+          <div style="font-family:'Cinzel',serif;font-size:13px;color:var(--burgundy);margin-bottom:6px;">${s.label}${!data.url ? ' <span style="color:var(--dusty-rose);font-weight:400;">(empty)</span>' : ''}</div>
+          <input type="text" class="form-input" placeholder="Alt text (optional)" value="${(data.alt || '').replace(/"/g,'&quot;')}" onchange="setAroundParishDraftAlt('${s.key}',this.value)" style="margin-bottom:8px;font-size:13px;" />
           <label class="btn btn-outline btn-sm" style="cursor:pointer;">
-            Replace Photo (or drag &amp; drop onto thumbnail)
+            ${data.url ? 'Replace Photo' : 'Add Photo'} (or drag &amp; drop onto thumbnail)
             <input type="file" accept="image/*" style="display:none;" onchange="handleAroundParishUpload('${s.key}',this)" />
           </label>
-          ${data.url ? `<button class="btn btn-outline btn-sm" onclick="clearAroundParishSlot('${s.key}')" style="margin-left:8px;">Clear</button>` : ''}
+          ${data.url ? `<button class="btn btn-outline btn-sm" onclick="clearAroundParishSlot('${s.key}')" style="margin-left:8px;">Remove</button>` : ''}
         </div>
       </div>`;
     }).join('');
-    renderAroundParishPreview();
+    renderAroundParishDraftPreview();
   }
   async function handleAroundParishUpload(slotKey, input) {
     const file = input.files[0];
@@ -11338,45 +11372,65 @@
         reader.readAsDataURL(file);
       });
       const { webUrl, appUrl } = await uploadDevFileDual(base64, file.name, 'around-parish');
-      await fs_patch('siteContent/aroundParish', {
-        [slotKey + 'Url']: { stringValue: webUrl },
-        [slotKey + 'UrlApp']: { stringValue: appUrl },
-      });
-      aroundParishData[slotKey] = aroundParishData[slotKey] || { url: '', alt: '' };
-      aroundParishData[slotKey].url = webUrl;
+      const prev = aroundParishDraft.slots[slotKey] || { alt: '' };
+      aroundParishDraft.slots[slotKey] = { url: webUrl, appUrl: appUrl, alt: prev.alt || '' };
       renderAroundParishSlots();
-      showToast('Photo updated!', 'success');
+      showToast('Photo added. It goes live when you press Publish.', 'success');
     } catch(e) { showToast('Upload failed.', 'error'); }
   }
-  async function saveAroundParishAlt(slotKey, value) {
-    try {
-      await fs_patch('siteContent/aroundParish', { [slotKey + 'Alt']: { stringValue: value } });
-      aroundParishData[slotKey] = aroundParishData[slotKey] || { url: '', alt: '' };
-      aroundParishData[slotKey].alt = value;
-      showToast('Alt text saved.', 'success');
-    } catch(e) { showToast('Error saving.', 'error'); }
+  function setAroundParishDraftAlt(slotKey, value) {
+    aroundParishDraft.slots[slotKey] = aroundParishDraft.slots[slotKey] || { url: '', appUrl: '', alt: '' };
+    aroundParishDraft.slots[slotKey].alt = value;
   }
-  async function clearAroundParishSlot(slotKey) {
-    if (!confirm('Clear this photo and go back to the placeholder?')) return;
-    try {
-      await fs_patch('siteContent/aroundParish', { [slotKey + 'Url']: { stringValue: '' }, [slotKey + 'UrlApp']: { stringValue: '' } });
-      aroundParishData[slotKey] = aroundParishData[slotKey] || { url: '', alt: '' };
-      aroundParishData[slotKey].url = '';
-      renderAroundParishSlots();
-      showToast('Cleared.', 'success');
-    } catch(e) { showToast('Error.', 'error'); }
+  function clearAroundParishSlot(slotKey) {
+    delete aroundParishDraft.slots[slotKey];
+    renderAroundParishSlots();
   }
-  async function saveAroundParishText() {
+  // Is the set that is live right now already saved as a past event? (matches on its photos)
+  function apLiveAlreadyArchived() {
+    const urls = AROUND_PARISH_SLOTS.map(s => aroundParishData[s.key]).filter(d => d && d.url).map(d => d.appUrl || d.url);
+    if (!urls.length) return true;
+    return aroundPast.some(a => a.photos.some(p => urls.indexOf(p.url) !== -1));
+  }
+  async function publishAroundParish(btn) {
+    const val = id => (document.getElementById(id).value || '').trim();
+    const title = val('around-parish-text-title');
+    if (!title) { showToast('Add a heading first.', 'error'); return; }
+    const filled = AROUND_PARISH_SLOTS.filter(s => aroundParishDraft.slots[s.key] && aroundParishDraft.slots[s.key].url);
+    if (!filled.length) { showToast('Add at least one photo first.', 'error'); return; }
     try {
-      await fs_patch('siteContent/aroundParish', {
-        textEyebrow: { stringValue: document.getElementById('around-parish-text-eyebrow').value.trim() },
-        textTitle: { stringValue: document.getElementById('around-parish-text-title').value.trim() },
-        textBody: { stringValue: document.getElementById('around-parish-text-body').value.trim() },
+      // Safety net: never replace a live set that was not kept as a past event without asking.
+      const liveHasPhotos = AROUND_PARISH_SLOTS.some(s => aroundParishData[s.key] && aroundParishData[s.key].url);
+      if (liveHasPhotos && !apLiveAlreadyArchived()) {
+        const liveTitle = aroundParishLiveText.title || 'the current set';
+        if (confirm('"' + liveTitle + '" is live now and is not saved as a past event.\n\nOK = save it as a past event first (recommended)\nCancel = replace it without saving it')) {
+          const photos = AROUND_PARISH_SLOTS.map(s => aroundParishData[s.key]).filter(d => d && d.url).map(d => ({ url: d.appUrl || d.url, alt: d.alt || '' }));
+          const rec = aroundPastFields({ eyebrow: aroundParishLiveText.eyebrow, title: aroundParishLiveText.title, body: aroundParishLiveText.body, date: apLocalToday(), photos: photos });
+          rec.createdAt = { stringValue: new Date().toISOString() };
+          const r = await fs_post('aroundParishPast', rec);
+          if (r && r.error) throw new Error(r.error.message || 'save failed');
+          showToast('Saved the old set as a past event (dated today, change the date below if needed).', 'success');
+        }
+      }
+      const payload = {
+        textEyebrow: { stringValue: val('around-parish-text-eyebrow') || AROUND_PARISH_DEFAULT_TEXT.eyebrow },
+        textTitle: { stringValue: title },
+        textBody: { stringValue: val('around-parish-text-body') },
+      };
+      AROUND_PARISH_SLOTS.forEach(s => {
+        const d = aroundParishDraft.slots[s.key] || { url: '', appUrl: '', alt: '' };
+        payload[s.key + 'Url'] = { stringValue: d.url || '' };
+        payload[s.key + 'UrlApp'] = { stringValue: d.appUrl || '' };
+        payload[s.key + 'Alt'] = { stringValue: d.alt || '' };
       });
+      await fs_patch('siteContent/aroundParish', payload);
       document.getElementById('around-parish-text-success').style.display = 'block';
-      setTimeout(() => document.getElementById('around-parish-text-success').style.display = 'none', 3000);
-      showToast('Text saved!', 'success');
-    } catch(e) { showToast('Error saving.', 'error'); }
+      setTimeout(() => document.getElementById('around-parish-text-success').style.display = 'none', 4000);
+      showToast('Published! It is live on the website and in the app.', 'success');
+      aroundParishDraftReady = false;
+      await loadAroundParish();
+      window.scrollTo(0, 0);
+    } catch(e) { console.error('publishAroundParish', e); showToast('Error publishing. Nothing was changed on the live page.', 'error'); }
   }
   // ── AROUND THE PARISH PAST EVENTS ──
   // Albums live in the aroundParishPast collection: eyebrow, title, body, eventDate (YYYY-MM-DD),
