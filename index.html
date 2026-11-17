@@ -3966,6 +3966,28 @@
   // Dashboard card for the other three forms. Staff-only (see markup): payment
   // and funeral details are not Cheyanne's by default. Reuses the data
   // loadDashboard already fetched. Funeral rows show a date only, never a name.
+  // Internal staff notes on a submission (e.g. "called 11/16, sending baptism
+  // info"). Stored on the submission itself, which is staff-only to read, so
+  // families never see it. Same box on Parish / Faith Formation / Youth / Funeral.
+  function staffNotesHtml(coll, id, doc) {
+    const note = String(gf(doc, 'staffNotes') || ''), by = gf(doc, 'staffNotesBy'), at = gf(doc, 'staffNotesAt');
+    const stamp = by ? 'Last updated by ' + escHtml(String(by)) + (at ? ' on ' + escHtml(new Date(at).toLocaleDateString('en-US', {month:'short', day:'numeric'})) : '') : '';
+    return '<div style="margin-top:14px;padding-top:12px;border-top:1px solid var(--linen);">' +
+      '<div style="font-family:\'Cinzel\',serif;font-size:12px;color:var(--burgundy);letter-spacing:.5px;margin-bottom:6px;">STAFF NOTES <span style="font-family:\'Faustina\',serif;font-size:11px;color:var(--dusty-rose);letter-spacing:0;">(internal only, families never see this)</span></div>' +
+      '<textarea id="sn-' + coll + '-' + id + '" class="form-input" rows="2" style="width:100%;resize:vertical;" placeholder="e.g. Called 11/16, sending baptism info">' + escHtml(note) + '</textarea>' +
+      '<div style="display:flex;gap:10px;align-items:center;margin-top:6px;"><button class="btn btn-outline btn-sm" onclick="saveStaffNote(\'' + coll + '\',\'' + id + '\',this)">Save note</button>' +
+      (stamp ? '<span style="font-size:11px;color:var(--dusty-rose);">' + stamp + '</span>' : '') + '</div></div>';
+  }
+  async function saveStaffNote(coll, id, btn) {
+    const el = document.getElementById('sn-' + coll + '-' + id);
+    if (!el) return;
+    const was = btn.textContent; btn.disabled = true; btn.textContent = 'Saving…';
+    try {
+      await fs_patch(coll + '/' + id, { staffNotes: { stringValue: el.value.trim() }, staffNotesBy: { stringValue: currentUser || 'staff' }, staffNotesAt: { stringValue: new Date().toISOString() } });
+      btn.textContent = 'Saved ✓';
+      setTimeout(function() { btn.textContent = was; btn.disabled = false; }, 1800);
+    } catch (e) { btn.textContent = was; btn.disabled = false; showToast('Error saving note: ' + (e && e.message || e), 'error'); }
+  }
   // Registrations where the family wrote something in the open "anything else
   // we should know?" box and nobody has marked it followed up yet. Covers the
   // Parish, Faith Formation and Youth Ministry forms (all store it as `comments`).
@@ -3977,7 +3999,7 @@
     [['familyRegistrations', famDocs], ['faithFormationRegistrations', ffDocs], ['youthMinistryRegistrations', ymDocs]].forEach(function(pair) {
       pair[1].forEach(function(d) {
         const note = String(gf(d, 'comments') || '').trim();
-        if (note && gf(d, 'noteHandled') !== true) items.push({ coll: pair[0], id: docId(d), note: note, fam: gf(d, 'familyLastName') || 'Family', when: gf(d, 'submittedAt') || '' });
+        if (note && gf(d, 'noteHandled') !== true) items.push({ coll: pair[0], id: docId(d), note: note, fam: gf(d, 'familyLastName') || 'Family', when: gf(d, 'submittedAt') || '', staff: String(gf(d, 'staffNotes') || '').trim() });
       });
     });
     items.sort(function(a, b) { return String(b.when).localeCompare(String(a.when)); });
@@ -3988,6 +4010,7 @@
       return '<div style="padding:12px 0;border-bottom:1px solid var(--linen);">' +
         '<div style="font-family:\'Cinzel\',serif;font-size:13px;color:var(--burgundy);margin-bottom:4px;">' + escHtml(it.fam) + ' Family · ' + escHtml(label[it.coll]) + (date ? ' · ' + date : '') + '</div>' +
         '<div style="font-size:14px;color:var(--soil);line-height:1.6;margin-bottom:8px;">' + escHtml(it.note) + '</div>' +
+        (it.staff ? '<div style="font-size:12px;color:var(--dusty-rose);margin-bottom:8px;"><strong>Staff note:</strong> ' + escHtml(it.staff) + '</div>' : '') +
         '<button class="btn btn-success btn-sm" onclick="markFamilyNoteHandled(\'' + it.coll + '\',\'' + it.id + '\')">✓ Followed up</button></div>';
     }).join('');
   }
@@ -6528,6 +6551,7 @@
       html += '<div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--linen);font-size:13px;color:var(--soil);"><strong>Comments:</strong> ' + escHtml(comments) + '</div>';
     }
 
+    html += staffNotesHtml('familyRegistrations', id, doc);
     html += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;">';
     html += famRegActionButtons(id, !!(headEmail || spouseEmail));
     html += '<button class="btn btn-success btn-sm" onclick="markFamilyRegReviewed(\'' + id + '\',\'' + escAttr(lastName) + '\')">✓ Mark Reviewed</button>';
@@ -6683,6 +6707,7 @@
       html += '<div style="margin-top:14px;padding-top:14px;border-top:1px solid var(--linen);font-size:13px;color:var(--soil);"><strong>Comments:</strong> ' + escHtml(comments) + '</div>';
     }
 
+    html += staffNotesHtml('familyRegistrations', id, doc);
     html += '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:16px;">';
     html += famRegActionButtons(id, !!(headEmail || spouseEmail));
     html += '<button class="btn btn-outline btn-sm" onclick="deleteReviewedFamily(\'' + id + '\',\'' + escAttr(lastName) + '\')">Delete</button>';
@@ -7179,6 +7204,7 @@
 
     // For Parish Office Use — editable reconciliation box (shared component,
     // also used by the Youth Ministry Registrations dashboard).
+    html += staffNotesHtml('faithFormationRegistrations', id, doc);
     html += reconBoxHtml('faithFormationRegistrations', id, recon, gf(doc, 'motherEmail') || gf(doc, 'fatherEmail') || '', lastName, 'loadFaithFormationRegs', 'ffreg-' + id);
 
     html += '</div>';
@@ -7406,6 +7432,7 @@
     html += 'Photo permission: ' + escHtml(gf(doc, 'photoPermission') || '—') + ' · Indemnity agreed: ' + (gf(doc, 'indemnityAgreed') === true ? 'Yes' : 'No') + (gf(doc, 'signatureName') ? ' · Signed: ' + escHtml(gf(doc, 'signatureName')) : '') + (gf(doc, 'signatureDate') ? ' (' + escHtml(gf(doc, 'signatureDate')) + ')' : '');
     html += '</div>';
 
+    html += staffNotesHtml('youthMinistryRegistrations', id, doc);
     html += reconBoxHtml('youthMinistryRegistrations', id, recon, gf(doc, 'motherEmail') || gf(doc, 'fatherEmail') || '', lastName, 'loadYouthMinistryRegs', 'ymreg-' + id);
     html += '</div>';
     return html;
@@ -7979,7 +8006,7 @@
   // each child and extra phone number. Status, review flags, signatures, the
   // payment box and timestamps are left alone. Saving writes only what changed,
   // plus editedBy/editedAt.
-  const ED_SKIP = /^(status|noteHandled|noteHandledAt|noteHandledBy|reviewed|reviewedAt|submittedAt|createdAt|updatedAt|reconciliation|editedBy|editedAt|handledAt|deniedAt|denialReason|uid|submitterUid)$|^(signature|consent|agree)/i;
+  const ED_SKIP = /^(status|staffNotes|staffNotesBy|staffNotesAt|noteHandled|noteHandledAt|noteHandledBy|reviewed|reviewedAt|submittedAt|createdAt|updatedAt|reconciliation|editedBy|editedAt|handledAt|deniedAt|denialReason|uid|submitterUid)$|^(signature|consent|agree)/i;
   const ED_RELOAD = {
     familyRegistrations: function() { loadFamilyRegistrations(); },
     faithFormationRegistrations: function() { loadFaithFormationRegs(); },
@@ -11170,7 +11197,8 @@
       (contactLine ? '<div style="font-size:11px;color:var(--dusty-rose);margin-bottom:2px;">' + contactLine + '</div>' : '') +
       '<div style="font-size:11px;color:var(--dusty-rose);margin-bottom:10px;">' + date + '</div>' +
       '<pre style="font-family:\'Faustina\',serif;font-size:13px;color:var(--soil);line-height:1.6;margin-bottom:12px;padding:12px;background:var(--sand);border-radius:6px;white-space:pre-wrap;word-break:break-word;">' + escHtml(summary) + '</pre>' +
-      '<div style="display:flex;gap:8px;flex-wrap:wrap;">' +
+      staffNotesHtml('funeralPlanningSubmissions', id, doc) +
+      '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;">' +
       (isHandled ? '' : '<button class="btn btn-primary btn-sm" onclick="markFuneralPlanningHandled(\'' + id + '\')">Mark Handled</button>') +
       regActionButtons('funeralPlanningSubmissions', id, !!contactEmail) +
       '<button class="btn btn-outline btn-sm" onclick="deleteFuneralPlanning(\'' + id + '\',\'' + escAttr(name) + '\')">Delete</button>' +
