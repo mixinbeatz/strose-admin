@@ -2621,6 +2621,12 @@
   <div class="lightbox-close">✕</div>
   <img id="lightbox-img" src="" />
 </div>
+<div class="profile-modal" id="edit-rec-modal" onclick="closeEditRecord()">
+  <div class="profile-modal-card" style="max-width:560px;" onclick="event.stopPropagation()">
+    <span class="profile-modal-close" onclick="closeEditRecord()">&times;</span>
+    <div id="edit-rec-body"></div>
+  </div>
+</div>
 <div class="profile-modal" id="profile-modal" onclick="closeProfileModal()">
   <div class="profile-modal-card" onclick="event.stopPropagation()">
     <span class="profile-modal-close" onclick="closeProfileModal()">&times;</span>
@@ -6154,10 +6160,12 @@
           ${imgHtml}
           ${awaiting?`<div style="font-size:12px;font-weight:600;color:#B7791F;margin:6px 0;">⏳ Approved — awaiting activation. Not yet visible in the directory.</div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn btn-outline btn-sm" onclick="openEditRecord('partnerRequests','${id}')">✏️ Edit</button>
             <button class="btn btn-success btn-sm" onclick="activatePartner('${id}','${escAttr(biz)}','paying')">✓ Activate listing (payment received)</button>
             <button class="btn btn-outline btn-sm" onclick="activatePartner('${id}','${escAttr(biz)}','comped')">Activate as comped</button>
             <button class="btn btn-outline btn-sm" onclick="declinePartner('${id}','${escAttr(biz)}')">Decline</button>
           </div>`:`<div style="display:flex;gap:8px;">
+            <button class="btn btn-outline btn-sm" onclick="openEditRecord('partnerRequests','${id}')">✏️ Edit</button>
             <button class="btn btn-success btn-sm" onclick="approvePartner('${id}','${escAttr(biz)}')">✓ Approve for Saint Rose</button>
             <button class="btn btn-outline btn-sm" onclick="declinePartner('${id}','${escAttr(biz)}')">Decline</button>
           </div>`}
@@ -6720,7 +6728,8 @@
   }
 
   function famRegActionButtons(id, hasEmail) {
-    return '<button class="btn btn-outline btn-sm" onclick="copyFamilyReg(\'' + id + '\')">Copy details</button>' +
+    return '<button class="btn btn-outline btn-sm" onclick="openEditDoc(\'familyRegistrations\',\'' + id + '\')">Edit</button>' +
+      '<button class="btn btn-outline btn-sm" onclick="copyFamilyReg(\'' + id + '\')">Copy details</button>' +
       '<button class="btn btn-outline btn-sm" onclick="printFamilyReg(\'' + id + '\')">Print</button>' +
       (hasEmail ? '<button class="btn btn-outline btn-sm" onclick="emailFamilyReg(\'' + id + '\')">Email family</button>' : '');
   }
@@ -6914,7 +6923,8 @@
     return form ? form.cache().find(function(d) { return docId(d) === id; }) : null;
   }
   function regActionButtons(collection, id, hasEmail) {
-    return '<button class="btn btn-outline btn-sm" onclick="regCopy(\'' + collection + '\',\'' + id + '\')">Copy details</button>' +
+    return '<button class="btn btn-outline btn-sm" onclick="openEditDoc(\'' + collection + '\',\'' + id + '\')">Edit</button>' +
+      '<button class="btn btn-outline btn-sm" onclick="regCopy(\'' + collection + '\',\'' + id + '\')">Copy details</button>' +
       '<button class="btn btn-outline btn-sm" onclick="regPrint(\'' + collection + '\',\'' + id + '\')">Print</button>' +
       (hasEmail ? '<button class="btn btn-outline btn-sm" onclick="regEmail(\'' + collection + '\',\'' + id + '\')">Email family</button>' : '');
   }
@@ -7678,6 +7688,7 @@
           <div class="approval-avatar">${photo?`<img src="${photo}" onclick="openLightbox('${photo}')"/>`:(name.charAt(0)||'?')}</div>
           <div class="approval-info"><div class="approval-name">${escHtml(name)}${platformBadge(id)}</div><div class="approval-meta">${escHtml(email)}${ministries?' · '+escHtml(ministries):''}</div></div>
           <div class="approval-actions">
+            <button class="btn btn-outline btn-sm" onclick="openEditRecord('parishFamily','${id}')">Edit</button>
             <button class="btn btn-outline btn-sm" onclick="showMemberProfile('${id}')">View Profile</button>
             <button class="btn btn-outline btn-sm" onclick="emailMember('${escAttr(email)}')">Email</button>
             <button class="btn btn-danger btn-sm" onclick="removeMember('${id}','${escAttr(name)}')">Remove</button>
@@ -7818,6 +7829,244 @@
     document.getElementById('profile-modal').classList.add('show');
   }
   function closeProfileModal(){ document.getElementById('profile-modal').classList.remove('show'); }
+
+  // ── EDIT SUBMITTED FORMS (staff) ──
+  // One shared editor for records people submit through the app: event requests,
+  // Parish Family profiles, partner requests, contact requests and council
+  // inquiries. Each collection lists only the fields staff may change; saving
+  // patches just those fields plus editedBy/editedAt so there is a light audit
+  // trail. Never touches status, approval flags, ids or the submitter's uid.
+  const EDIT_RECORD_SCHEMAS = {
+    eventRequests: {
+      title: 'Edit Event Request',
+      fields: [
+        {k:'title', l:'Title', t:'text', req:true},
+        {k:'startDateRaw', l:'Start date', t:'date'},
+        {k:'endDateRaw', l:'End date (same as start for one day)', t:'date'},
+        {k:'time', l:'Time', t:'text'},
+        {k:'location', l:'Location', t:'text'},
+        {k:'description', l:'Description', t:'textarea'},
+        {k:'linkUrl', l:'Link (optional)', t:'text'}
+      ],
+      derive: function(v) {
+        // keep the display date in step with the real dates (same format the form uses)
+        if (!v.startDateRaw) return {};
+        var m = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'], d = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+        var fmt = function(raw) { var x = new Date(raw + 'T12:00:00'); return d[x.getDay()] + ', ' + m[x.getMonth()] + ' ' + x.getDate(); };
+        var end = v.endDateRaw && v.endDateRaw !== v.startDateRaw ? ' - ' + fmt(v.endDateRaw) : '';
+        return {date: fmt(v.startDateRaw) + end};
+      },
+      after: function() { loadEventRequests(); }
+    },
+    parishFamily: {
+      title: 'Edit Parish Family Profile',
+      note: 'Changes show in the directory right away. Ministries controls which ministry chats the member can open, so edit it carefully.',
+      fields: [
+        {k:'name', l:'Name', t:'text', req:true},
+        {k:'bio', l:'Bio', t:'textarea'},
+        {k:'ministries', l:'Ministries (comma-separated, exactly as shown)', t:'text'}
+      ],
+      after: function() { loadDirectory(); }
+    },
+    partnerRequests: {
+      title: 'Edit Partner Request',
+      fields: [
+        {k:'businessName', l:'Business name', t:'text', req:true},
+        {k:'contactName', l:'Contact name', t:'text'},
+        {k:'email', l:'Email', t:'text'},
+        {k:'phone', l:'Phone', t:'text'},
+        {k:'website', l:'Website', t:'text'},
+        {k:'category', l:'Category', t:'text'},
+        {k:'tagline', l:'Tagline', t:'text'},
+        {k:'description', l:'Description', t:'textarea'},
+        {k:'discount', l:'Parishioner discount', t:'text'}
+      ],
+      after: function() { loadPartners(); }
+    },
+    contactRequests: {
+      title: 'Edit Contact Request',
+      fields: [
+        {k:'name', l:'Name', t:'text'},
+        {k:'contact', l:'Phone or email', t:'text'},
+        {k:'subject', l:'Subject', t:'text'},
+        {k:'message', l:'Message', t:'textarea'}
+      ],
+      after: function() { loadContactRequests(); }
+    },
+    councilInquiries: {
+      title: 'Edit Council Inquiry',
+      note: 'You can correct the name and contact details. The question itself stays as the member wrote it.',
+      fields: [
+        {k:'name', l:'Name', t:'text'},
+        {k:'contact', l:'Phone or email', t:'text'}
+      ],
+      after: function() { loadCouncilInquiries(); }
+    }
+  };
+  let editRec = null;
+  async function openEditRecord(coll, id) {
+    const sch = EDIT_RECORD_SCHEMAS[coll];
+    if (!sch) return;
+    const body = document.getElementById('edit-rec-body');
+    body.innerHTML = '<div style="color:var(--dusty-rose);font-size:14px;">Loading...</div>';
+    document.getElementById('edit-rec-modal').classList.add('show');
+    try {
+      const doc = await fs_get_doc(coll + '/' + id);
+      if (!doc.fields) throw new Error('Record not found');
+      editRec = { coll: coll, id: id, orig: {} };
+      body.innerHTML = '<div class="profile-modal-name" style="margin-bottom:14px;">' + escHtml(sch.title) + '</div>' +
+        (sch.note ? '<div class="info-box" style="margin-bottom:14px;">' + escHtml(sch.note) + '</div>' : '') +
+        sch.fields.map(function(f) {
+          const val = String(gf(doc, f.k) === '' ? '' : gf(doc, f.k));
+          editRec.orig[f.k] = val;
+          const common = 'id="er-' + f.k + '" class="form-input" style="width:100%;"';
+          const input = f.t === 'textarea'
+            ? '<textarea ' + common + ' rows="5" style="width:100%;resize:vertical;">' + escHtml(val) + '</textarea>'
+            : '<input type="' + (f.t === 'date' ? 'date' : 'text') + '" ' + common + ' value="' + escHtml(val).replace(/"/g, '&quot;') + '" />';
+          return '<div class="form-group"><label class="form-label">' + escHtml(f.l) + (f.req ? ' <span style="color:#8B2635">*</span>' : '') + '</label>' + input + '</div>';
+        }).join('') +
+        '<div class="btn-row"><button class="btn btn-primary" id="er-save" onclick="saveEditRecord(this)">Save Changes</button>' +
+        '<button class="btn btn-outline" onclick="closeEditRecord()">Cancel</button></div>' +
+        ((gf(doc, 'editedBy')) ? '<div style="font-size:11px;color:var(--dusty-rose);margin-top:10px;">Last edited by ' + escHtml(String(gf(doc, 'editedBy'))) + (gf(doc, 'editedAt') ? ' on ' + escHtml(new Date(gf(doc, 'editedAt')).toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'})) : '') + '</div>' : '');
+    } catch (e) {
+      body.innerHTML = '<div style="color:var(--danger);">Could not load this record.</div>';
+    }
+  }
+  function closeEditRecord() { document.getElementById('edit-rec-modal').classList.remove('show'); editRec = null; editDoc = null; }
+  // ── EDIT ANY SUBMITTED REGISTRATION (Parish / Faith Formation / Youth / Funeral) ──
+  // Built generically from the stored record, like the copy/print tools: every
+  // text, number and yes/no field the form captured becomes editable, including
+  // each child and extra phone number. Status, review flags, signatures, the
+  // payment box and timestamps are left alone. Saving writes only what changed,
+  // plus editedBy/editedAt.
+  const ED_SKIP = /^(status|reviewed|reviewedAt|submittedAt|createdAt|updatedAt|reconciliation|editedBy|editedAt|handledAt|deniedAt|denialReason|uid|submitterUid)$|^(signature|consent|agree)/i;
+  const ED_RELOAD = {
+    familyRegistrations: function() { loadFamilyRegistrations(); },
+    faithFormationRegistrations: function() { loadFaithFormationRegs(); },
+    youthMinistryRegistrations: function() { loadYouthMinistryRegs(); },
+    funeralPlanningSubmissions: function() { loadFuneralPlanning(); }
+  };
+  let editDoc = null;
+  function edScalar(v) { return v && ('stringValue' in v || 'integerValue' in v || 'doubleValue' in v || 'booleanValue' in v); }
+  function edInput(idv, v, label) {
+    const lab = '<label class="form-label" style="font-size:12px;">' + escHtml(label) + '</label>';
+    if ('booleanValue' in v) {
+      return '<div class="form-group" style="margin-bottom:10px;"><label style="font-size:13px;cursor:pointer;"><input type="checkbox" id="' + idv + '"' + (v.booleanValue ? ' checked' : '') + ' /> ' + escHtml(label) + '</label></div>';
+    }
+    const val = 'stringValue' in v ? v.stringValue : String('integerValue' in v ? v.integerValue : v.doubleValue);
+    if ('stringValue' in v && (val.length > 80 || val.indexOf('\n') !== -1)) {
+      return '<div class="form-group" style="margin-bottom:10px;">' + lab + '<textarea id="' + idv + '" class="form-input" rows="4" style="width:100%;resize:vertical;">' + escHtml(val) + '</textarea></div>';
+    }
+    return '<div class="form-group" style="margin-bottom:10px;">' + lab + '<input type="text" id="' + idv + '" class="form-input" style="width:100%;" value="' + escHtml(val).replace(/"/g, '&quot;') + '" /></div>';
+  }
+  async function openEditDoc(coll, id) {
+    const body = document.getElementById('edit-rec-body');
+    body.innerHTML = '<div style="color:var(--dusty-rose);font-size:14px;">Loading...</div>';
+    const modal = document.getElementById('edit-rec-modal');
+    modal.classList.add('show');
+    editRec = null;
+    try {
+      const doc = await fs_get_doc(coll + '/' + id);
+      if (!doc.fields) throw new Error('not found');
+      editDoc = { coll: coll, id: id, doc: doc, keys: [] };
+      let html = '<div class="profile-modal-name" style="margin-bottom:6px;">Edit Submission</div>' +
+        '<div class="info-box" style="margin-bottom:14px;">Fix typos or missing details. Status, review marks, signatures and payment records are not editable here.</div>';
+      const f = doc.fields;
+      Object.keys(f).forEach(function(k) {
+        if (ED_SKIP.test(k)) return;
+        const v = f[k];
+        if (edScalar(v)) {
+          editDoc.keys.push(k);
+          html += edInput('ed-t-' + k, v, humanKey(k));
+        } else if (v.arrayValue && (v.arrayValue.values || []).length && v.arrayValue.values.every(function(x) { return x.mapValue; })) {
+          editDoc.keys.push(k);
+          v.arrayValue.values.forEach(function(item, i) {
+            const mf = item.mapValue.fields || {};
+            const inner = Object.keys(mf).filter(function(sk) { return edScalar(mf[sk]); });
+            if (!inner.length) return;
+            html += '<div style="margin:12px 0 6px;padding-top:10px;border-top:1px solid var(--linen);font-family:\'Cinzel\',serif;font-size:12px;color:var(--burgundy);letter-spacing:.5px;">' + escHtml(humanKey(k).toUpperCase()) + ' #' + (i + 1) + '</div>';
+            inner.forEach(function(sk) { html += edInput('ed-a-' + k + '-' + i + '-' + sk, mf[sk], humanKey(sk)); });
+          });
+        }
+      });
+      html += '<div class="btn-row" style="margin-top:14px;"><button class="btn btn-primary" onclick="saveEditDoc(this)">Save Changes</button>' +
+        '<button class="btn btn-outline" onclick="closeEditRecord()">Cancel</button></div>';
+      if (gf(doc, 'editedBy')) html += '<div style="font-size:11px;color:var(--dusty-rose);margin-top:10px;">Last edited by ' + escHtml(String(gf(doc, 'editedBy'))) + (gf(doc, 'editedAt') ? ' on ' + escHtml(new Date(gf(doc, 'editedAt')).toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'})) : '') + '</div>';
+      body.innerHTML = html;
+    } catch (e) { editDoc = null; body.innerHTML = '<div style="color:var(--danger);">Could not load this record.</div>'; }
+  }
+  function edRead(idv, orig) {
+    const el = document.getElementById(idv);
+    if (!el) return orig;
+    if ('booleanValue' in orig) return { booleanValue: !!el.checked };
+    const t = (el.value || '').trim();
+    if ('integerValue' in orig) { return /^-?\d+$/.test(t) ? { integerValue: t } : orig; }
+    if ('doubleValue' in orig) { return isNaN(parseFloat(t)) ? orig : { doubleValue: parseFloat(t) }; }
+    return { stringValue: t };
+  }
+  async function saveEditDoc(btn) {
+    if (!editDoc) return;
+    const d = editDoc, f = d.doc.fields, patch = {};
+    d.keys.forEach(function(k) {
+      const v = f[k];
+      if (edScalar(v)) {
+        const nv = edRead('ed-t-' + k, v);
+        if (JSON.stringify(nv) !== JSON.stringify(v)) patch[k] = nv;
+      } else {
+        let changed = false;
+        const values = v.arrayValue.values.map(function(item, i) {
+          const mf = Object.assign({}, item.mapValue.fields || {});
+          Object.keys(mf).forEach(function(sk) {
+            if (!edScalar(mf[sk])) return;
+            const nv = edRead('ed-a-' + k + '-' + i + '-' + sk, mf[sk]);
+            if (JSON.stringify(nv) !== JSON.stringify(mf[sk])) { mf[sk] = nv; changed = true; }
+          });
+          return { mapValue: { fields: mf } };
+        });
+        if (changed) patch[k] = { arrayValue: { values: values } };
+      }
+    });
+    if (!Object.keys(patch).length) { closeEditRecord(); showToast('No changes to save.', 'success'); return; }
+    patch.editedBy = { stringValue: currentUser || 'staff' };
+    patch.editedAt = { stringValue: new Date().toISOString() };
+    const was = btn.textContent; btn.disabled = true; btn.textContent = 'Saving…';
+    try {
+      await fs_patch(d.coll + '/' + d.id, patch);
+      const reload = ED_RELOAD[d.coll];
+      closeEditRecord();
+      showToast('Changes saved.', 'success');
+      if (reload) reload();
+    } catch (e) {
+      btn.disabled = false; btn.textContent = was;
+      showToast('Error saving: ' + (e && e.message || e), 'error');
+    }
+  }
+
+  async function saveEditRecord(btn) {
+    if (!editRec) return;
+    const sch = EDIT_RECORD_SCHEMAS[editRec.coll];
+    const vals = {}, patch = {};
+    for (const f of sch.fields) {
+      vals[f.k] = (document.getElementById('er-' + f.k).value || '').trim();
+      if (f.req && !vals[f.k]) { showToast(f.l + ' is required.', 'error'); return; }
+    }
+    sch.fields.forEach(function(f) { if (vals[f.k] !== (editRec.orig[f.k] || '')) patch[f.k] = { stringValue: vals[f.k] }; });
+    if (sch.derive) { const d = sch.derive(vals); Object.keys(d).forEach(function(k) { patch[k] = { stringValue: d[k] }; }); }
+    if (!Object.keys(patch).length) { closeEditRecord(); showToast('No changes to save.', 'success'); return; }
+    patch.editedBy = { stringValue: currentUser || 'staff' };
+    patch.editedAt = { stringValue: new Date().toISOString() };
+    const was = btn.textContent; btn.disabled = true; btn.textContent = 'Saving…';
+    try {
+      await fs_patch(editRec.coll + '/' + editRec.id, patch);
+      const after = sch.after;
+      closeEditRecord();
+      showToast('Changes saved.', 'success');
+      if (after) after();
+    } catch (e) {
+      btn.disabled = false; btn.textContent = was;
+      showToast('Error saving: ' + (e && e.message || e), 'error');
+    }
+  }
 
   function copyEmails() {
     const emails = allMembers.filter(d=>gf(d,'email')).map(d=>gf(d,'email')).join(', ');
@@ -10789,7 +11038,8 @@
           '<div style="font-size:11px;color:var(--dusty-rose);margin-bottom:2px;">' + escHtml(contact) + '</div>' +
           '<div style="font-size:11px;color:var(--dusty-rose);margin-bottom:10px;">' + date + '</div>' +
           '<div style="font-size:13px;color:var(--soil);line-height:1.6;margin-bottom:12px;padding:8px;background:var(--sand);border-radius:6px;">' + escHtml(message) + '</div>' +
-          '<button class="btn btn-primary btn-sm" onclick="markContactHandled(\'' + id + '\')">Mark Handled</button>' +
+          '<button class="btn btn-primary btn-sm" onclick="markContactHandled(\'' + id + '\')">Mark Handled</button> ' +
+          '<button class="btn btn-outline btn-sm" onclick="openEditRecord(\'contactRequests\',\'' + id + '\')">Edit</button>' +
         '</div>';
       }).join('');
     } catch(e) { list.innerHTML = '<div style="color:var(--dusty-rose);font-size:14px;">Error loading.</div>'; }
@@ -10829,7 +11079,8 @@
           (contact ? '<div style="font-size:11px;color:var(--dusty-rose);margin-bottom:2px;">' + escHtml(contact) + '</div>' : '') +
           '<div style="font-size:11px;color:var(--dusty-rose);margin-bottom:10px;">' + date + '</div>' +
           '<div style="font-size:13px;color:var(--soil);line-height:1.6;margin-bottom:12px;padding:8px;background:var(--sand);border-radius:6px;">' + escHtml(message) + '</div>' +
-          '<button class="btn btn-primary btn-sm" onclick="markCouncilInquiryHandled(\'' + id + '\')">Mark Handled</button>' +
+          '<button class="btn btn-primary btn-sm" onclick="markCouncilInquiryHandled(\'' + id + '\')">Mark Handled</button> ' +
+          '<button class="btn btn-outline btn-sm" onclick="openEditRecord(\'councilInquiries\',\'' + id + '\')">Edit name &amp; contact</button>' +
         '</div>';
       }).join('');
     } catch(e) { list.innerHTML = '<div style="color:var(--dusty-rose);font-size:14px;">Error loading.</div>'; }
@@ -11947,6 +12198,7 @@
           (f.location && f.location.stringValue ? '<div style="font-size:13px;color:var(--soil);opacity:0.7;margin-bottom:2px">📍 ' + f.location.stringValue + '</div>' : '') +
           (f.description && f.description.stringValue ? '<div style="font-size:13px;color:var(--soil);opacity:0.7;margin-bottom:10px">' + f.description.stringValue + '</div>' : '') +
           '<div style="display:flex;gap:10px;margin-top:12px">' +
+          '<button class="btn btn-outline" onclick="openEditRecord(\'eventRequests\',\'' + id + '\')">✏️ Edit</button>' +
           '<button class="btn btn-primary" onclick="approveEventRequest(\'' + id + '\',this)">✅ Approve</button>' +
           '<button class="btn btn-outline" onclick="showDenyForm(\'' + id + '\')">❌ Deny</button>' +
           '</div>' +
