@@ -908,8 +908,8 @@
           </div>
           <div class="form-group" id="ann-notify-wrap">
             <label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer;font-size:15px;">
-              <input type="checkbox" id="ann-notify" checked style="margin-top:4px;width:18px;height:18px;flex-shrink:0;" />
-              <span><strong>Send a push notification</strong><br><span style="font-size:12px;color:var(--dusty-rose);">Uncheck to post quietly: it appears in the app's Announcements with no alert on phones. Applies to new posts only; editing never re-sends.</span></span>
+              <input type="checkbox" id="ann-notify" style="margin-top:4px;width:18px;height:18px;flex-shrink:0;" />
+              <span><strong>Send a push notification</strong><br><span style="font-size:12px;color:var(--dusty-rose);">Leave unchecked to post quietly: it appears in the app's Announcements with no alert on phones. Check it only when you want phones to chime. Applies to new posts only; editing never re-sends.</span></span>
             </label>
           </div>
           <div class="btn-row">
@@ -4772,15 +4772,15 @@
         resetAnnouncementForm();
         showToast('Announcement updated!','success');
       } else {
-        await fs_post('announcements',Object.assign({title:{stringValue:title},body:{stringValue:body},linkUrl:{stringValue:linkUrl},linkLabel:{stringValue:linkLabel},postedBy:{stringValue:'Parish Staff'},expiresAt:{stringValue:expiresAt||''},createdAt:{stringValue:new Date().toISOString()},notify:{booleanValue:!!(document.getElementById('ann-notify')||{checked:true}).checked}}, extras));
-        showToast(((document.getElementById('ann-notify')||{checked:true}).checked)?'Announcement posted — notification sent!':'Announcement posted quietly (no notification).','success');
+        await fs_post('announcements',Object.assign({title:{stringValue:title},body:{stringValue:body},linkUrl:{stringValue:linkUrl},linkLabel:{stringValue:linkLabel},postedBy:{stringValue:'Parish Staff'},expiresAt:{stringValue:expiresAt||''},createdAt:{stringValue:new Date().toISOString()},notify:{booleanValue:!!(document.getElementById('ann-notify')||{checked:false}).checked}}, extras));
+        showToast(((document.getElementById('ann-notify')||{checked:false}).checked)?'Announcement posted — notification sent!':'Announcement posted quietly (no notification).','success');
       }
       document.getElementById('ann-title').value='';
       document.getElementById('ann-body').value='';
       const _al=document.getElementById('ann-link'); if(_al) _al.value='';
       const _ll2=document.getElementById('ann-link-label'); if(_ll2) _ll2.value='';
       clearAnnExtras();
-      const _nt=document.getElementById('ann-notify'); if(_nt) _nt.checked=true;
+      const _nt=document.getElementById('ann-notify'); if(_nt) _nt.checked=false;
       renderAnnPreview();
       document.getElementById('ann-success').style.display='block';
       setTimeout(()=>{document.getElementById('ann-success').style.display='none';},4000);
@@ -11068,7 +11068,7 @@
     document.querySelector('#page-announcement .card-title').textContent = '📢 Post an Announcement';
     document.querySelector('[onclick="postAnnouncement()"]').textContent = 'Post Announcement';
     const _nw2 = document.getElementById('ann-notify-wrap'); if (_nw2) _nw2.style.display = '';
-    const _nt2 = document.getElementById('ann-notify'); if (_nt2) _nt2.checked = true;
+    const _nt2 = document.getElementById('ann-notify'); if (_nt2) _nt2.checked = false;
     const chip = document.querySelector('#page-announcement .expiry-chip[onclick*="\'week\'"]');
     if (chip) selectExpiry(chip, 'week');
     renderAnnPreview();
