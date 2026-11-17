@@ -6219,6 +6219,7 @@
           <div class="partner-meta">${escHtml(contact)} · ${escHtml(email)} · ${escHtml(phone)}${website?' · <a href="'+escAttr(website)+'" target="_blank" style="color:var(--burgundy);">'+escHtml(website)+'</a>':''}</div>
           ${desc?`<div class="partner-desc">${escHtml(desc)}</div>`:''}
           ${imgHtml}
+          ${staffNotesHtml('partnerRequests',id,doc)}
           ${awaiting?`<div style="font-size:12px;font-weight:600;color:#B7791F;margin:6px 0;">⏳ Approved — awaiting activation. Not yet visible in the directory.</div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;">
             <button class="btn btn-outline btn-sm" onclick="openEditRecord('partnerRequests','${id}')">✏️ Edit</button>
@@ -11105,6 +11106,7 @@
           '<div style="font-size:11px;color:var(--dusty-rose);margin-bottom:2px;">' + escHtml(contact) + '</div>' +
           '<div style="font-size:11px;color:var(--dusty-rose);margin-bottom:10px;">' + date + '</div>' +
           '<div style="font-size:13px;color:var(--soil);line-height:1.6;margin-bottom:12px;padding:8px;background:var(--sand);border-radius:6px;">' + escHtml(message) + '</div>' +
+          staffNotesHtml('contactRequests', id, doc) +
           '<button class="btn btn-primary btn-sm" onclick="markContactHandled(\'' + id + '\')">Mark Handled</button> ' +
           '<button class="btn btn-outline btn-sm" onclick="openEditRecord(\'contactRequests\',\'' + id + '\')">Edit</button>' +
         '</div>';
@@ -11146,6 +11148,7 @@
           (contact ? '<div style="font-size:11px;color:var(--dusty-rose);margin-bottom:2px;">' + escHtml(contact) + '</div>' : '') +
           '<div style="font-size:11px;color:var(--dusty-rose);margin-bottom:10px;">' + date + '</div>' +
           '<div style="font-size:13px;color:var(--soil);line-height:1.6;margin-bottom:12px;padding:8px;background:var(--sand);border-radius:6px;">' + escHtml(message) + '</div>' +
+          staffNotesHtml('councilInquiries', id, doc) +
           '<button class="btn btn-primary btn-sm" onclick="markCouncilInquiryHandled(\'' + id + '\')">Mark Handled</button> ' +
           '<button class="btn btn-outline btn-sm" onclick="openEditRecord(\'councilInquiries\',\'' + id + '\')">Edit name &amp; contact</button>' +
         '</div>';
@@ -12265,6 +12268,7 @@
           '<div style="font-size:13px;color:var(--soil);opacity:0.7;margin-bottom:2px">📅 ' + (f.date && f.date.stringValue ? f.date.stringValue : '') + (f.time && f.time.stringValue ? ' @ ' + f.time.stringValue : '') + '</div>' +
           (f.location && f.location.stringValue ? '<div style="font-size:13px;color:var(--soil);opacity:0.7;margin-bottom:2px">📍 ' + f.location.stringValue + '</div>' : '') +
           (f.description && f.description.stringValue ? '<div style="font-size:13px;color:var(--soil);opacity:0.7;margin-bottom:10px">' + f.description.stringValue + '</div>' : '') +
+          staffNotesHtml('eventRequests', id, d) +
           '<div style="display:flex;gap:10px;margin-top:12px">' +
           '<button class="btn btn-outline" onclick="openEditRecord(\'eventRequests\',\'' + id + '\')">✏️ Edit</button>' +
           '<button class="btn btn-primary" onclick="approveEventRequest(\'' + id + '\',this)">✅ Approve</button>' +
