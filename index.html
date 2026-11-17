@@ -539,6 +539,11 @@
           </div>
           <div id="dash-familyreg-list"><div style="color:var(--dusty-rose);font-size:13px;">Loading...</div></div>
         </div>
+        <div class="card staff-only" id="dash-notes-card" style="display:none;border-left:4px solid var(--gold);">
+          <div class="card-title">💬 Family Notes to Follow Up <span class="nav-badge" id="dash-notes-count" style="margin-left:6px;">0</span></div>
+          <div class="info-box" style="margin-bottom:12px;">Families wrote something in the "anything else we should know?" box. Reach out, then mark it followed up.</div>
+          <div id="dash-notes-list"></div>
+        </div>
         <div class="card staff-only" id="dash-otherforms-card">
           <div class="card-title">📋 Other Registrations &amp; Forms</div>
           <div id="dash-otherforms-list"><div style="color:var(--dusty-rose);font-size:13px;">Loading...</div></div>
@@ -3961,6 +3966,38 @@
   // Dashboard card for the other three forms. Staff-only (see markup): payment
   // and funeral details are not Cheyanne's by default. Reuses the data
   // loadDashboard already fetched. Funeral rows show a date only, never a name.
+  // Registrations where the family wrote something in the open "anything else
+  // we should know?" box and nobody has marked it followed up yet. Covers the
+  // Parish, Faith Formation and Youth Ministry forms (all store it as `comments`).
+  function renderDashboardFamilyNotes(famDocs, ffDocs, ymDocs) {
+    const card = document.getElementById('dash-notes-card');
+    if (!card) return;
+    const label = { familyRegistrations: 'Parish Registration', faithFormationRegistrations: 'Faith Formation', youthMinistryRegistrations: 'Youth Ministry' };
+    const items = [];
+    [['familyRegistrations', famDocs], ['faithFormationRegistrations', ffDocs], ['youthMinistryRegistrations', ymDocs]].forEach(function(pair) {
+      pair[1].forEach(function(d) {
+        const note = String(gf(d, 'comments') || '').trim();
+        if (note && gf(d, 'noteHandled') !== true) items.push({ coll: pair[0], id: docId(d), note: note, fam: gf(d, 'familyLastName') || 'Family', when: gf(d, 'submittedAt') || '' });
+      });
+    });
+    items.sort(function(a, b) { return String(b.when).localeCompare(String(a.when)); });
+    card.style.display = items.length ? '' : 'none';
+    document.getElementById('dash-notes-count').textContent = items.length;
+    document.getElementById('dash-notes-list').innerHTML = items.map(function(it) {
+      const date = it.when ? new Date(it.when).toLocaleDateString('en-US', {month:'short', day:'numeric'}) : '';
+      return '<div style="padding:12px 0;border-bottom:1px solid var(--linen);">' +
+        '<div style="font-family:\'Cinzel\',serif;font-size:13px;color:var(--burgundy);margin-bottom:4px;">' + escHtml(it.fam) + ' Family · ' + escHtml(label[it.coll]) + (date ? ' · ' + date : '') + '</div>' +
+        '<div style="font-size:14px;color:var(--soil);line-height:1.6;margin-bottom:8px;">' + escHtml(it.note) + '</div>' +
+        '<button class="btn btn-success btn-sm" onclick="markFamilyNoteHandled(\'' + it.coll + '\',\'' + it.id + '\')">✓ Followed up</button></div>';
+    }).join('');
+  }
+  async function markFamilyNoteHandled(coll, id) {
+    try {
+      await fs_patch(coll + '/' + id, { noteHandled: { booleanValue: true }, noteHandledAt: { stringValue: new Date().toISOString() }, noteHandledBy: { stringValue: currentUser || 'staff' } });
+      showToast('Marked followed up.', 'success');
+      loadDashboard();
+    } catch (e) { showToast('Error saving: ' + (e && e.message || e), 'error'); }
+  }
   function renderDashboardOtherForms(funeralDocs, ffDocs, ymDocs) {
     const list = document.getElementById('dash-otherforms-list');
     if (!list) return;
@@ -4038,6 +4075,7 @@
       if (familyRegBadge) { familyRegBadge.textContent = pendingFamilyRegs.length; familyRegBadge.style.display = pendingFamilyRegs.length > 0 ? '' : 'none'; }
       renderDashboardFamilyRegs(familyRegs.documents || []);
       renderDashboardOtherForms(funeralPlans.documents || [], ffRegs.documents || [], ymRegs.documents || []);
+      renderDashboardFamilyNotes(familyRegs.documents || [], ffRegs.documents || [], ymRegs.documents || []);
       const approved = (fam.documents||[]).filter(d=>gf(d,'approved')===true);
       const pending = (fam.documents||[]).filter(d=>gf(d,'approved')===false && gf(d,'rejected')!==true);
       const preqs = (parts.documents||[]).filter(d=>!gf(d,'parishApproved')||gf(d,'status')==='awaiting_activation');
@@ -7941,7 +7979,7 @@
   // each child and extra phone number. Status, review flags, signatures, the
   // payment box and timestamps are left alone. Saving writes only what changed,
   // plus editedBy/editedAt.
-  const ED_SKIP = /^(status|reviewed|reviewedAt|submittedAt|createdAt|updatedAt|reconciliation|editedBy|editedAt|handledAt|deniedAt|denialReason|uid|submitterUid)$|^(signature|consent|agree)/i;
+  const ED_SKIP = /^(status|noteHandled|noteHandledAt|noteHandledBy|reviewed|reviewedAt|submittedAt|createdAt|updatedAt|reconciliation|editedBy|editedAt|handledAt|deniedAt|denialReason|uid|submitterUid)$|^(signature|consent|agree)/i;
   const ED_RELOAD = {
     familyRegistrations: function() { loadFamilyRegistrations(); },
     faithFormationRegistrations: function() { loadFaithFormationRegs(); },
