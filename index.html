@@ -2025,6 +2025,12 @@
               <button class="btn btn-outline btn-sm mm-expiry" onclick="setMmExpiry(this,'30d')">30 Days</button>
             </div>
           </div>
+          <div class="form-group">
+            <label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer;font-size:15px;">
+              <input type="checkbox" id="mm-notify" checked style="margin-top:4px;width:18px;height:18px;flex-shrink:0;" />
+              <span><strong>Send a push notification</strong><br><span style="font-size:12px;color:var(--dusty-rose);">Members who have opted in get an alert. Uncheck to post quietly: it still shows on the ministry card in the app, with no alert.</span></span>
+            </label>
+          </div>
           <div class="btn-row">
             <button class="btn btn-primary" onclick="postMusicMinistry()">Post to App</button>
             <button class="btn btn-outline" onclick="emailMusicMinistry()">📧 Email Members</button>
@@ -2122,6 +2128,12 @@
               <button class="btn btn-outline btn-sm mens-expiry" onclick="setMensExpiry(this,'7d')">7 Days</button>
               <button class="btn btn-outline btn-sm mens-expiry" onclick="setMensExpiry(this,'30d')">30 Days</button>
             </div>
+          </div>
+          <div class="form-group">
+            <label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer;font-size:15px;">
+              <input type="checkbox" id="mens-notify" checked style="margin-top:4px;width:18px;height:18px;flex-shrink:0;" />
+              <span><strong>Send a push notification</strong><br><span style="font-size:12px;color:var(--dusty-rose);">Members who have opted in get an alert. Uncheck to post quietly: it still shows on the ministry card in the app, with no alert.</span></span>
+            </label>
           </div>
           <div class="btn-row">
             <button class="btn btn-primary" onclick="postMensMinistry()">Post to App</button>
@@ -2267,6 +2279,12 @@
               <button class="btn btn-outline btn-sm mmg-expiry" onclick="setManageExpiry(this,'30d')">30 Days</button>
             </div>
           </div>
+          <div class="form-group">
+            <label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer;font-size:15px;">
+              <input type="checkbox" id="mmg-notify" checked style="margin-top:4px;width:18px;height:18px;flex-shrink:0;" />
+              <span><strong>Send a push notification</strong><br><span style="font-size:12px;color:var(--dusty-rose);">Members who have opted in get an alert. Uncheck to post quietly: it still shows on the ministry card in the app, with no alert.</span></span>
+            </label>
+          </div>
           <div class="btn-row">
             <button class="btn btn-primary" onclick="postManageMinistry()">Post to App</button>
             <button class="btn btn-outline" onclick="emailManageMinistry()">📧 Email Members</button>
@@ -2406,6 +2424,12 @@
               <span>1 day</span>
               <span>90 days</span>
             </div>
+          </div>
+          <div class="form-group">
+            <label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer;font-size:15px;">
+              <input type="checkbox" id="mp-notify" checked style="margin-top:4px;width:18px;height:18px;flex-shrink:0;" />
+              <span><strong>Send a push notification</strong><br><span style="font-size:12px;color:var(--dusty-rose);">Members who have opted in get an alert. Uncheck to post quietly: it still shows on the ministry card in the app, with no alert.</span></span>
+            </label>
           </div>
           <div class="btn-row">
             <button class="btn btn-primary" onclick="postMinistryMessage()">Post to App</button>
@@ -10603,16 +10627,20 @@
         ministry: {stringValue: ministryName},
         postedBy: {stringValue: postedBy},
         expiresAt: {stringValue: getExpiryDateFromDays(mpExpiry)},
+        notify: {booleanValue: ministryNotifyChecked('mp-notify')},
         createdAt: {stringValue: new Date().toISOString()}
       });
       document.getElementById('mp-success').style.display = 'block';
       setTimeout(()=>document.getElementById('mp-success').style.display='none',3000);
-      document.getElementById('mp-body').value = '';
+      document.getElementById('mp-body').value = ''; resetMinistryNotify('mp-notify');
       showToast('Message posted!', 'success');
       loadMinistryPosts();
     } catch(e) { showToast('Error posting.', 'error'); }
   }
 
+  // Push-notification checkbox on ministry posts (default ON). The notifyMinistryPost Cloud Function skips the push when notify is false.
+  function ministryNotifyChecked(id) { const el = document.getElementById(id); return el ? !!el.checked : true; }
+  function resetMinistryNotify(id) { const el = document.getElementById(id); if (el) el.checked = true; }
   let mmExpiry = '3d';
   function setMmExpiry(el, val) { mmExpiry = val; document.querySelectorAll('.mm-expiry').forEach(b=>b.classList.remove('active-expiry')); el.classList.add('active-expiry'); }
 
@@ -10625,11 +10653,12 @@
         ministry: {stringValue: 'Music Ministry'},
         postedBy: {stringValue: 'Matt Ficarra'},
         expiresAt: {stringValue: getExpiryDate(mmExpiry)},
+        notify: {booleanValue: ministryNotifyChecked('mm-notify')},
         createdAt: {stringValue: new Date().toISOString()}
       });
       document.getElementById('mm-success').style.display = 'block';
       setTimeout(()=>document.getElementById('mm-success').style.display='none',3000);
-      document.getElementById('mm-body').value = '';
+      document.getElementById('mm-body').value = ''; resetMinistryNotify('mm-notify');
       showToast('Message posted!', 'success');
     } catch(e) { showToast('Error posting.', 'error'); }
   }
@@ -10724,11 +10753,12 @@
         ministry: {stringValue: "Men's Ministry"},
         postedBy: {stringValue: postedBy},
         expiresAt: {stringValue: getExpiryDate(mensExpiry)},
+        notify: {booleanValue: ministryNotifyChecked('mens-notify')},
         createdAt: {stringValue: new Date().toISOString()}
       });
       document.getElementById('mens-success').style.display = 'block';
       setTimeout(()=>document.getElementById('mens-success').style.display='none',3000);
-      document.getElementById('mens-body').value = '';
+      document.getElementById('mens-body').value = ''; resetMinistryNotify('mens-notify');
       showToast('Message posted!', 'success');
       loadMensCurrentPost();
     } catch(e) { showToast('Error posting.', 'error'); }
@@ -10914,11 +10944,12 @@
         ministry: {stringValue: currentManagedMinistryName},
         postedBy: {stringValue: postedBy},
         expiresAt: {stringValue: getExpiryDate(mmgExpiry)},
+        notify: {booleanValue: ministryNotifyChecked('mmg-notify')},
         createdAt: {stringValue: new Date().toISOString()}
       });
       document.getElementById('mmg-success').style.display = 'block';
       setTimeout(function(){ document.getElementById('mmg-success').style.display='none'; },3000);
-      document.getElementById('mmg-body').value = '';
+      document.getElementById('mmg-body').value = ''; resetMinistryNotify('mmg-notify');
       showToast('Message posted!', 'success');
       loadManageCurrentPost(id);
     } catch(e) { showToast('Error posting.', 'error'); }
