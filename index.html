@@ -4899,6 +4899,7 @@
       const _al=document.getElementById('ann-link'); if(_al) _al.value='';
       const _ll2=document.getElementById('ann-link-label'); if(_ll2) _ll2.value='';
       clearAnnExtras();
+      const _ce3=document.getElementById('ann-custom-expiry'); if(_ce3) _ce3.value='';
       const _nt=document.getElementById('ann-notify'); if(_nt) _nt.checked=false;
       renderAnnPreview();
       document.getElementById('ann-success').style.display='block';
@@ -11162,6 +11163,7 @@
       // keep the existing expiry unless the editor picks a new one
       document.querySelectorAll('#page-announcement .expiry-chip').forEach(c => c.classList.remove('selected'));
       document.getElementById('custom-expiry').style.display = 'none';
+      const _ce = document.getElementById('ann-custom-expiry'); if (_ce) _ce.value = '';   // don't carry over the last custom expiry typed
       currentExpiry = 'keep';
       const note = document.getElementById('ann-expiry-note');
       if (note) note.textContent = exp
@@ -11184,6 +11186,7 @@
     const _ll3 = document.getElementById('ann-link-label'); if (_ll3) _ll3.value = '';
     clearAnnExtras();
     const note = document.getElementById('ann-expiry-note'); if (note) note.textContent = '';
+    const _ce2 = document.getElementById('ann-custom-expiry'); if (_ce2) _ce2.value = '';
     document.querySelector('#page-announcement .card-title').textContent = '📢 Post an Announcement';
     document.querySelector('[onclick="postAnnouncement()"]').textContent = 'Post Announcement';
     const _nw2 = document.getElementById('ann-notify-wrap'); if (_nw2) _nw2.style.display = '';
