@@ -2800,7 +2800,9 @@
   updateRecurringPreview();
 
   document.getElementById('login-pass').addEventListener('keydown', e => { if(e.key==='Enter') doLogin(); });
-  tryRestoreSession();
+  // Restore a saved login only AFTER this whole script has run. Run earlier, it enters the app before
+  // later `var x = ...` initializers (e.g. the browser-history state) execute, and those then clobber it.
+  if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', tryRestoreSession); else tryRestoreSession();
 
   function decodeJwt(token) {
     const payload = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
