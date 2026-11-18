@@ -2308,6 +2308,11 @@
           <div class="post-success" id="mmg-success">✓ Message posted.</div>
         </div>
         <div class="card" style="margin-top:16px;">
+          <div class="card-title">📢 Announcement Request</div>
+          <div class="info-box">This is what this ministry's leader gets under "Request an Announcement": the full announcement builder (hero image, pictures, button), sent to the office queue to be reviewed before anything goes live. To post an announcement directly, use Post Announcement instead.</div>
+          <div class="btn-row"><button class="btn btn-primary" onclick="openAnnouncementRequest(null, currentManagedMinistryName)">Build an announcement request</button></div>
+        </div>
+        <div class="card" style="margin-top:16px;">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
             <div class="card-title" style="margin:0;">Current Post</div>
             <button class="btn btn-outline btn-sm" onclick="loadManageCurrentPost()">Refresh</button>
@@ -4960,17 +4965,19 @@
 
   function setAnnRequestMode(on) {
     window._annRequestMode = !!on;
+    if (!on) window._annRequestMinistryName = '';
     window._editingAnnouncementId = null; window._editingAnnouncementExpiry = null;
     if (typeof currentExpiry !== 'undefined' && currentExpiry === 'keep') currentExpiry = 'week';
     const ex = document.getElementById('ann-request-extras'); if (ex) ex.style.display = on ? '' : 'none';
     const ac = document.getElementById('ann-active-card'); if (ac) ac.style.display = on ? 'none' : '';
     const ok = document.getElementById('ann-success'); if (ok) ok.textContent = on ? '✓ Sent to the office. Thank you!' : '✓ Announcement posted successfully.';
-    annBanner(on ? 'Build your announcement exactly as you want people to see it, including the picture and button. When you send it, the parish office will review it, make any edits, and post it.' : '');
+    annBanner(on ? 'Build your announcement exactly as you want people to see it, including the picture and button. When you send it, the parish office will review it, make any edits, and post it.' + (window._annRequestMinistryName ? ' (Sending for ' + window._annRequestMinistryName + '.)' : '') : '');
     resetAnnouncementForm();
   }
 
   // Leader entry point (nav item)
-  function openAnnouncementRequest(el) {
+  function openAnnouncementRequest(el, ministryName) {
+    window._annRequestMinistryName = ministryName || '';   // set when staff build one on a ministry's behalf
     window._annOpeningRequest = true;
     try { setAnnRequestMode(true); showPage('announcement', el); }
     finally { window._annOpeningRequest = false; }
@@ -4979,7 +4986,7 @@
   async function submitAnnouncementRequest(d) {
     const claims = currentClaims || {};
     const email = (claims.email || '').toLowerCase();
-    const ministry = (MINISTRY_NAME_MAP[activeMinistry()] || 'Ministry');
+    const ministry = window._annRequestMinistryName || (MINISTRY_NAME_MAP[activeMinistry()] || 'Ministry');
     const submittedBy = STAFF_NAME_MAP[email] || STAFF_NAME_MAP[currentUser] || email || 'Ministry Leader';
     try {
       await fs_post_strict('announcementRequests', Object.assign({
