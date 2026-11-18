@@ -2884,6 +2884,7 @@
   function applyRoleNav() {
     trackPortalRole();
     initSendFromInput();
+    _histReady = false;
     const isMinistry = !!(currentClaims && currentClaims.role === 'ministry');
     const ministryId = activeMinistry();
     const myMins = myMinistries();
@@ -2916,6 +2917,7 @@
       var tb = document.querySelector('.topbar'); tb.style.display = 'none'; tb.style.height = '0'; tb.style.overflow = 'hidden'; tb.style.margin = '0'; tb.style.padding = '0';
       document.querySelector('.content').style.padding = '0';
     }
+    initPortalHistory();
   }
 
   // ── "Send emails from" — which Gmail account compose windows open in ──
@@ -2942,6 +2944,8 @@
 
   function signOut() {
     clearSession();
+    _histReady = false; _landingPage = null;
+    try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
     var tb = document.querySelector('.topbar'); if (tb) tb.style.display = 'flex';
     var ct = document.querySelector('.content'); if (ct) ct.style.padding = '32px';
     document.getElementById('login-screen').style.display = 'flex';
@@ -2961,6 +2965,82 @@
   function openSidebar() { document.getElementById('sidebar').classList.add('open'); document.getElementById('sidebar-overlay').classList.add('active'); document.body.style.overflow='hidden'; }
   function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebar-overlay').classList.remove('active'); document.body.style.overflow=''; }
 
+  // ── Browser Back/Forward support ──
+  // The portal is one page with no router, so we mirror each page switch into the History API.
+  // URL hash = page id (e.g. #approvals); manage-ministry carries its ministry id (#manage-ministry/<id>).
+  var _histReady = false;       // false until applyRoleNav finishes (login landing must not add entries)
+  var _navFromHistory = false;  // true while Back/Forward/deep-link is driving navigation (don't push)
+  var _landingPage = null;      // this user's default page, used as the safe fallback
+
+  function histStateFor(id) {
+    var st = { page: id };
+    if (id === 'manage-ministry') st.ministry = currentManagedMinistryId;
+    return st;
+  }
+  function histHashFor(st) { return '#' + st.page + (st.page === 'manage-ministry' && st.ministry ? '/' + encodeURIComponent(st.ministry) : ''); }
+  function parseHash() {
+    var h = (location.hash || '').replace(/^#/, '');
+    if (!h) return null;
+    var parts = h.split('/');
+    var st = { page: decodeURIComponent(parts[0]) };
+    if (parts[1]) st.ministry = decodeURIComponent(parts[1]);
+    return st;
+  }
+  // The sidebar item that opens a given history state (null if this user has none)
+  function navElForState(st) {
+    if (!st || !st.page) return null;
+    if (st.page === 'manage-ministry') {
+      if (!st.ministry) return null;
+      return Array.prototype.find.call(document.querySelectorAll('.nav-item[onclick*="openMinistry("]'), function (e) {
+        return (e.getAttribute('onclick') || '').indexOf("openMinistry('" + st.ministry + "'") >= 0;
+      }) || null;
+    }
+    return navItem(st.page);
+  }
+  // A nav item is usable only if applyRoleNav left it (and its wrappers, up to the sidebar) visible
+  function navElAllowed(el) {
+    for (var n = el; n && !(n.classList && n.classList.contains('sidebar')); n = n.parentElement) {
+      if (n.style && n.style.display === 'none') return false;
+    }
+    return !!el;
+  }
+  function goToHistoryState(st) {
+    _navFromHistory = true;
+    try {
+      var el = navElForState(st);
+      if (el && navElAllowed(el) && document.getElementById('page-' + st.page)) {
+        el.click();           // runs the same showPage + loader the menu uses
+      } else if (_landingPage) {
+        var lel = navElForState(_landingPage);
+        if (lel) lel.click(); else showPage(_landingPage.page, null);
+        history.replaceState(_landingPage, '', histHashFor(_landingPage));
+      }
+    } finally { _navFromHistory = false; }
+  }
+  function initPortalHistory() {
+    var active = document.querySelector('.page.active');
+    var id = active ? active.id.replace(/^page-/, '') : 'dashboard';
+    _landingPage = histStateFor(id);
+    _histReady = true;
+    var want = parseHash();
+    // Deep link / refresh: honor the hash if this user may open it (manage-ministry needs the registry, so skip cold)
+    if (want && want.page !== _landingPage.page && want.page !== 'manage-ministry') {
+      var el = navElForState(want);
+      if (el && navElAllowed(el) && document.getElementById('page-' + want.page)) {
+        history.replaceState(want, '', histHashFor(want));
+        _navFromHistory = true;
+        try { el.click(); } finally { _navFromHistory = false; }
+        return;
+      }
+    }
+    history.replaceState(_landingPage, '', histHashFor(_landingPage));
+  }
+  window.addEventListener('popstate', function (e) {
+    var app = document.getElementById('app');
+    if (!_histReady || !app || app.style.display === 'none') return;
+    goToHistoryState((e.state && e.state.page) ? e.state : parseHash());
+  });
+
   function showPage(id, el) {
     document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
     document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
@@ -2972,6 +3052,12 @@
     document.getElementById('page-title').textContent = titles[id]||id;
     var mpt = document.getElementById('mobile-page-title'); if(mpt) mpt.textContent = titles[id]||id;
     _portalPage = id;
+    if (_histReady && !_navFromHistory) {
+      var _st = histStateFor(id), _cur = history.state;
+      if (!_cur || _cur.page !== _st.page || (_st.page === 'manage-ministry' && _cur.ministry !== _st.ministry)) {
+        history.pushState(_st, '', histHashFor(_st));
+      }
+    }
     trackPortalEvent('page_view', { page_title: titles[id]||id, page_location: location.origin + '/' + id });
     if(id==='approvals') loadApprovals();
     if(id==='partners') loadPartners();
