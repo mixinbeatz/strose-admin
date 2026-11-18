@@ -65,6 +65,11 @@
   .nav-icon { font-size: 18px; width: 20px; text-align: center; }
   .nav-badge { position: absolute; right: 20px; background: var(--gold); color: var(--burgundy); font-size: 11px; font-weight: 700; padding: 2px 7px; border-radius: 20px; }
   .sidebar-footer { padding: 16px 24px; border-top: 1px solid rgba(255,255,255,0.1); }
+  .send-from-box { margin-bottom: 10px; }
+  .send-from-box label { display: block; font-size: 12px; color: rgba(255,255,255,0.6); margin-bottom: 4px; }
+  .send-from-box input { width: 100%; box-sizing: border-box; padding: 8px 10px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; color: var(--linen); font-family: 'Faustina', serif; font-size: 13px; }
+  .send-from-box input::placeholder { color: rgba(255,255,255,0.3); }
+  .send-from-hint { font-size: 11px; color: rgba(255,255,255,0.35); margin-top: 4px; line-height: 1.3; }
   .signout-btn { width: 100%; padding: 10px; background: transparent; border: 1px solid rgba(255,255,255,0.2); border-radius: 8px; color: rgba(255,255,255,0.5); font-family: 'Faustina', serif; font-size: 14px; cursor: pointer; transition: all 0.2s; }
   .signout-btn:hover { border-color: rgba(255,255,255,0.4); color: var(--linen); }
 
@@ -468,6 +473,11 @@
     </nav>
     <div class="sidebar-footer">
       <a href="https://mixinbeatz.github.io/strose-website/" target="_blank" rel="noopener" class="signout-btn" style="display:block;text-align:center;text-decoration:none;box-sizing:border-box;margin-bottom:8px;">🌐 View Website</a>
+      <div class="send-from-box">
+        <label for="send-from-input">✉️ Send emails from</label>
+        <input type="email" id="send-from-input" placeholder="you@stroseanthem.com" autocomplete="off" onchange="setSendFrom(this.value)">
+        <div class="send-from-hint">Your church Gmail. Must be signed in to Gmail in this browser. Blank = Gmail's default account.</div>
+      </div>
       <button class="signout-btn" onclick="signOut()">Sign Out</button>
     </div>
   </div>
@@ -2873,6 +2883,7 @@
   }
   function applyRoleNav() {
     trackPortalRole();
+    initSendFromInput();
     const isMinistry = !!(currentClaims && currentClaims.role === 'ministry');
     const ministryId = activeMinistry();
     const myMins = myMinistries();
@@ -2905,6 +2916,28 @@
       var tb = document.querySelector('.topbar'); tb.style.display = 'none'; tb.style.height = '0'; tb.style.overflow = 'hidden'; tb.style.margin = '0'; tb.style.padding = '0';
       document.querySelector('.content').style.padding = '0';
     }
+  }
+
+  // ── "Send emails from" — which Gmail account compose windows open in ──
+  // Stored per browser, per portal login. Blank = Gmail's default signed-in account (old behavior).
+  function sendFromKey() { return 'sendFromEmail:' + (((currentClaims && currentClaims.email) || '') .toLowerCase()); }
+  function getSendFrom() {
+    try { return (localStorage.getItem(sendFromKey()) || '').trim(); } catch (e) { return ''; }
+  }
+  function setSendFrom(val) {
+    val = (val || '').trim();
+    if (val && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(val)) { alert('Please enter a valid email address.'); initSendFromInput(); return; }
+    try { if (val) localStorage.setItem(sendFromKey(), val); else localStorage.removeItem(sendFromKey()); } catch (e) {}
+    initSendFromInput();
+  }
+  function initSendFromInput() {
+    var el = document.getElementById('send-from-input');
+    if (el) el.value = getSendFrom();
+  }
+  // Base of every Gmail compose URL; authuser makes Gmail open that signed-in account.
+  function gmailComposeBase() {
+    var from = getSendFrom();
+    return 'https://mail.google.com/mail/?view=cm&fs=1' + (from ? '&authuser=' + encodeURIComponent(from) : '');
   }
 
   function signOut() {
@@ -5630,7 +5663,7 @@
         ];
         letterTitle.textContent = 'Heads-up note';
         letterSub.textContent = 'Drafted in Gmail -- review it, then send it yourself.';
-        const gmailUrl = 'https://mail.google.com/mail/?view=cm&fs=1&to=' + encodeURIComponent(data.email) + '&su=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(lines.join(NL));
+        const gmailUrl = gmailComposeBase() + '&to=' + encodeURIComponent(data.email) + '&su=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(lines.join(NL));
         letterBtn.onclick = () => window.open(gmailUrl, '_blank');
         letterBox.style.display = 'block';
       } else {
@@ -5665,7 +5698,7 @@
         ];
         letterTitle.textContent = 'Welcome letter';
         letterSub.textContent = 'Drafted and ready in Gmail -- review it, then hit send yourself.';
-        const gmailUrl = 'https://mail.google.com/mail/?view=cm&fs=1&to=' + encodeURIComponent(email) + '&su=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(lines.join(NL));
+        const gmailUrl = gmailComposeBase() + '&to=' + encodeURIComponent(email) + '&su=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(lines.join(NL));
         letterBtn.onclick = () => window.open(gmailUrl, '_blank');
         letterBox.style.display = 'block';
       }
@@ -5739,7 +5772,7 @@
         'Mark'
       ];
       const letterBody = letterLines.join(String.fromCharCode(10));
-      const gmailUrl = 'https://mail.google.com/mail/?view=cm&fs=1&to=' + encodeURIComponent(email) + '&su=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(letterBody);
+      const gmailUrl = gmailComposeBase() + '&to=' + encodeURIComponent(email) + '&su=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(letterBody);
       document.getElementById('ol-welcome-btn').onclick = () => window.open(gmailUrl, '_blank');
       document.getElementById('ol-welcome-letter-box').style.display = 'block';
     } catch (err) {
@@ -6051,7 +6084,7 @@
     const body = bodyEl?.value.trim() || '';
     if (!body) { showToast('Please enter a reflection first.', 'error'); return; }
     const subject = 'Daily Reflection — ' + new Date(date + 'T12:00:00').toLocaleDateString('en-US',{weekday:'long',month:'long',day:'numeric',year:'numeric'});
-    const url = 'https://mail.google.com/mail/?view=cm&fs=1&to=mficarra@stroseanthem.com&su=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+    const url = gmailComposeBase() + '&to=mficarra@stroseanthem.com&su=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
     window.open(url, '_blank');
   }
 
@@ -6845,7 +6878,7 @@
       'Welcome to Saint Rose Philippine Duchesne Parish! Thank you for registering your family. We have received your registration and the parish office is adding your household to our records.' + NL + NL +
       'If anything changes or you have any questions, just reply to this email.' + NL + NL +
       'God bless,' + NL + 'Saint Rose Philippine Duchesne Parish Office';
-    window.open('https://mail.google.com/mail/?view=cm&fs=1&to=' + encodeURIComponent(to) + (cc ? '&cc=' + encodeURIComponent(cc) : '') + '&su=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body), '_blank');
+    window.open(gmailComposeBase() + '&to=' + encodeURIComponent(to) + (cc ? '&cc=' + encodeURIComponent(cc) : '') + '&su=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body), '_blank');
   }
 
   function downloadFamiliesCSV(docs, filenamePrefix) {
@@ -7026,7 +7059,7 @@
     const form = REG_FORMS[collection], p = regPlain(doc);
     const emails = form.emails(p).filter(Boolean).filter(function(e, i, a) { return a.indexOf(e) === i; });
     if (!emails.length) { showToast('No email address on this submission.', 'error'); return; }
-    window.open('https://mail.google.com/mail/?view=cm&fs=1&to=' + encodeURIComponent(emails[0]) + (emails[1] ? '&cc=' + encodeURIComponent(emails[1]) : '') +
+    window.open(gmailComposeBase() + '&to=' + encodeURIComponent(emails[0]) + (emails[1] ? '&cc=' + encodeURIComponent(emails[1]) : '') +
       '&su=' + encodeURIComponent(form.subject) + '&body=' + encodeURIComponent(form.body(p)), '_blank');
   }
 
@@ -7875,7 +7908,7 @@
   }
   function emailMember(email){
     if(!email){showToast('No email on file.','error');return;}
-    window.open('https://mail.google.com/mail/?view=cm&fs=1&to='+encodeURIComponent(email),'_blank');
+    window.open(gmailComposeBase() + '&to='+encodeURIComponent(email),'_blank');
   }
   function showMemberProfile(id){
     const doc = allMembers.find(d=>docId(d)===id);
@@ -10518,7 +10551,7 @@
     const subject = document.getElementById('mm-subject')?.value.trim() || document.getElementById('mm-body')?.value.trim().substring(0,50) || 'Music Ministry';
     const body = document.getElementById('mm-email-body')?.value.trim() || document.getElementById('mm-body')?.value.trim() || '';
     const bcc = 'mficarra@stroseanthem.com';
-    const url = 'https://mail.google.com/mail/?view=cm&fs=1&to=mficarra@stroseanthem.com&bcc=' + encodeURIComponent(bcc) + '&su=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+    const url = gmailComposeBase() + '&to=mficarra@stroseanthem.com&bcc=' + encodeURIComponent(bcc) + '&su=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
     window.open(url, '_blank');
   }
 
@@ -10650,12 +10683,12 @@
     } catch(e) { showToast('Error clearing post: ' + e.message, 'error'); }
   }
   function emailMensMinistry() {
-    const myEmail = (currentClaims && currentClaims.email) || '';
+    const myEmail = getSendFrom() || (currentClaims && currentClaims.email) || '';
     const subject = document.getElementById('mens-subject')?.value.trim() || document.getElementById('mens-body')?.value.trim().substring(0,50) || "Men's Ministry";
     const body = document.getElementById('mens-email-body')?.value.trim() || document.getElementById('mens-body')?.value.trim() || '';
     const checked = Array.from(document.querySelectorAll('.mens-check:checked')).map(c => c.dataset.email).filter(Boolean);
     const bcc = checked.length > 0 ? checked.join(',') : myEmail;
-    const url = 'https://mail.google.com/mail/?view=cm&fs=1&to=' + encodeURIComponent(myEmail) + '&bcc=' + encodeURIComponent(bcc) + '&su=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+    const url = gmailComposeBase() + '&to=' + encodeURIComponent(myEmail) + '&bcc=' + encodeURIComponent(bcc) + '&su=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
     window.open(url, '_blank');
   }
 
@@ -10694,10 +10727,10 @@
     document.querySelectorAll('.mens-check').forEach(c => c.checked = false);
   }
   function emailSelectedMens() {
-    const myEmail = (currentClaims && currentClaims.email) || '';
+    const myEmail = getSendFrom() || (currentClaims && currentClaims.email) || '';
     const checked = Array.from(document.querySelectorAll('.mens-check:checked')).map(c => c.dataset.email).filter(Boolean);
     if (checked.length === 0) { showToast('No members selected.', 'error'); return; }
-    const url = 'https://mail.google.com/mail/?view=cm&fs=1&to=' + encodeURIComponent(myEmail) + '&bcc=' + encodeURIComponent(checked.join(','));
+    const url = gmailComposeBase() + '&to=' + encodeURIComponent(myEmail) + '&bcc=' + encodeURIComponent(checked.join(','));
     window.open(url, '_blank');
   }
 
@@ -10843,12 +10876,12 @@
     } catch(e) { showToast('Error clearing post: ' + e.message, 'error'); }
   }
   function emailManageMinistry() {
-    const myEmail = (currentClaims && currentClaims.email) || '';
+    const myEmail = getSendFrom() || (currentClaims && currentClaims.email) || '';
     const subject = document.getElementById('mmg-subject')?.value.trim() || document.getElementById('mmg-body')?.value.trim().substring(0,50) || currentManagedMinistryName;
     const body = document.getElementById('mmg-email-body')?.value.trim() || document.getElementById('mmg-body')?.value.trim() || '';
     const checked = Array.from(document.querySelectorAll('.mmg-check:checked')).map(function(c){ return c.dataset.email; }).filter(Boolean);
     const bcc = checked.length > 0 ? checked.join(',') : myEmail;
-    const url = 'https://mail.google.com/mail/?view=cm&fs=1&to=' + encodeURIComponent(myEmail) + '&bcc=' + encodeURIComponent(bcc) + '&su=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+    const url = gmailComposeBase() + '&to=' + encodeURIComponent(myEmail) + '&bcc=' + encodeURIComponent(bcc) + '&su=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
     window.open(url, '_blank');
   }
   let mmgMembers = [];
@@ -10889,10 +10922,10 @@
     document.querySelectorAll('.mmg-check').forEach(function(c){ c.checked = false; });
   }
   function emailSelectedManage() {
-    const myEmail = (currentClaims && currentClaims.email) || '';
+    const myEmail = getSendFrom() || (currentClaims && currentClaims.email) || '';
     const checked = Array.from(document.querySelectorAll('.mmg-check:checked')).map(function(c){ return c.dataset.email; }).filter(Boolean);
     if (checked.length === 0) { showToast('No members selected.', 'error'); return; }
-    const url = 'https://mail.google.com/mail/?view=cm&fs=1&to=' + encodeURIComponent(myEmail) + '&bcc=' + encodeURIComponent(checked.join(','));
+    const url = gmailComposeBase() + '&to=' + encodeURIComponent(myEmail) + '&bcc=' + encodeURIComponent(checked.join(','));
     window.open(url, '_blank');
   }
 
@@ -10932,7 +10965,7 @@
   function emailSelectedMusic() {
     const checked = Array.from(document.querySelectorAll('.music-check:checked')).map(c => c.dataset.email).filter(Boolean);
     if (checked.length === 0) { showToast('No members selected.', 'error'); return; }
-    const url = 'https://mail.google.com/mail/?view=cm&fs=1&to=mficarra@stroseanthem.com&bcc=' + encodeURIComponent(checked.join(','));
+    const url = gmailComposeBase() + '&to=mficarra@stroseanthem.com&bcc=' + encodeURIComponent(checked.join(','));
     window.open(url, '_blank');
   }
 
@@ -10977,20 +11010,20 @@
   }
 
   function emailSelectedMinistryMembers() {
-    const myEmail = (currentClaims && currentClaims.email) || '';
+    const myEmail = getSendFrom() || (currentClaims && currentClaims.email) || '';
     const checked = Array.from(document.querySelectorAll('.cda-check:checked')).map(c => c.dataset.email).filter(Boolean);
     if (checked.length === 0) { showToast('No members selected.', 'error'); return; }
-    const url = 'https://mail.google.com/mail/?view=cm&fs=1&to=' + encodeURIComponent(myEmail) + '&bcc=' + encodeURIComponent(checked.join(','));
+    const url = gmailComposeBase() + '&to=' + encodeURIComponent(myEmail) + '&bcc=' + encodeURIComponent(checked.join(','));
     window.open(url, '_blank');
   }
 
   function emailMinistryMembers() {
-    const myEmail = (currentClaims && currentClaims.email) || '';
+    const myEmail = getSendFrom() || (currentClaims && currentClaims.email) || '';
     const subject = document.getElementById('cda-subject')?.value.trim() || document.getElementById('mp-body')?.value.trim().substring(0,50) || 'Ministry Message';
     const body = document.getElementById('cda-body')?.value.trim() || document.getElementById('mp-body')?.value.trim() || '';
     const checked = Array.from(document.querySelectorAll('.cda-check:checked')).map(c => c.dataset.email).filter(Boolean);
     const bcc = checked.length > 0 ? checked.join(',') : myEmail;
-    const url = 'https://mail.google.com/mail/?view=cm&fs=1&to=' + encodeURIComponent(myEmail) + '&bcc=' + encodeURIComponent(bcc) + '&su=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+    const url = gmailComposeBase() + '&to=' + encodeURIComponent(myEmail) + '&bcc=' + encodeURIComponent(bcc) + '&su=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
     window.open(url, '_blank');
   }
 
