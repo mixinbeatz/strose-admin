@@ -2054,6 +2054,14 @@
           <div class="post-success" id="mm-success">✓ Message posted to Music Ministry.</div>
         </div>
         <div class="card" style="margin-top:16px;">
+          <div class="card-title">🧭 Leader Tools</div>
+          <div class="info-box">These are the same screens this ministry's leader uses, so you can walk someone through them. Both go to the office for review; nothing goes live from here.</div>
+          <div class="btn-row">
+            <button class="btn btn-primary" onclick="openAnnouncementRequest(null, MINISTRY_NAME_MAP['music'] || 'Music Ministry')">📢 Request an Announcement</button>
+            <button class="btn btn-outline" onclick="openSubmitEventFor(MINISTRY_NAME_MAP['music'] || 'Music Ministry')">📅 Submit an Event</button>
+          </div>
+        </div>
+        <div class="card" style="margin-top:16px;">
           <div class="card-title">📬 Email Music Ministry</div>
           <div class="info-box">Opens Gmail with your music team in BCC. Review and send — replies come back to you only.</div>
           <div class="form-group">
@@ -2156,6 +2164,14 @@
             <button class="btn btn-outline" onclick="emailMensMinistry()">📧 Email Members</button>
           </div>
           <div class="post-success" id="mens-success">✓ Message posted.</div>
+        </div>
+        <div class="card" style="margin-top:16px;">
+          <div class="card-title">🧭 Leader Tools</div>
+          <div class="info-box">These are the same screens this ministry's leader uses, so you can walk someone through them. Both go to the office for review; nothing goes live from here.</div>
+          <div class="btn-row">
+            <button class="btn btn-primary" onclick="openAnnouncementRequest(null, MINISTRY_NAME_MAP['mens'] || &quot;Men's Ministry&quot;)">📢 Request an Announcement</button>
+            <button class="btn btn-outline" onclick="openSubmitEventFor(MINISTRY_NAME_MAP['mens'] || &quot;Men's Ministry&quot;)">📅 Submit an Event</button>
+          </div>
         </div>
         <div class="card" style="margin-top:16px;">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
@@ -2308,9 +2324,12 @@
           <div class="post-success" id="mmg-success">✓ Message posted.</div>
         </div>
         <div class="card" style="margin-top:16px;">
-          <div class="card-title">📢 Announcement Request</div>
-          <div class="info-box">This is what this ministry's leader gets under "Request an Announcement": the full announcement builder (hero image, pictures, button), sent to the office queue to be reviewed before anything goes live. To post an announcement directly, use Post Announcement instead.</div>
-          <div class="btn-row"><button class="btn btn-primary" onclick="openAnnouncementRequest(null, currentManagedMinistryName)">Build an announcement request</button></div>
+          <div class="card-title">🧭 Leader Tools</div>
+          <div class="info-box">These are the same screens this ministry's leader uses, so you can walk someone through them. Both go to the office for review; nothing goes live from here.</div>
+          <div class="btn-row">
+            <button class="btn btn-primary" onclick="openAnnouncementRequest(null, currentManagedMinistryName)">📢 Request an Announcement</button>
+            <button class="btn btn-outline" onclick="openSubmitEventFor(currentManagedMinistryName)">📅 Submit an Event</button>
+          </div>
         </div>
         <div class="card" style="margin-top:16px;">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px;">
@@ -2621,6 +2640,7 @@
         <div class="card">
           <div class="card-title">📅 Submit Event to Parish Calendar</div>
           <p style="color:var(--soil);opacity:0.7;margin-bottom:20px;font-size:14px">Submit an event for Matt's approval. Once approved it will appear in the app and calendar.</p>
+          <div class="info-box" id="se-for-ministry" style="display:none;"></div>
           <label class="form-label">Event Title *</label>
           <input class="form-input" id="se-title" placeholder="e.g. Catholic Daughters Monthly Meeting" />
           <label class="form-label">Start Date *</label>
@@ -3112,6 +3132,7 @@
     var mpt = document.getElementById('mobile-page-title'); if(mpt) mpt.textContent = titles[id]||id;
     _portalPage = id;
     if (id === 'announcement' && window._annRequestMode && !window._annOpeningRequest) setAnnRequestMode(false);
+    if (id === 'submit-event' && !window._seOpening) { window._seMinistryName = ''; var _sn = document.getElementById('se-for-ministry'); if (_sn) _sn.style.display = 'none'; }
     if (_histReady && !_navFromHistory) {
       var _st = histStateFor(id), _cur = history.state;
       if (!_cur || _cur.page !== _st.page || _cur.mode !== _st.mode || (_st.page === 'manage-ministry' && _cur.ministry !== _st.ministry)) {
@@ -4976,6 +4997,16 @@
   }
 
   // Leader entry point (nav item)
+  // Staff walking someone through the leader's Submit Event form, on that ministry's behalf
+  window._seMinistryName = '';
+  window._seOpening = false;
+  function openSubmitEventFor(ministryName) {
+    window._seMinistryName = ministryName || '';
+    window._seOpening = true;
+    try { showPage('submit-event', null); } finally { window._seOpening = false; }
+    var note = document.getElementById('se-for-ministry');
+    if (note) { note.textContent = ministryName ? 'Submitting for ' + ministryName + '.' : ''; note.style.display = ministryName ? '' : 'none'; }
+  }
   function openAnnouncementRequest(el, ministryName) {
     window._annRequestMinistryName = ministryName || '';   // set when staff build one on a ministry's behalf
     window._annOpeningRequest = true;
@@ -12564,7 +12595,7 @@
     var description = document.getElementById('se-description').value.trim();
     var link = document.getElementById('se-link').value.trim();
     if (!title) { showToast('Title is required.', 'error'); return; }
-    var ministry = MINISTRY_NAME_MAP[activeMinistry()] || 'Ministry';
+    var ministry = window._seMinistryName || MINISTRY_NAME_MAP[activeMinistry()] || 'Ministry';
     var submittedBy = STAFF_NAME_MAP[currentUser] || currentUser;
     try {
       await fs_post_strict('eventRequests', {
