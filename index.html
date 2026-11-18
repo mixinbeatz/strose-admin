@@ -2840,11 +2840,17 @@
   }
 
   async function tryRestoreSession() {
-    const token = localStorage.getItem('authIdToken');
-    if (!token) return false;
+    const stored = localStorage.getItem('authIdToken');
+    if (!stored && !localStorage.getItem('authRefreshToken')) return false;
     try {
-      const claims = decodeJwt(token);
-      if (claims.exp && claims.exp * 1000 < Date.now()) { clearSession(); return false; }
+      let claims = stored ? decodeJwt(stored) : null;
+      // An ID token only lasts about an hour. The long-lived refresh token is what keeps a saved
+      // login alive, so renew with it instead of dropping back to the login screen.
+      if (!claims || (claims.exp && claims.exp * 1000 < Date.now() + 60 * 1000)) {
+        const fresh = await refreshIdToken();   // clears the session itself if the refresh token is truly dead
+        if (!fresh) return false;
+        claims = decodeJwt(fresh);
+      }
       currentClaims = claims;
       currentUser = claims.email || '';
       enterApp();
@@ -3194,7 +3200,8 @@
         body: `grant_type=refresh_token&refresh_token=${refreshToken}`
       });
       const data = await res.json();
-      if (!res.ok) { clearSession(); return null; }
+      // Only a definite auth rejection ends the saved login; a hiccup (offline, 429, 5xx) must not sign people out.
+      if (!res.ok) { if (res.status === 400 || res.status === 401 || res.status === 403) clearSession(); return null; }
       localStorage.setItem('authIdToken', data.id_token);
       localStorage.setItem('authRefreshToken', data.refresh_token);
       currentClaims = decodeJwt(data.id_token);
