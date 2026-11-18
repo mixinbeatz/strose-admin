@@ -418,6 +418,7 @@
         <div class="nav-group collapsed">
         <div class="nav-item staff-only ministry-leader" data-ministry="mens" onclick="showPage('mens-ministry',this);loadMensMinistry();loadMensCurrentPost()"><span class="nav-icon">⛪</span> Men's Ministry</div>
         <div class="nav-item staff-only ministry-leader" data-ministry="mens" onclick="showPage('mens-members',this)"><span class="nav-icon">👥</span> Men's Ministry Members</div>
+        <div class="nav-item ministry-leader" data-ministry="mens" style="display:none" onclick="openAnnouncementRequest(this)"><span class="nav-icon">📢</span> Request an Announcement</div>
 
         </div>
         <div class="nav-subsection-toggle staff-only collapsed" onclick="toggleNavSection(this)"><span>All Ministries</span><span class="nav-chevron">▾</span></div>
@@ -428,6 +429,7 @@
         <div class="nav-item ministry-only" style="display:none" onclick="showPage('ministry-post',this);loadMinistryPosts()"><span class="nav-icon">✝️</span> Post to Members</div>
         <div class="nav-item ministry-only" style="display:none" onclick="showPage('cda-members',this)"><span class="nav-icon">👥</span> My Members</div>
         <div class="nav-item ministry-only" style="display:none" onclick="showPage('submit-event',this)"><span class="nav-icon">📅</span> Submit Event</div>
+        <div class="nav-item ministry-only" style="display:none" onclick="openAnnouncementRequest(this)"><span class="nav-icon">📢</span> Request an Announcement</div>
         </div>
       </div>
 
@@ -437,6 +439,7 @@
         <div class="nav-item staff-only" onclick="showPage('events',this)"><span class="nav-icon">📅</span> Events</div>
         <div class="nav-item staff-only cheyanne-only" onclick="showPage('fastblast',this)"><span class="nav-icon">🔔</span> Fast Blast</div>
         <div class="nav-item staff-only cheyanne-only" onclick="showPage('announcement',this)"><span class="nav-icon">📢</span> Post Announcement</div>
+        <div class="nav-item owner-admin-only" style="display:none" onclick="showPage('announcement-requests',this);loadAnnouncementRequests()"><span class="nav-icon">📨</span> Announcement Requests</div>
         <div class="nav-item staff-only cheyanne-only" onclick="showPage('poll',this)"><span class="nav-icon">📊</span> Parish Voice Poll</div>
         <div class="nav-item staff-only cheyanne-only" onclick="showPage('reflection',this)"><span class="nav-icon">📖</span> Weekly Reflection</div>
         <div class="nav-item staff-only cheyanne-only" onclick="showPage('daily',this)"><span class="nav-icon">✝</span> Daily Reflection</div>
@@ -822,6 +825,7 @@
         <div class="ann-layout"><div class="ann-form-col">
         <div class="card">
           <div class="card-title">📢 Post an Announcement</div>
+          <div class="info-box" id="ann-request-banner" style="display:none;"></div>
           <div class="form-group">
             <label class="form-label">Title *</label>
             <input type="text" class="form-input" id="ann-title" placeholder="e.g. Volunteers Needed — Truck Arriving Now" />
@@ -916,6 +920,18 @@
             <div id="ann-pictures-list"></div>
             <label class="btn btn-outline btn-sm" id="ann-picture-add" style="cursor:pointer;display:inline-block;">+ Add picture<input type="file" accept="image/*" style="display:none;" onchange="handleAnnPicturePick(this)" /></label>
           </div>
+          <div id="ann-request-extras" style="display:none;">
+            <div class="form-group">
+              <label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer;font-size:15px;">
+                <input type="checkbox" id="ann-req-pulpit" style="margin-top:4px;width:18px;height:18px;flex-shrink:0;" />
+                <span><strong>Please also read this at Mass</strong><br><span style="font-size:12px;color:var(--dusty-rose);">The office will see this flagged as a pulpit announcement request.</span></span>
+              </label>
+            </div>
+            <div class="form-group">
+              <label class="form-label">Note to the office (optional)</label>
+              <textarea class="form-textarea" id="ann-req-note" style="min-height:70px;" placeholder="Anything the office should know, e.g. the date it needs to be out by"></textarea>
+            </div>
+          </div>
           <div class="form-group" id="ann-notify-wrap">
             <label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer;font-size:15px;">
               <input type="checkbox" id="ann-notify" style="margin-top:4px;width:18px;height:18px;flex-shrink:0;" />
@@ -936,7 +952,7 @@
             <div style="font-size:12px;color:var(--dusty-rose);margin-top:8px;">Updates as you type. Close to what people see; fonts and spacing on a phone may differ slightly. Tap-to-enlarge and Add to Calendar only work in the app.</div>
           </div>
         </aside></div>
-        <div class="card" style="margin-top:16px;">
+        <div class="card" style="margin-top:16px;" id="ann-active-card">
           <div class="card-title">&#128203; Active Announcements</div>
           <div class="info-box">Currently live announcements. Delete or edit as needed.</div>
           <div style="margin-bottom:8px;"><button class="btn btn-outline btn-sm" onclick="loadActiveAnnouncements()">&#128260; Refresh</button></div>
@@ -2619,6 +2635,14 @@
         </div>
       </div>
       <!-- Event Requests Page (Staff) -->
+      <div class="page" id="page-announcement-requests">
+        <div class="card">
+          <div class="card-title">📨 Announcement Requests</div>
+          <div class="info-box">Announcements ministry leaders have built and sent to the office. Open one to review and edit it in the announcement editor, then post it (with or without a push notification). Declining needs a short reason.</div>
+          <div style="margin-bottom:12px;"><button class="btn btn-outline btn-sm" onclick="loadAnnouncementRequests()">🔄 Refresh</button></div>
+          <div id="announcement-requests-list"><p style="opacity:0.5;font-size:14px">Loading...</p></div>
+        </div>
+      </div>
       <div class="page" id="page-event-requests">
         <div class="card">
           <div class="card-title">📋 Event Requests</div>
@@ -2969,6 +2993,8 @@
   function signOut() {
     clearSession();
     _histReady = false; _landingPage = null;
+    if (window._annRequestMode) setAnnRequestMode(false);   // so the next login doesn't inherit the request layout
+    window._fromRequestId = null;
     try { history.replaceState(null, '', location.pathname + location.search); } catch (e) {}
     var tb = document.querySelector('.topbar'); if (tb) tb.style.display = 'flex';
     var ct = document.querySelector('.content'); if (ct) ct.style.padding = '32px';
@@ -2999,15 +3025,16 @@
   function histStateFor(id) {
     var st = { page: id };
     if (id === 'manage-ministry') st.ministry = currentManagedMinistryId;
+    if (id === 'announcement' && window._annRequestMode) st.mode = 'request';
     return st;
   }
-  function histHashFor(st) { return '#' + st.page + (st.page === 'manage-ministry' && st.ministry ? '/' + encodeURIComponent(st.ministry) : ''); }
+  function histHashFor(st) { return '#' + st.page + (st.page === 'manage-ministry' && st.ministry ? '/' + encodeURIComponent(st.ministry) : '') + (st.mode === 'request' ? '/request' : ''); }
   function parseHash() {
     var h = (location.hash || '').replace(/^#/, '');
     if (!h) return null;
     var parts = h.split('/');
     var st = { page: decodeURIComponent(parts[0]) };
-    if (parts[1]) st.ministry = decodeURIComponent(parts[1]);
+    if (parts[1]) { if (st.page === 'announcement') { if (parts[1] === 'request') st.mode = 'request'; } else st.ministry = decodeURIComponent(parts[1]); }
     return st;
   }
   // The sidebar item that opens a given history state (null if this user has none)
@@ -3018,6 +3045,9 @@
       return Array.prototype.find.call(document.querySelectorAll('.nav-item[onclick*="openMinistry("]'), function (e) {
         return (e.getAttribute('onclick') || '').indexOf("openMinistry('" + st.ministry + "'") >= 0;
       }) || null;
+    }
+    if (st.page === 'announcement' && st.mode === 'request') {
+      return Array.prototype.find.call(document.querySelectorAll('.nav-item[onclick*="openAnnouncementRequest("]'), navElAllowed) || null;
     }
     return navItem(st.page);
   }
@@ -3076,9 +3106,10 @@
     document.getElementById('page-title').textContent = titles[id]||id;
     var mpt = document.getElementById('mobile-page-title'); if(mpt) mpt.textContent = titles[id]||id;
     _portalPage = id;
+    if (id === 'announcement' && window._annRequestMode && !window._annOpeningRequest) setAnnRequestMode(false);
     if (_histReady && !_navFromHistory) {
       var _st = histStateFor(id), _cur = history.state;
-      if (!_cur || _cur.page !== _st.page || (_st.page === 'manage-ministry' && _cur.ministry !== _st.ministry)) {
+      if (!_cur || _cur.page !== _st.page || _cur.mode !== _st.mode || (_st.page === 'manage-ministry' && _cur.ministry !== _st.ministry)) {
         history.pushState(_st, '', histHashFor(_st));
       }
     }
@@ -4618,7 +4649,7 @@
     if (annPhotos.filter(function(p) { return p.kind !== 'picture'; }).length >= 3) { showToast('Up to 3 photos per announcement.', 'error'); return; }
     openPhotoCropper(file, async function(r) {
       try {
-        const url = await uploadDevFile(r.base64, 'announcement-photo.jpg', 'announcements', r.contentType);
+        const url = await uploadDevFile(r.base64, 'announcement-photo.jpg', annUploadFolder(), r.contentType);
         annPhotos.push({ kind: 'headshot', url: url, name: '', role: '' });
         renderAnnPhotos();
         showToast('Photo added — fill in the name and role, then post.', 'success');
@@ -4648,7 +4679,7 @@
           ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, d.w, d.h);
           ctx.drawImage(img, 0, 0, d.w, d.h);
           const base64 = cv.toDataURL('image/jpeg', 0.85).split(',')[1];
-          const url = await uploadDevFile(base64, 'announcement-picture.jpg', 'announcements', 'image/jpeg');
+          const url = await uploadDevFile(base64, 'announcement-picture.jpg', annUploadFolder(), 'image/jpeg');
           annPhotos.push({ kind: 'picture', url: url, caption: '', w: d.w, h: d.h });
           renderAnnPhotos();
           showToast('Picture added. Add a caption if you like, then post.', 'success');
@@ -4720,7 +4751,7 @@
     annHeroDraw();
     const base64 = document.getElementById('ann-hero-canvas').toDataURL('image/jpeg', 0.85).split(',')[1];
     try {
-      annHeroUrl = await uploadDevFile(base64, 'announcement-hero.jpg', 'announcements', 'image/jpeg');
+      annHeroUrl = await uploadDevFile(base64, 'announcement-hero.jpg', annUploadFolder(), 'image/jpeg');
       cancelAnnHero();
       renderAnnHero();
       showToast('Hero image added — post or update to save it.', 'success');
@@ -4897,6 +4928,156 @@
     };
   }
 
+  // ── ANNOUNCEMENT REQUESTS ──
+  // Ministry leaders build an announcement with the same form staff use, but it is saved to
+  // announcementRequests for the office instead of going live. Admins review/edit it in the normal
+  // announcement editor; posting it creates the real announcement and closes the request.
+  window._annRequestMode = false;
+  window._annOpeningRequest = false;
+  window._fromRequestId = null;
+
+  // Strict save helpers: unlike fs_post/fs_patch these throw when Firestore rejects the write,
+  // so a refused save (e.g. permissions) is reported instead of looking like it worked.
+  async function fs_post_strict(col, fields) {
+    const r = await fetch(`${BASE}/${col}?key=${API_KEY}`, {method:'POST', headers: await authHeaders({'Content-Type':'application/json'}), body: JSON.stringify({fields})});
+    const j = await r.json().catch(function(){ return {}; });
+    if (!r.ok) throw new Error('save refused (' + r.status + ')' + (j && j.error && j.error.message ? ': ' + j.error.message : ''));
+    return j;
+  }
+  async function fs_patch_strict(path, fields) {
+    const mask = Object.keys(fields).map(function(f){ return 'updateMask.fieldPaths=' + f; }).join('&');
+    const r = await fetch(`${BASE}/${path}?key=${API_KEY}&${mask}`, {method:'PATCH', headers: await authHeaders({'Content-Type':'application/json'}), body: JSON.stringify({fields})});
+    const j = await r.json().catch(function(){ return {}; });
+    if (!r.ok) throw new Error('save refused (' + r.status + ')' + (j && j.error && j.error.message ? ': ' + j.error.message : ''));
+    return j;
+  }
+
+  function annUploadFolder() { return window._annRequestMode ? 'announcementRequests' : 'announcements'; }
+  function annBanner(text) {
+    const b = document.getElementById('ann-request-banner'); if (!b) return;
+    b.textContent = text || ''; b.style.display = text ? '' : 'none';
+  }
+
+  function setAnnRequestMode(on) {
+    window._annRequestMode = !!on;
+    window._editingAnnouncementId = null; window._editingAnnouncementExpiry = null;
+    if (typeof currentExpiry !== 'undefined' && currentExpiry === 'keep') currentExpiry = 'week';
+    const ex = document.getElementById('ann-request-extras'); if (ex) ex.style.display = on ? '' : 'none';
+    const ac = document.getElementById('ann-active-card'); if (ac) ac.style.display = on ? 'none' : '';
+    const ok = document.getElementById('ann-success'); if (ok) ok.textContent = on ? '✓ Sent to the office. Thank you!' : '✓ Announcement posted successfully.';
+    annBanner(on ? 'Build your announcement exactly as you want people to see it, including the picture and button. When you send it, the parish office will review it, make any edits, and post it.' : '');
+    resetAnnouncementForm();
+  }
+
+  // Leader entry point (nav item)
+  function openAnnouncementRequest(el) {
+    window._annOpeningRequest = true;
+    try { setAnnRequestMode(true); showPage('announcement', el); }
+    finally { window._annOpeningRequest = false; }
+  }
+
+  async function submitAnnouncementRequest(d) {
+    const claims = currentClaims || {};
+    const email = (claims.email || '').toLowerCase();
+    const ministry = (MINISTRY_NAME_MAP[activeMinistry()] || 'Ministry');
+    const submittedBy = STAFF_NAME_MAP[email] || STAFF_NAME_MAP[currentUser] || email || 'Ministry Leader';
+    try {
+      await fs_post_strict('announcementRequests', Object.assign({
+        title:{stringValue:d.title}, body:{stringValue:d.body},
+        linkUrl:{stringValue:d.linkUrl}, linkLabel:{stringValue:d.linkLabel},
+        expiresAt:{stringValue:d.expiresAt||''},
+        pulpit:{booleanValue: !!(document.getElementById('ann-req-pulpit')||{}).checked},
+        officeNote:{stringValue:((document.getElementById('ann-req-note')||{}).value||'').trim()},
+        ministry:{stringValue:ministry}, submittedBy:{stringValue:submittedBy}, submittedByEmail:{stringValue:email},
+        status:{stringValue:'pending'}, createdAt:{stringValue:new Date().toISOString()}
+      }, d.extras));
+      resetAnnouncementForm();
+      renderAnnPreview();
+      const ok = document.getElementById('ann-success'); if (ok) { ok.style.display='block'; setTimeout(function(){ ok.style.display='none'; }, 5000); }
+      showToast('Sent to the office!', 'success');
+    } catch(e) { showToast('Could not send: ' + e.message, 'error'); console.error('Announcement request error:', e); }
+  }
+
+  // ── Office review queue (admins) ──
+  async function loadAnnouncementRequests() {
+    const el = document.getElementById('announcement-requests-list'); if (!el) return;
+    try {
+      const data = await fs_get('announcementRequests');
+      const docs = (data.documents || []).filter(function(d){ return d.fields; });
+      const st = function(d){ return (d.fields.status && d.fields.status.stringValue) || 'pending'; };
+      const when = function(d){ return new Date((d.fields.createdAt && d.fields.createdAt.stringValue) || 0); };
+      const pending = docs.filter(function(d){ return st(d) === 'pending'; }).sort(function(a,b){ return when(b) - when(a); });
+      const done = docs.filter(function(d){ return st(d) !== 'pending'; }).sort(function(a,b){ return when(b) - when(a); }).slice(0, 10);
+      const g = function(d,k){ return (d.fields[k] && d.fields[k].stringValue) || ''; };
+      const fmt = function(iso){ return iso ? new Date(iso).toLocaleString('en-US', {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'}) : ''; };
+      let html = '';
+      if (!pending.length) html += '<p style="opacity:0.6;font-size:14px;">No pending announcement requests.</p>';
+      html += pending.map(function(d){
+        const id = d.name.split('/').pop();
+        const pulpit = d.fields.pulpit && d.fields.pulpit.booleanValue;
+        const hero = g(d,'heroImageUrl');
+        const body = g(d,'body');
+        return '<div style="border:1px solid var(--linen);border-radius:10px;padding:16px;margin-bottom:14px;">' +
+          '<div style="font-size:11px;color:var(--dusty-rose);letter-spacing:0.8px;margin-bottom:4px;">' + escHtml((g(d,'ministry') || 'MINISTRY').toUpperCase()) + ' · FROM ' + escHtml(g(d,'submittedBy')) + ' · ' + escHtml(fmt(g(d,'createdAt'))) + '</div>' +
+          '<div style="font-size:18px;font-family:var(--font-heading);color:var(--soil);margin-bottom:6px;">' + escHtml(g(d,'title')) + (pulpit ? ' <span style="font-size:12px;background:var(--gold);color:var(--burgundy);padding:2px 8px;border-radius:20px;font-family:inherit;vertical-align:middle;">🎤 Read at Mass</span>' : '') + '</div>' +
+          (hero ? '<img src="' + escAttr(hero) + '" style="max-width:260px;max-height:110px;border-radius:8px;display:block;margin-bottom:8px;object-fit:cover;" alt="">' : '') +
+          '<div style="font-size:14px;color:var(--soil);line-height:1.5;margin-bottom:6px;white-space:pre-wrap;">' + escHtml(body.length > 240 ? body.slice(0,240) + '…' : body) + '</div>' +
+          (g(d,'linkUrl') ? '<div style="font-size:12px;color:var(--dusty-rose);">🔗 ' + escHtml(g(d,'linkLabel') || 'Learn More') + ' → ' + escHtml(g(d,'linkUrl')) + '</div>' : '') +
+          '<div style="font-size:12px;color:var(--dusty-rose);margin-bottom:6px;">Requested expiry: ' + (g(d,'expiresAt') ? escHtml(fmt(g(d,'expiresAt'))) : 'none') + '</div>' +
+          (g(d,'officeNote') ? '<div style="font-size:13px;background:var(--linen);border-radius:8px;padding:8px 10px;margin:8px 0;"><strong>Note to office:</strong> ' + escHtml(g(d,'officeNote')) + '</div>' : '') +
+          '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin-top:10px;">' +
+            '<button class="btn btn-primary btn-sm" onclick="openRequestInEditor(\'' + id + '\')">Review &amp; Post</button>' +
+            '<input type="text" class="form-input" id="ar-reason-' + id + '" placeholder="Reason, if declining" style="flex:1;min-width:180px;max-width:320px;">' +
+            '<button class="btn btn-outline btn-sm" onclick="declineAnnouncementRequest(\'' + id + '\')">Decline</button>' +
+          '</div></div>';
+      }).join('');
+      if (done.length) {
+        html += '<div style="margin-top:20px;font-size:12px;letter-spacing:0.8px;color:var(--dusty-rose);">RECENTLY HANDLED</div>' + done.map(function(d){
+          const s2 = st(d);
+          return '<div style="font-size:13px;color:var(--soil);padding:8px 0;border-bottom:1px solid var(--linen);">' + (s2 === 'published' ? '✅ Posted' : '✖ Declined') + ' — ' + escHtml(g(d,'title')) + ' <span style="color:var(--dusty-rose);">(' + escHtml(g(d,'ministry')) + ')' + (s2 === 'declined' && g(d,'declineReason') ? ' — ' + escHtml(g(d,'declineReason')) : '') + '</span></div>';
+        }).join('');
+      }
+      el.innerHTML = html;
+    } catch(e) { el.innerHTML = '<p style="color:var(--dusty-rose);font-size:14px;">Error loading requests: ' + escHtml(e.message) + '</p>'; }
+  }
+
+  async function openRequestInEditor(id) {
+    try {
+      const doc = await fs_get_doc('announcementRequests/' + id);
+      if (!doc || !doc.fields) { showToast('Could not load that request.', 'error'); return; }
+      const f = doc.fields; const s = function(k){ return (f[k] && f[k].stringValue) || ''; };
+      showPage('announcement', navItem('announcement'));
+      resetAnnouncementForm();
+      document.getElementById('ann-title').value = s('title');
+      document.getElementById('ann-body').value = s('body');
+      document.getElementById('ann-link').value = s('linkUrl');
+      const ll = document.getElementById('ann-link-label'); if (ll) ll.value = s('linkLabel');
+      loadAnnExtras(doc);
+      const exp = s('expiresAt');
+      if (exp) {
+        const chip = document.querySelector('#page-announcement .expiry-chip[onclick*="\'custom\'"]');
+        if (chip) selectExpiry(chip, 'custom');
+        document.getElementById('ann-custom-expiry').value = toLocalInputValue(exp);
+      }
+      window._fromRequestId = id;
+      annBanner('Request from ' + (s('submittedBy') || 'a ministry leader') + (s('ministry') ? ' (' + s('ministry') + ')' : '') + '. Edit anything you like, then Post. Posting publishes it and closes the request.' + (f.pulpit && f.pulpit.booleanValue ? ' They asked for this to also be read at Mass.' : '') + (s('officeNote') ? ' Note to office: ' + s('officeNote') : ''));
+      renderAnnPreview();
+      window.scrollTo(0, 0);
+      showToast('Request loaded. Review, then Post.', 'success');
+    } catch(e) { showToast('Error opening request: ' + e.message, 'error'); }
+  }
+
+  async function declineAnnouncementRequest(id) {
+    const inp = document.getElementById('ar-reason-' + id);
+    const reason = inp ? inp.value.trim() : '';
+    if (!reason) { showToast('Please enter a reason.', 'error'); return; }
+    try {
+      await fs_patch_strict('announcementRequests/' + id, {status:{stringValue:'declined'}, declineReason:{stringValue:reason}, declinedAt:{stringValue:new Date().toISOString()}});
+      showToast('Request declined.', 'success');
+      loadAnnouncementRequests();
+    } catch(e) { showToast('Error: ' + e.message, 'error'); }
+  }
+
   async function postAnnouncement() {
     const title=document.getElementById('ann-title').value.trim();
     const body=document.getElementById('ann-body').value.trim();
@@ -4909,6 +5090,7 @@
     if(currentExpiry==='event' && !expiresAt){showToast('Pick an event date first, or choose a different expiry.','error');return;}
     const extras=readAnnExtras();
     if(!extras) return;
+    if (window._annRequestMode) { await submitAnnouncementRequest({title, body, linkUrl, linkLabel, expiresAt, extras}); return; }
     try {
       if (window._editingAnnouncementId) {
         await fs_patch('announcements/' + window._editingAnnouncementId, Object.assign({title:{stringValue:title},body:{stringValue:body},linkUrl:{stringValue:linkUrl},linkLabel:{stringValue:linkLabel},expiresAt:{stringValue:expiresAt||''}}, extras));
@@ -4917,6 +5099,11 @@
       } else {
         await fs_post('announcements',Object.assign({title:{stringValue:title},body:{stringValue:body},linkUrl:{stringValue:linkUrl},linkLabel:{stringValue:linkLabel},postedBy:{stringValue:'Parish Staff'},expiresAt:{stringValue:expiresAt||''},createdAt:{stringValue:new Date().toISOString()},notify:{booleanValue:!!(document.getElementById('ann-notify')||{checked:false}).checked}}, extras));
         showToast(((document.getElementById('ann-notify')||{checked:false}).checked)?'Announcement posted — notification sent!':'Announcement posted quietly (no notification).','success');
+      }
+      if (window._fromRequestId) {
+        try { await fs_patch_strict('announcementRequests/' + window._fromRequestId, {status:{stringValue:'published'}, publishedAt:{stringValue:new Date().toISOString()}}); }
+        catch(e) { showToast('Posted, but could not close the request: ' + e.message, 'error'); }
+        window._fromRequestId = null; annBanner('');
       }
       document.getElementById('ann-title').value='';
       document.getElementById('ann-body').value='';
@@ -11218,9 +11405,13 @@
     clearAnnExtras();
     const note = document.getElementById('ann-expiry-note'); if (note) note.textContent = '';
     const _ce2 = document.getElementById('ann-custom-expiry'); if (_ce2) _ce2.value = '';
-    document.querySelector('#page-announcement .card-title').textContent = '📢 Post an Announcement';
-    document.querySelector('[onclick="postAnnouncement()"]').textContent = 'Post Announcement';
-    const _nw2 = document.getElementById('ann-notify-wrap'); if (_nw2) _nw2.style.display = '';
+    window._fromRequestId = null;
+    if (!window._annRequestMode) annBanner('');
+    const _rn = document.getElementById('ann-req-note'); if (_rn) _rn.value = '';
+    const _rp = document.getElementById('ann-req-pulpit'); if (_rp) _rp.checked = false;
+    document.querySelector('#page-announcement .card-title').textContent = window._annRequestMode ? '📢 Request an Announcement' : '📢 Post an Announcement';
+    document.querySelector('[onclick="postAnnouncement()"]').textContent = window._annRequestMode ? 'Send to the Office' : 'Post Announcement';
+    const _nw2 = document.getElementById('ann-notify-wrap'); if (_nw2) _nw2.style.display = window._annRequestMode ? 'none' : '';
     const _nt2 = document.getElementById('ann-notify'); if (_nt2) _nt2.checked = false;
     const chip = document.querySelector('#page-announcement .expiry-chip[onclick*="\'week\'"]');
     if (chip) selectExpiry(chip, 'week');
@@ -12369,7 +12560,7 @@
     var ministry = MINISTRY_NAME_MAP[activeMinistry()] || 'Ministry';
     var submittedBy = STAFF_NAME_MAP[currentUser] || currentUser;
     try {
-      await fs_post('eventRequests', {
+      await fs_post_strict('eventRequests', {
         title: {stringValue: title},
         date: {stringValue: date},
         startDateRaw: {stringValue: startDateRaw},
@@ -12393,7 +12584,7 @@
       document.getElementById('se-success').style.display = 'block';
       setTimeout(function() { document.getElementById('se-success').style.display = 'none'; }, 4000);
       showToast('Event submitted for approval!', 'success');
-    } catch(e) { showToast('Error submitting event.', 'error'); }
+    } catch(e) { showToast('Could not submit the event: ' + e.message, 'error'); console.error('Event request error:', e); }
   }
 
   async function loadEventRequests() {
