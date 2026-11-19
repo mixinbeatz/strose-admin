@@ -4954,6 +4954,8 @@
   function annHeroDraw() {
     const cv = document.getElementById('ann-hero-canvas');
     if (!cv || !annHeroEd.img) return;
+    // the canvas must match the output size, otherwise only its top-left corner is drawn
+    if (cv.width !== ANN_HERO_W || cv.height !== ANN_HERO_H) { cv.width = ANN_HERO_W; cv.height = ANN_HERO_H; }
     const g = annHeroGeom(), ctx = cv.getContext('2d');
     ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, ANN_HERO_W, ANN_HERO_H);
     ctx.drawImage(annHeroEd.img, g.x, g.y, g.w, g.h);
