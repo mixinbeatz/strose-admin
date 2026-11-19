@@ -2840,7 +2840,7 @@
       <span>Zoom</span>
       <input type="range" id="hero-crop-zoom" min="1" max="4" step="0.01" value="1" oninput="heroCropZoom(this.value)" />
     </div>
-    <div class="cropper-hint">You are seeing the whole photo. The bright box is what shows on the website and in the app: drag it (or click anywhere on the photo) to choose the spot, and use the slider or mouse wheel to zoom in or out.</div>
+    <div class="cropper-hint">Drag the picture with your mouse (or finger) to slide it into place, and use the slider or mouse wheel to zoom in. What you see here is exactly what will be saved.</div>
     <div class="cropper-actions">
       <button class="btn btn-outline btn-sm" onclick="closeHeroCropper()">Cancel</button>
       <button class="btn btn-primary btn-sm" id="hero-crop-apply" onclick="applyHeroCropper()">Use This Framing</button>
@@ -5612,14 +5612,10 @@
   function heroCropDraw() {
     const cv = document.getElementById('hero-crop-canvas');
     if (!cv || !heroCrop.img) return;
-    const img = heroCrop.img, sc = cv.width / img.naturalWidth, f = heroFrame(), ctx = cv.getContext('2d');
+    const f = heroFrame(), ctx = cv.getContext('2d');
     ctx.clearRect(0, 0, cv.width, cv.height);
-    ctx.drawImage(img, 0, 0, cv.width, cv.height);
-    ctx.fillStyle = 'rgba(30,10,16,0.62)';
-    ctx.fillRect(0, 0, cv.width, cv.height);
-    ctx.drawImage(img, f.x, f.y, f.w, f.h, f.x * sc, f.y * sc, f.w * sc, f.h * sc);
-    ctx.strokeStyle = '#C9A84C'; ctx.lineWidth = Math.max(3, cv.width / 300);
-    ctx.strokeRect(f.x * sc, f.y * sc, f.w * sc, f.h * sc);
+    // the canvas IS the banner: what you see is exactly what gets saved
+    ctx.drawImage(heroCrop.img, f.x, f.y, f.w, f.h, 0, 0, cv.width, cv.height);
   }
   function heroCropZoom(v) {
     if (!heroCrop.img) return;
@@ -5637,8 +5633,8 @@
       img.onload = function() {
         const iw = img.naturalWidth, ih = img.naturalHeight, k = Math.min(1200 / iw, 800 / ih, 1);
         const cv = document.getElementById('hero-crop-canvas');
-        cv.width = Math.max(1, Math.round(iw * k)); cv.height = Math.max(1, Math.round(ih * k));
         opts = opts || {};
+        cv.width = 1200; cv.height = Math.round(1200 / (opts.ratio || HERO_RATIO));
         heroCrop = { img: img, zoom: 1, fx: 0, fy: 0, onUrl: onUrl, folder: folder || 'announcements', busy: false, ratio: opts.ratio || 0, outW: opts.outW || HERO_W, outH: opts.outH || HERO_H, onBase64: opts.onBase64 || null, file: file };
         const fw = heroMaxW(); heroCrop.fx = (iw - fw) / 2; heroCrop.fy = (ih - fw / heroRatio()) / 2;
         document.getElementById('hero-crop-zoom').value = 1;
@@ -5689,27 +5685,20 @@
     const cv = document.getElementById('hero-crop-canvas');
     if (!cv) return;
     let drag = null;
-    const toImg = function(ev) {   // pointer position in source-image pixels
-      const r = cv.getBoundingClientRect();
-      const k = heroCrop.img.naturalWidth / r.width;
-      return { x: (ev.clientX - r.left) * k, y: (ev.clientY - r.top) * k };
-    };
     cv.addEventListener('pointerdown', function(ev) {
       if (!heroCrop.img) return;
-      const p = toImg(ev), f = heroFrame();
-      // grabbing outside the frame re-centres it on that spot, then keeps dragging
-      if (p.x < f.x || p.x > f.x + f.w || p.y < f.y || p.y > f.y + f.h) { heroCrop.fx = p.x - f.w / 2; heroCrop.fy = p.y - f.h / 2; heroCropDraw(); }
-      drag = { p: p, fx: heroCrop.fx, fy: heroCrop.fy };
+      drag = { x: ev.clientX, y: ev.clientY, fx: heroCrop.fx, fy: heroCrop.fy };
+      cv.style.cursor = 'grabbing';
       try { cv.setPointerCapture(ev.pointerId); } catch (e) {}
     });
     cv.addEventListener('pointermove', function(ev) {
       if (!drag || !heroCrop.img) return;
-      const p = toImg(ev);
-      heroCrop.fx = drag.fx + (p.x - drag.p.x);
-      heroCrop.fy = drag.fy + (p.y - drag.p.y);
+      const r = cv.getBoundingClientRect(), f = heroFrame(), k = f.w / r.width;
+      heroCrop.fx = drag.fx - (ev.clientX - drag.x) * k;
+      heroCrop.fy = drag.fy - (ev.clientY - drag.y) * k;
       heroCropDraw();
     });
-    const end = function() { drag = null; };
+    const end = function() { drag = null; cv.style.cursor = 'grab'; };
     cv.addEventListener('pointerup', end);
     cv.addEventListener('pointercancel', end);
     cv.addEventListener('wheel', function(ev) {
