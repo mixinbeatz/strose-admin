@@ -275,6 +275,9 @@
     /* Quick action buttons stack */
     .btn-row { flex-direction: column; }
     .btn-row .btn { width: 100%; text-align: center; }
+    /* A pinned save bar stays compact on phones: buttons side by side, not stacked */
+    .btn-row.sticky-save { flex-direction: row; gap: 8px; margin-top: 12px; }
+    .btn-row.sticky-save .btn { width: auto; flex: 1 1 0; padding-left: 8px; padding-right: 8px; }
 
     /* Approval cards: stack avatar + info vertically on very small screens */
     .approval-card { flex-wrap: wrap; }
@@ -303,7 +306,9 @@
     .content { padding: 12px; padding-top: 0; }
   }
   /* Save bar that stays pinned to the bottom of the screen while a long form scrolls */
-  .sticky-save { position: sticky; bottom: 0; z-index: 20; background: var(--white); padding: 12px 0 8px; margin-top: 16px; border-top: 1px solid var(--linen); }
+  .sticky-save { position: sticky; bottom: 0; z-index: 20; background: var(--white); padding: 12px 0 8px; margin-top: 16px; border-top: 1px solid var(--linen); box-shadow: 0 -6px 10px -8px rgba(0,0,0,0.18); }
+  /* Same idea for a card that holds only save buttons (Councils, Mass Schedule) */
+  .sticky-card { position: sticky; bottom: 0; z-index: 20; box-shadow: 0 -6px 12px -6px rgba(0,0,0,0.22); }
   .ann-layout { display: grid; grid-template-columns: minmax(0,1fr) 400px; gap: 20px; align-items: start; }
   .ann-preview-col { position: sticky; top: 16px; }
   @media (max-width: 1100px) { .ann-layout { grid-template-columns: minmax(0,1fr); } .ann-preview-col { position: static; } }
@@ -641,7 +646,7 @@
                 <textarea class="form-textarea" id="evt-desc" placeholder="Describe the event..."></textarea>
               </div>
             </div>
-            <div class="btn-row">
+            <div class="btn-row sticky-save">
               <button class="btn btn-primary" id="evt-submit-btn" onclick="postSingleEvent()">Add Event</button>
               <button class="btn btn-outline" onclick="clearSingleEvt()">Clear</button>
             </div>
@@ -951,7 +956,7 @@
               <span><strong>Send a push notification</strong><br><span style="font-size:12px;color:var(--dusty-rose);">Leave unchecked to post quietly: it appears in the app's Announcements with no alert on phones. Check it only when you want phones to chime. Applies to new posts only; editing never re-sends.</span></span>
             </label>
           </div>
-          <div class="btn-row">
+          <div class="btn-row sticky-save">
             <button class="btn btn-primary" onclick="postAnnouncement()">Post Announcement</button>
             <button class="btn btn-outline" onclick="resetAnnouncementForm()">Clear</button>
           </div>
@@ -1017,7 +1022,7 @@
             <div id="ref-pictures-list"></div>
             <label class="btn btn-outline btn-sm" id="ref-picture-add" style="cursor:pointer;display:inline-block;">+ Add picture<input type="file" accept="image/*" style="display:none;" onchange="handleRefPicturePick(this)" /></label>
           </div>
-          <div class="btn-row">
+          <div class="btn-row sticky-save">
             <button class="btn btn-primary" onclick="postReflection()">Update Reflection</button>
           </div>
           <div class="post-success" id="ref-success">✓ Reflection updated successfully.</div>
@@ -1078,7 +1083,7 @@
             </div>
             <div id="dev-existing-mockup" style="margin-top:10px;"></div>
           </div>
-          <div class="btn-row">
+          <div class="btn-row sticky-save">
             <button class="btn btn-primary" id="dev-save-btn" onclick="saveDevelopmentItem()">Add Opportunity</button>
             <button class="btn btn-outline" onclick="resetDevForm()">Clear / New</button>
           </div>
@@ -1198,7 +1203,7 @@
           <div class="form-group"><label class="form-label">Email (Email button)</label><input type="text" class="form-input" id="staff-email" placeholder="e.g. name@stroseanthem.com" /></div>
           <div class="form-group"><label class="form-label">Bio</label><textarea class="form-textarea" id="staff-bio" rows="6" placeholder="Leave blank to show &ldquo;Bio coming soon.&rdquo; in the app."></textarea></div>
           <div class="form-group"><label class="form-label">Order (display position)</label><input type="number" class="form-input" id="staff-order" placeholder="e.g. 1" /></div>
-          <div class="btn-row">
+          <div class="btn-row sticky-save">
             <button class="btn btn-primary" id="staff-save-btn" onclick="saveParishStaffMember()">Add Staff Member</button>
             <button class="btn btn-outline" onclick="resetParishStaffForm()">Clear / New</button>
           </div>
@@ -1461,7 +1466,7 @@
             </div>
             <textarea class="form-input" id="welcome-body" rows="12" placeholder="Paste the welcome message here..." style="resize:vertical;" onpaste="handleSmartPaste(event)"></textarea>
           </div>
-          <div class="btn-row">
+          <div class="btn-row sticky-save">
             <button class="btn btn-primary" onclick="saveWelcomeMessage()">Save to App</button>
             <button class="btn btn-outline btn-sm" onclick="loadWelcomeMessage()">Load Current</button>
           </div>
@@ -1493,7 +1498,7 @@
           <div id="around-parish-slots"></div>
           <div class="form-label" style="margin:18px 0 8px;">Preview of what you are building</div>
           <div id="around-parish-draft-preview" style="border-radius:8px;"></div>
-          <div class="btn-row" style="margin-top:16px;">
+          <div class="btn-row sticky-save" style="margin-top:16px;">
             <button class="btn btn-primary" id="around-parish-publish-btn" onclick="publishAroundParish(this)">Publish</button>
             <button class="btn btn-outline" onclick="clearAroundParishDraft()">Clear form</button>
             <button class="btn btn-outline" onclick="copyLiveToAroundParishDraft()">Copy what is live into the form</button>
@@ -1635,7 +1640,7 @@
             <input type="text" class="form-input" id="sac-b2-url" placeholder="https://..." />
             <div style="font-size:12px;color:var(--dusty-rose);margin-top:6px;">Button 2 only shows when it has both text and a link.</div>
           </div>
-          <div class="btn-row">
+          <div class="btn-row sticky-save">
             <button class="btn btn-primary" id="sac-save-btn" onclick="saveSacraments(this)">Save Changes</button>
             <button class="btn btn-outline" onclick="resetSacraments()">Reset to default</button>
           </div>
@@ -1716,7 +1721,7 @@
           <div class="card-title">St. Philip Benizi (Black Canyon City)</div>
           <div class="form-group"><label class="form-label">Sunday Mass</label><input type="text" class="form-input" id="ms-spb-sunday-mass" /></div>
         </div>
-        <div class="card">
+        <div class="card sticky-card">
           <button class="btn btn-primary" onclick="saveMassSchedule()">Save Mass Schedule</button>
           <button class="btn btn-outline" onclick="loadMassSchedule()" style="margin-left:8px;">Reload Current</button>
           <span id="mass-schedule-success" style="display:none;color:var(--success);margin-left:12px;">Saved!</span>
@@ -1798,7 +1803,7 @@
             <button class="btn btn-outline btn-sm" onclick="addCouncilMemberRow('development')" style="margin-top:8px;">+ Add Member</button>
           </div>
         </div>
-        <div class="card">
+        <div class="card sticky-card">
           <button class="btn btn-primary" onclick="saveCouncil('pastoral')">Save Pastoral Council</button>
           <button class="btn btn-primary" onclick="saveCouncil('finance')" style="margin-left:8px;">Save Finance Council</button>
           <button class="btn btn-primary" onclick="saveCouncil('development')" style="margin-left:8px;">Save Development Council</button>
@@ -1846,7 +1851,7 @@
               </div>
             </div>
           </div>
-          <div class="btn-row">
+          <div class="btn-row sticky-save">
             <button class="btn btn-primary" id="ol-submit-btn" onclick="onboardLeader()">Create Account &amp; Send Invite</button>
             <button class="btn btn-outline" onclick="clearOnboardForm()">Clear</button>
           </div>
@@ -6942,7 +6947,7 @@
             <div class="form-group"><label class="form-label">Special Offer (premium)</label><input class="form-input" id="ad-${id}-discount" value="${av(discount)}"></div>
             <div class="form-group"><label class="form-label">Phone</label><input class="form-input" id="ad-${id}-phone" value="${av(phone)}"></div>
             <div class="form-group"><label class="form-label">Website</label><input class="form-input" id="ad-${id}-website" value="${av(website)}"></div>
-            <button class="btn btn-success btn-sm" onclick="saveAdvertiser('${id}')">Save changes</button>
+            <div class="sticky-save"><button class="btn btn-success btn-sm" onclick="saveAdvertiser('${id}')">Save changes</button></div>
           </div>
         </div>`;
       };
@@ -8548,7 +8553,7 @@
             : '<input type="' + (f.t === 'date' ? 'date' : 'text') + '" ' + common + ' value="' + escHtml(val).replace(/"/g, '&quot;') + '" />';
           return '<div class="form-group"><label class="form-label">' + escHtml(f.l) + (f.req ? ' <span style="color:#8B2635">*</span>' : '') + '</label>' + input + '</div>';
         }).join('') +
-        '<div class="btn-row"><button class="btn btn-primary" id="er-save" onclick="saveEditRecord(this)">Save Changes</button>' +
+        '<div class="btn-row sticky-save"><button class="btn btn-primary" id="er-save" onclick="saveEditRecord(this)">Save Changes</button>' +
         '<button class="btn btn-outline" onclick="closeEditRecord()">Cancel</button></div>' +
         ((gf(doc, 'editedBy')) ? '<div style="font-size:11px;color:var(--dusty-rose);margin-top:10px;">Last edited by ' + escHtml(String(gf(doc, 'editedBy'))) + (gf(doc, 'editedAt') ? ' on ' + escHtml(new Date(gf(doc, 'editedAt')).toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'})) : '') + '</div>' : '');
     } catch (e) {
@@ -8612,7 +8617,7 @@
           });
         }
       });
-      html += '<div class="btn-row" style="margin-top:14px;"><button class="btn btn-primary" onclick="saveEditDoc(this)">Save Changes</button>' +
+      html += '<div class="btn-row sticky-save"><button class="btn btn-primary" onclick="saveEditDoc(this)">Save Changes</button>' +
         '<button class="btn btn-outline" onclick="closeEditRecord()">Cancel</button></div>';
       if (gf(doc, 'editedBy')) html += '<div style="font-size:11px;color:var(--dusty-rose);margin-top:10px;">Last edited by ' + escHtml(String(gf(doc, 'editedBy'))) + (gf(doc, 'editedAt') ? ' on ' + escHtml(new Date(gf(doc, 'editedAt')).toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'})) : '') + '</div>';
       body.innerHTML = html;
@@ -12440,8 +12445,8 @@
         '<div style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;">' +
           a.photos.map(function(p, j) { return '<div style="position:relative;"><img src="' + annAttr(p.url) + '" alt="" style="width:84px;height:60px;object-fit:cover;border-radius:6px;display:block;" /><button type="button" title="Remove this photo" onclick="removeAroundPastPhoto(' + i + ',' + j + ')" style="position:absolute;top:-6px;right:-6px;width:20px;height:20px;border-radius:10px;border:none;background:#5C1A2E;color:#fff;font-size:12px;line-height:20px;cursor:pointer;padding:0;">✕</button></div>'; }).join('') +
         '</div>' +
-        '<button class="btn btn-primary btn-sm" onclick="saveAroundPast(' + i + ')">Save changes</button> ' +
-        '<button class="btn btn-outline btn-sm" onclick="deleteAroundPast(' + i + ')">Delete</button>' +
+        '<div class="sticky-save"><button class="btn btn-primary btn-sm" onclick="saveAroundPast(' + i + ')">Save changes</button> ' +
+        '<button class="btn btn-outline btn-sm" onclick="deleteAroundPast(' + i + ')">Delete</button></div>' +
       '</div>';
     }).join('');
   }
