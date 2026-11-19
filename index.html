@@ -2922,7 +2922,7 @@
   function enterApp() {
     document.getElementById('login-screen').style.display = 'none';
     document.getElementById('app').style.display = 'flex';
-    document.getElementById('logged-in-user').textContent = STAFF_NAME_MAP[currentUser] || (currentClaims.role ? currentClaims.role.charAt(0).toUpperCase() + currentClaims.role.slice(1) : 'Parish Staff');
+    document.getElementById('logged-in-user').textContent = STAFF_NAME_MAP[currentUser] || (currentClaims.role ? roleDisplay(currentClaims.role) : 'Parish Staff');
     applyRoleNav();
     loadDashboard();
   }
