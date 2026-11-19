@@ -442,6 +442,7 @@
       <div class="nav-section-toggle collapsed staff-only ministry-leader" onclick="toggleNavSection(this)"><span>Events &amp; Ministries</span><span class="nav-chevron">▾</span></div>
       <div class="nav-group collapsed">
         <div class="nav-item staff-only" onclick="showPage('events',this)"><span class="nav-icon">📅</span> Events</div>
+        <div class="nav-item ministry-leader" onclick="showPage('ministry-documents',this);loadMinistryDocuments()"><span class="nav-icon">📄</span> Calendar &amp; Documents</div>
         <div class="nav-subsection-toggle staff-only collapsed" onclick="toggleNavSection(this)"><span>All Ministries</span><span class="nav-chevron">▾</span></div>
         <div class="nav-group collapsed" id="ministries-nav-list"></div>
         <div class="nav-subsection-toggle staff-only collapsed" onclick="toggleNavSection(this)"><span>Ministry Tools</span><span class="nav-chevron">▾</span></div>
@@ -9246,11 +9247,16 @@
     const sel = document.getElementById('md-ministry');
     if (!sel) return;
     const prev = sel.value;
-    sel.innerHTML = '<option value="">— choose a ministry —</option>' +
-      ministryRegistry.map(function(m) {
+    // A ministry leader only sees (and can add documents to) their own ministries;
+    // staff and admins see them all.
+    const isLeaderOnly = !!(currentClaims && currentClaims.role === 'ministry');
+    const mine = isLeaderOnly ? myMinistries() : null;
+    const choices = ministryRegistry.filter(function(m) { return !mine || mine.indexOf(m.id) >= 0; });
+    sel.innerHTML = (choices.length === 1 ? '' : '<option value="">— choose a ministry —</option>') +
+      choices.map(function(m) {
         return '<option value="' + escAttr(m.id) + '">' + escHtml(m.name) + '</option>';
       }).join('');
-    if (prev && ministryRegistry.some(function(m) { return m.id === prev; })) sel.value = prev;
+    if (prev && choices.some(function(m) { return m.id === prev; })) sel.value = prev;
   }
 
   var mdRegistryLoaded = false;
