@@ -1423,6 +1423,13 @@
           <div class="card-title">🌹 Welcome Message</div>
           <div class="info-box">This text and photo appear in the Welcome modal on the app Home screen (and on the website's "Father's Welcome" page) when a parishioner taps the Welcome card. Paste Fr. Bing's message here.</div>
           <div class="form-group">
+            <label class="form-label">Hero image (optional)</label>
+            <div style="font-size:12px;color:var(--dusty-rose);margin-bottom:8px;">A wide picture behind "Welcome to Saint Rose" at the top of the Welcome screen in the app. The app tints it with the parish burgundy so the title stays readable. Drag to frame it after you choose a picture. Without one, the screen looks like it does today. Shows on phones with the newest app update.</div>
+            <div id="welcome-hero-current"></div>
+            <label class="btn btn-outline btn-sm" style="cursor:pointer;display:inline-block;">Choose hero image<input type="file" accept="image/*" style="display:none;" onchange="pickWelcomeHero(this)" /></label>
+            <div id="welcome-hero-preview" style="margin-top:12px;max-width:480px;"></div>
+          </div>
+          <div class="form-group">
             <label class="form-label">Welcome Photo</label>
             <div id="welcome-msg-photo"></div>
             <div style="font-size:12px;color:var(--dusty-rose);margin-top:4px;">Shown next to Fr. Bing's name in the app's Welcome modal and on the website. If left unset, the app falls back to its bundled photo.</div>
@@ -11623,29 +11630,60 @@
     const body = document.getElementById('welcome-body').value.trim();
     if (!body) { showToast('Please enter a welcome message.', 'error'); return; }
     try {
-      await fs_patch('siteContent/welcome', {
+      await fs_patch_strict('siteContent/welcome', {
         body: { stringValue: body },
+        heroImageUrl: { stringValue: welcomeHeroUrl || '' },
         updatedAt: { stringValue: new Date().toISOString() }
       });
       document.getElementById('welcome-success').style.display = 'block';
       setTimeout(() => document.getElementById('welcome-success').style.display = 'none', 3000);
       showToast('Welcome message saved!', 'success');
-    } catch(e) { showToast('Error saving.', 'error'); }
+    } catch(e) { showToast('Error saving: ' + e.message, 'error'); }
   }
 
   // silent=true when called on nav open (just populate the fields); the
   // "Load Current" button calls it with no arg so it still confirms/warns.
   let welcomeMsgPhotoUrl = '';
+  let welcomeHeroUrl = '';
+  // Hero image behind "Welcome to Saint Rose" in the app's Welcome screen (siteContent/welcome.heroImageUrl)
+  function renderWelcomeHero() {
+    const cur = document.getElementById('welcome-hero-current');
+    if (cur) cur.innerHTML = welcomeHeroUrl ? heroThumbHtml(welcomeHeroUrl, 'removeWelcomeHero()') : '';
+    const pv = document.getElementById('welcome-hero-preview');
+    if (pv) pv.innerHTML = welcomeHeroUrl
+      ? '<div style="font-size:11px;color:var(--dusty-rose);margin-bottom:4px;">How the top of the Welcome screen will look</div>' +
+        '<div style="position:relative;overflow:hidden;border-radius:10px;background:#5C1A2E;min-height:150px;display:flex;flex-direction:column;justify-content:flex-end;padding:16px;">' +
+          '<img src="' + annAttr(welcomeHeroUrl) + '" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" />' +
+          '<div style="position:absolute;inset:0;background:rgba(92,26,46,0.55);"></div>' +
+          '<div style="position:absolute;left:0;right:0;bottom:0;height:60%;background:rgba(51,18,25,0.45);"></div>' +
+          '<div style="position:relative;color:#E8DDD0;font-family:Cinzel,serif;font-weight:700;font-size:20px;">Welcome to Saint Rose</div>' +
+          '<div style="position:relative;height:3px;background:#C9A84C;margin-top:10px;border-radius:2px;"></div>' +
+        '</div>'
+      : '';
+  }
+  function pickWelcomeHero(input) {
+    const file = input.files && input.files[0];
+    input.value = '';
+    if (!file) return;
+    openHeroCropper(file, function(url) {
+      welcomeHeroUrl = url;
+      renderWelcomeHero();
+      showToast('Hero image added — click Save to App to keep it.', 'success');
+    });
+  }
+  function removeWelcomeHero() { welcomeHeroUrl = ''; renderWelcomeHero(); }
   async function loadWelcomeMessage(silent) {
     try {
       const res = await fs_get('siteContent/welcome');
       welcomeMsgPhotoUrl = res.fields?.photoUrl?.stringValue || '';
+      welcomeHeroUrl = res.fields?.heroImageUrl?.stringValue || '';
+      renderWelcomeHero();
       renderWelcomeMsgPhoto();
       if (res.fields?.body?.stringValue) {
         document.getElementById('welcome-body').value = res.fields.body.stringValue;
         if (!silent) showToast('Current message loaded.', 'success');
       } else if (!silent) { showToast('No welcome message saved yet.', 'error'); }
-    } catch(e) { renderWelcomeMsgPhoto(); if (!silent) showToast('No welcome message saved yet.', 'error'); }
+    } catch(e) { renderWelcomeMsgPhoto(); renderWelcomeHero(); if (!silent) showToast('No welcome message saved yet.', 'error'); }
   }
   function renderWelcomeMsgPhoto() {
     const el = document.getElementById('welcome-msg-photo');
