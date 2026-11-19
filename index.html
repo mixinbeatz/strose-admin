@@ -446,7 +446,7 @@
         <div class="nav-item staff-only" onclick="showPage('events',this)"><span class="nav-icon">📅</span> Events</div>
         <div class="nav-item staff-only cheyanne-only" onclick="showPage('fastblast',this)"><span class="nav-icon">🔔</span> Fast Blast</div>
         <div class="nav-item staff-only cheyanne-only" onclick="showPage('announcement',this)"><span class="nav-icon">📢</span> Post Announcement</div>
-        <div class="nav-item owner-admin-only" style="display:none" onclick="showPage('announcement-requests',this);loadAnnouncementRequests()"><span class="nav-icon">📨</span> Announcement Requests</div>
+        <div class="nav-item owner-admin-only" style="display:none" onclick="showPage('announcement-requests',this);loadAnnouncementRequests()"><span class="nav-icon">📨</span> Announcement Requests <span class="nav-badge" id="ann-req-count" style="display:none;">0</span></div>
         <div class="nav-item staff-only cheyanne-only" onclick="showPage('poll',this)"><span class="nav-icon">📊</span> Parish Voice Poll</div>
         <div class="nav-item staff-only cheyanne-only" onclick="showPage('reflection',this)"><span class="nav-icon">📖</span> Weekly Reflection</div>
         <div class="nav-item staff-only cheyanne-only" onclick="showPage('daily',this)"><span class="nav-icon">✝</span> Daily Reflection</div>
@@ -3057,6 +3057,7 @@
       document.querySelector('.content').style.padding = '0';
     }
     initPortalHistory();
+    refreshAnnReqBadge();
   }
 
   // ── "Send emails from" — which Gmail account compose windows open in ──
@@ -5163,6 +5164,19 @@
   }
 
   // ── Office review queue (admins) ──
+  function setAnnReqBadge(n) {
+    const b = document.getElementById('ann-req-count'); if (!b) return;
+    b.textContent = n; b.style.display = n > 0 ? '' : 'none';
+  }
+  async function refreshAnnReqBadge() {
+    if (!(currentClaims && (currentClaims.role === 'owner' || currentClaims.role === 'admin'))) return;
+    try {
+      const data = await fs_get('announcementRequests');
+      const n = (data.documents || []).filter(function(d) { return d.fields && (!d.fields.status || d.fields.status.stringValue === 'pending'); }).length;
+      setAnnReqBadge(n);
+    } catch (e) { /* badge is a nicety, stay quiet */ }
+  }
+  setInterval(function() { if (!document.hidden) refreshAnnReqBadge(); }, 120000);
   async function loadAnnouncementRequests() {
     const el = document.getElementById('announcement-requests-list'); if (!el) return;
     try {
@@ -5172,6 +5186,7 @@
       const when = function(d){ return new Date((d.fields.createdAt && d.fields.createdAt.stringValue) || 0); };
       const pending = docs.filter(function(d){ return st(d) === 'pending'; }).sort(function(a,b){ return when(b) - when(a); });
       const done = docs.filter(function(d){ return st(d) !== 'pending'; }).sort(function(a,b){ return when(b) - when(a); }).slice(0, 10);
+      setAnnReqBadge(pending.length);
       const g = function(d,k){ return (d.fields[k] && d.fields[k].stringValue) || ''; };
       const fmt = function(iso){ return iso ? new Date(iso).toLocaleString('en-US', {month:'short', day:'numeric', hour:'numeric', minute:'2-digit'}) : ''; };
       let html = '';
@@ -5267,7 +5282,7 @@
       if (window._fromRequestId) {
         try { await fs_patch_strict('announcementRequests/' + window._fromRequestId, {status:{stringValue:'published'}, publishedAt:{stringValue:new Date().toISOString()}}); }
         catch(e) { showToast('Posted, but could not close the request: ' + e.message, 'error'); }
-        window._fromRequestId = null; annBanner('');
+        window._fromRequestId = null; annBanner(''); refreshAnnReqBadge();
       }
       document.getElementById('ann-title').value='';
       document.getElementById('ann-body').value='';
