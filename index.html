@@ -4564,7 +4564,7 @@
     try {
       const wasEditing = !!window._editingEventId;
       if (window._editingEventId) {
-        await fs_patch('events/' + window._editingEventId, {
+        await fs_patch_strict('events/' + window._editingEventId, {
           title:{stringValue:title}, date:{stringValue:formatted}, time:{stringValue:timeStr},
           location:{stringValue:location}, category:{stringValue:category}, description:{stringValue:desc},
           startAt:{stringValue:new Date(start).toISOString()},
@@ -4572,7 +4572,7 @@
         });
         showToast('Event updated!','success');
       } else {
-        await fs_post('events',{
+        await fs_post_strict('events',{
           title:{stringValue:title}, date:{stringValue:formatted}, time:{stringValue:timeStr},
           location:{stringValue:location}, category:{stringValue:category}, description:{stringValue:desc},
           postedBy:{stringValue:'Parish Staff'}, source:{stringValue:'admin'}, type:{stringValue:'event'},
@@ -5303,11 +5303,11 @@
     if (window._annRequestMode) { await submitAnnouncementRequest({title, body, linkUrl, linkLabel, expiresAt, extras}); return; }
     try {
       if (window._editingAnnouncementId) {
-        await fs_patch('announcements/' + window._editingAnnouncementId, Object.assign({title:{stringValue:title},body:{stringValue:body},linkUrl:{stringValue:linkUrl},linkLabel:{stringValue:linkLabel},expiresAt:{stringValue:expiresAt||''}}, extras));
+        await fs_patch_strict('announcements/' + window._editingAnnouncementId, Object.assign({title:{stringValue:title},body:{stringValue:body},linkUrl:{stringValue:linkUrl},linkLabel:{stringValue:linkLabel},expiresAt:{stringValue:expiresAt||''}}, extras));
         resetAnnouncementForm();
         showToast('Announcement updated!','success');
       } else {
-        await fs_post('announcements',Object.assign({title:{stringValue:title},body:{stringValue:body},linkUrl:{stringValue:linkUrl},linkLabel:{stringValue:linkLabel},postedBy:{stringValue:'Parish Staff'},expiresAt:{stringValue:expiresAt||''},createdAt:{stringValue:new Date().toISOString()},notify:{booleanValue:!!(document.getElementById('ann-notify')||{checked:false}).checked}}, extras));
+        await fs_post_strict('announcements',Object.assign({title:{stringValue:title},body:{stringValue:body},linkUrl:{stringValue:linkUrl},linkLabel:{stringValue:linkLabel},postedBy:{stringValue:'Parish Staff'},expiresAt:{stringValue:expiresAt||''},createdAt:{stringValue:new Date().toISOString()},notify:{booleanValue:!!(document.getElementById('ann-notify')||{checked:false}).checked}}, extras));
         showToast(((document.getElementById('ann-notify')||{checked:false}).checked)?'Announcement posted — notification sent!':'Announcement posted quietly (no notification).','success');
       }
       if (window._fromRequestId) {
@@ -5326,7 +5326,7 @@
       document.getElementById('ann-success').style.display='block';
       setTimeout(()=>{document.getElementById('ann-success').style.display='none';},4000);
       loadActiveAnnouncements();
-    } catch(e){showToast('Error posting.','error');}
+    } catch(e){showToast('Did not post: ' + e.message,'error');}
   }
 
   // ── MINISTRY EXTRAS ──
@@ -5886,7 +5886,7 @@
       for (const doc of futureDocs){
         await fs_delete(doc.name.split('/documents/parishes/saint-rose-anthem/')[1]);
       }
-      await fs_post('weeklyReflection',{heading:{stringValue:heading},subtitle:{stringValue:heading},fullTitle:{stringValue:heading},author:{stringValue:author},body:{stringValue:body},liturgicalDate:{stringValue:liturgicalDate},publishAt:{stringValue:publishAt},link:{stringValue:''},heroImageUrl:{stringValue:refHeroUrl||''},photos:{arrayValue:{values:refPhotosToFs()}},updatedAt:{stringValue:new Date().toISOString()}});
+      await fs_post_strict('weeklyReflection',{heading:{stringValue:heading},subtitle:{stringValue:heading},fullTitle:{stringValue:heading},author:{stringValue:author},body:{stringValue:body},liturgicalDate:{stringValue:liturgicalDate},publishAt:{stringValue:publishAt},link:{stringValue:''},heroImageUrl:{stringValue:refHeroUrl||''},photos:{arrayValue:{values:refPhotosToFs()}},updatedAt:{stringValue:new Date().toISOString()}});
       document.getElementById('ref-success').style.display='block';
       showToast('Reflection scheduled!','success');
       setTimeout(()=>{document.getElementById('ref-success').style.display='none';},4000);
@@ -5917,7 +5917,7 @@
     try {
       const existing=await fs_get('dailyReflection');
       for(const doc of (existing.documents||[]).filter(d=>gf(d,'date')===date)){await fs_delete(doc.name.split('/documents/parishes/saint-rose-anthem/')[1]);}
-      await fs_post('dailyReflection',{date:{stringValue:date},title:{stringValue:title},body:{stringValue:body},postedBy:{stringValue:'Parish Staff'},createdAt:{stringValue:new Date().toISOString()}});
+      await fs_post_strict('dailyReflection',{date:{stringValue:date},title:{stringValue:title},body:{stringValue:body},postedBy:{stringValue:'Parish Staff'},createdAt:{stringValue:new Date().toISOString()}});
       document.getElementById('daily-success').style.display='block';
       showToast('Daily reflection posted!','success');
       setTimeout(()=>{document.getElementById('daily-success').style.display='none';},4000);
@@ -6723,13 +6723,13 @@
   }
 
   async function approveFamily(id,name){
-    try{await fs_patch(`parishFamily/${id}`,{approved:{booleanValue:true}});document.getElementById(`approval-${id}`)?.remove();showToast(`${name} approved!`,'success');loadDashboard();}
+    try{await fs_patch_strict(`parishFamily/${id}`,{approved:{booleanValue:true}});document.getElementById(`approval-${id}`)?.remove();showToast(`${name} approved!`,'success');loadDashboard();}
     catch(e){showToast('Error.','error');}
   }
   async function rejectFamily(id,name){
     if(!confirm(`Reject ${name}'s application? They will receive a notification inviting them to reapply.`))return;
     try{
-      await fs_patch(`parishFamily/${id}`,{approved:{booleanValue:false},rejected:{booleanValue:true}});
+      await fs_patch_strict(`parishFamily/${id}`,{approved:{booleanValue:false},rejected:{booleanValue:true}});
       document.getElementById(`approval-${id}`)?.remove();
       showToast(`${name} rejected — notification sent.`,'success');
       loadDashboard();
@@ -10137,7 +10137,7 @@
     if(!date || !text) { showToast('Please fill in date and intention.', 'error'); return; }
     postingIntention = true;
     try {
-      await fs_post('massIntentions', {
+      await fs_post_strict('massIntentions', {
         date: {stringValue: date},
         mass: {stringValue: mass},
         intention: {stringValue: text},
@@ -10806,7 +10806,7 @@
     const days = pollExpiry === '3d' ? 3 : pollExpiry === '7d' ? 7 : pollExpiry === '14d' ? 14 : 30;
     const expiresAt = new Date(Date.now() + days*24*60*60*1000).toISOString();
     try {
-      const data = await fs_post('polls', {
+      const data = await fs_post_strict('polls', {
         question: {stringValue: question},
         options: {arrayValue: {values: options.map(o => ({stringValue: o}))}},
         active: {booleanValue: true},
@@ -10820,8 +10820,8 @@
         ['poll-opt-0','poll-opt-1','poll-opt-2','poll-opt-3'].forEach(id=>document.getElementById(id).value='');
         showToast('Poll launched!', 'success');
         loadPollResults();
-      } else { showToast('Error creating poll.', 'error'); }
-    } catch(e) { showToast('Error creating poll.', 'error'); }
+      } else { showToast('Poll not created: ' + e.message, 'error'); }
+    } catch(e) { showToast('Poll not created: ' + e.message, 'error'); }
   }
 
   async function loadPollResults() {
@@ -10873,7 +10873,7 @@
       });
       // Close existing poll
       const pollId = activePoll.name.split('/').pop();
-      await fs_patch('polls/' + pollId, {active: {booleanValue: false}, closedAt: {stringValue: new Date().toISOString()}});
+      await fs_patch_strict('polls/' + pollId, {active: {booleanValue: false}, closedAt: {stringValue: new Date().toISOString()}});
       showToast('Poll loaded for editing — make changes and click Launch Poll.', 'success');
       window.scrollTo(0,0);
     } catch(e) { showToast('Error loading poll.', 'error'); }
@@ -10887,10 +10887,10 @@
       const activePoll = (res.documents||[]).find(d => d.fields?.active?.booleanValue !== false && (d.fields?.expiresAt?.stringValue||'') > now);
       if (!activePoll) { showToast('No active poll.', 'error'); return; }
       const pollId = activePoll.name.split('/').pop();
-      await fs_patch('polls/' + pollId, {active: {booleanValue: false}, closedAt: {stringValue: new Date().toISOString()}});
+      await fs_patch_strict('polls/' + pollId, {active: {booleanValue: false}, closedAt: {stringValue: new Date().toISOString()}});
       showToast('Poll closed.', 'success');
       loadPollResults();
-    } catch(e) { showToast('Error closing poll.', 'error'); }
+    } catch(e) { showToast('Poll not closed: ' + e.message, 'error'); }
   }
 
   async function postFastBlast() {
@@ -10907,7 +10907,7 @@
       if (sendAt <= new Date()) { showToast('Scheduled time must be in the future.', 'error'); return; }
       if (!confirm('Schedule Fast Blast for ' + sendAt.toLocaleString() + '?\n\n"' + title + '"')) return;
       try {
-        const data = await fs_post('scheduledFastBlast', {
+        const data = await fs_post_strict('scheduledFastBlast', {
           title: { stringValue: title },
           body: { stringValue: body },
           durationHours: { integerValue: durationHours },
@@ -10923,15 +10923,15 @@
           document.getElementById('fb-schedule-time').value = '';
           showToast('Fast Blast scheduled!', 'success');
           loadScheduledFastBlasts();
-        } else { showToast('Error scheduling.', 'error'); }
-      } catch(e) { showToast('Error scheduling.', 'error'); }
+        } else { showToast('Did not schedule: ' + e.message, 'error'); }
+      } catch(e) { showToast('Did not schedule: ' + e.message, 'error'); }
       return;
     }
 
     if (!confirm('Send Fast Blast to ALL parishioners?\n\n"' + title + '"\n\nThis cannot be undone.')) return;
     try {
       const expiresAt = new Date(Date.now() + durationHours * 60 * 60 * 1000).toISOString();
-      const data = await fs_post('fastBlast', {
+      const data = await fs_post_strict('fastBlast', {
         title: { stringValue: title },
         body: { stringValue: body },
         expiresAt: { stringValue: expiresAt },
@@ -10944,8 +10944,8 @@
         document.getElementById('fb-title').value = '';
         document.getElementById('fb-body').value = '';
         showToast('Fast Blast sent!', 'success');
-      } else { showToast('Error sending.', 'error'); }
-    } catch(e) { showToast('Error sending.', 'error'); }
+      } else { showToast('Did not send: ' + e.message, 'error'); }
+    } catch(e) { showToast('Did not send: ' + e.message, 'error'); }
   }
 
   async function loadScheduledFastBlasts() {
@@ -12902,7 +12902,7 @@
       } else {
         expiresAtDate = new Date(Date.now() + 90*24*60*60*1000);
       }
-      var result = await fs_post('events', {
+      var result = await fs_post_strict('events', {
         title: f.title || {stringValue:''},
         date: f.date || {stringValue:''},
         time: f.time || {stringValue:''},
@@ -12917,7 +12917,7 @@
         expiresAt: {stringValue: expiresAtDate.toISOString()}
       });
       console.log('fs_post events result:', JSON.stringify(result));
-      await fs_patch('eventRequests/' + id, {status: {stringValue: 'approved'}});
+      await fs_patch_strict('eventRequests/' + id, {status: {stringValue: 'approved'}});
       showToast('Event approved and added to calendar!', 'success');
       loadEventRequests();
     } catch(e) { showToast('Error: ' + e.message, 'error'); console.error('Approve error:', e); }
@@ -12927,7 +12927,7 @@
     var reason = document.getElementById('deny-reason-' + id).value.trim();
     if (!reason) { showToast('Please enter a reason.', 'error'); return; }
     try {
-      await fs_patch('eventRequests/' + id, {
+      await fs_patch_strict('eventRequests/' + id, {
         status: {stringValue: 'denied'},
         denialReason: {stringValue: reason},
         deniedAt: {stringValue: new Date().toISOString()}
