@@ -113,6 +113,10 @@
   .btn-sm { padding: 7px 14px; font-size: 12px; }
   .form-group > label.btn { align-self: flex-start; }   /* 'Choose photo' buttons: don't stretch across the whole column */
   .img-tip { font-size: 12px; color: var(--dusty-rose); margin-top: 8px; line-height: 1.5; }
+  .drop-zone { display:inline-flex; align-items:center; justify-content:center; gap:6px; margin-left:10px; padding:8px 16px; border:2px dashed var(--dusty-rose); border-radius:10px; color:var(--dusty-rose); font-size:12px; cursor:pointer; vertical-align:middle; transition:background .15s,border-color .15s; }
+  .drop-zone:hover { border-color:var(--burgundy); color:var(--burgundy); }
+  .drop-zone.over { background:rgba(201,168,76,.18); border-color:var(--gold); color:var(--burgundy); }
+  .form-group > .drop-zone { align-self:flex-start; margin-left:0; }
   .img-tip a { color: var(--burgundy); text-decoration: underline; cursor: pointer; }
   .btn-row { display: flex; gap: 12px; margin-top: 20px; align-items: center; flex-wrap: wrap; }
 
@@ -3101,6 +3105,44 @@
   function navItem(id) { return document.querySelector(`.nav-item[onclick*="showPage('${id}'"]`); }
   function openSidebar() { document.getElementById('sidebar').classList.add('open'); document.getElementById('sidebar-overlay').classList.add('active'); document.body.style.overflow='hidden'; }
   function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebar-overlay').classList.remove('active'); document.body.style.overflow=''; }
+
+  // ── Drag-and-drop landing spots next to every 'Choose image' button ──
+  // Drops are handed to the same hidden file input, so cropping, sizing and uploading behave exactly as if the file were picked from the menu.
+  function addDropZones() {
+    document.querySelectorAll('.form-group label.btn > input[type=file][accept="image/*"]').forEach(function(inp) {
+      const lab = inp.parentElement;
+      if (!lab || lab.dataset.dz) return;
+      lab.dataset.dz = '1';
+      const z = document.createElement('div');
+      z.className = 'drop-zone';
+      z.innerHTML = '⬇ or drop ' + (inp.multiple ? 'pictures' : 'a picture') + ' here';
+      z.addEventListener('click', function() { inp.click(); });
+      ['dragenter','dragover'].forEach(function(ev) {
+        z.addEventListener(ev, function(e) { e.preventDefault(); z.classList.add('over'); });
+      });
+      z.addEventListener('dragleave', function() { z.classList.remove('over'); });
+      z.addEventListener('drop', function(e) {
+        e.preventDefault(); z.classList.remove('over');
+        const files = Array.from((e.dataTransfer && e.dataTransfer.files) || []).filter(function(f) { return /^image\//.test(f.type); });
+        if (!files.length) { showToast('That isn\'t a picture file. Try a JPG, PNG or WebP.', 'error'); return; }
+        const dt = new DataTransfer();
+        (inp.multiple ? files : files.slice(0, 1)).forEach(function(f) { dt.items.add(f); });
+        inp.files = dt.files;
+        inp.dispatchEvent(new Event('change', { bubbles: true }));
+        if (!inp.multiple && files.length > 1) showToast('One picture at a time here. Using the first one.', 'info');
+      });
+      lab.insertAdjacentElement('afterend', z);
+    });
+  }
+  // Dropping a file anywhere else would make the browser open it and leave the portal
+  ['dragover','drop'].forEach(function(ev) {
+    window.addEventListener(ev, function(e) {
+      if (e.dataTransfer && Array.from(e.dataTransfer.types || []).indexOf('Files') >= 0 && !(e.target.closest && e.target.closest('.drop-zone'))) e.preventDefault();
+    });
+  });
+  let _dzTimer = null;
+  new MutationObserver(function() { clearTimeout(_dzTimer); _dzTimer = setTimeout(addDropZones, 60); }).observe(document.documentElement, { childList: true, subtree: true });
+  document.addEventListener('DOMContentLoaded', addDropZones);
 
   // ── Image size tips, added under the picture pickers on whichever page is showing ──
   function injectImageTips() {
