@@ -917,10 +917,10 @@
             </div>
           </div>
           <div class="form-group">
-            <label class="form-label">Photos at the bottom (optional, up to 3)</label>
-            <div style="font-size:12px;color:var(--dusty-rose);margin-bottom:8px;">Round photos with a name and a role underneath, such as a guest priest or musician. You'll crop each one after choosing it.</div>
+            <label class="form-label">Headshots (optional, up to 3)</label>
+            <div style="font-size:12px;color:var(--dusty-rose);margin-bottom:8px;">Round headshots with a name and a role underneath, such as a guest priest or musician. You'll crop each one after choosing it.</div>
             <div id="ann-photos-list"></div>
-            <label class="btn btn-outline btn-sm" id="ann-photo-add" style="cursor:pointer;display:inline-block;">+ Add photo<input type="file" accept="image/*" style="display:none;" onchange="handleAnnPhotoPick(this)" /></label>
+            <label class="btn btn-outline btn-sm" id="ann-photo-add" style="cursor:pointer;display:inline-block;">+ Add headshot<input type="file" accept="image/*" style="display:none;" onchange="handleAnnPhotoPick(this)" /></label>
           </div>
           <div class="form-group">
             <label class="form-label">Pictures (optional, up to 3)</label>
@@ -1171,7 +1171,7 @@
           <div class="info-box">
             The Parish Staff grid on the app's Parish screen (tap a card there for the full-screen photo &amp; bio).
             Reorder with the ↑ / ↓ buttons below. Anyone left without a bio shows &ldquo;Bio coming soon.&rdquo; in the app.
-            To set a photo, drag an image straight onto that person's circle in the list below (or click the circle) &mdash; no need to open their entry.
+            To set a headshot, drag an image straight onto that person's circle in the list below (or click the circle) &mdash; no need to open their entry.
             <br><br>
             <button class="btn btn-outline btn-sm" onclick="seedParishStaffRoster()">Seed from current roster</button>
           </div>
@@ -1181,10 +1181,10 @@
               <img id="staff-photo-img" style="display:none;width:100%;height:100%;object-fit:cover;cursor:pointer;" onclick="openLightbox(this.src)" />
             </div>
             <div style="flex:1;display:flex;flex-wrap:wrap;gap:8px;align-items:flex-start;">
-              <label class="btn btn-outline btn-sm" style="cursor:pointer;">Upload Photo (or drag &amp; drop onto circle)
+              <label class="btn btn-outline btn-sm" style="cursor:pointer;">Upload Headshot (or drag &amp; drop onto circle)
                 <input type="file" accept="image/*" style="display:none;" onchange="handleStaffPhotoUpload(this)" />
               </label>
-              <button class="btn btn-outline btn-sm" id="staff-remove-photo-btn" style="display:none;" onclick="removeStaffPhoto()">Remove Photo</button>
+              <button class="btn btn-outline btn-sm" id="staff-remove-photo-btn" style="display:none;" onclick="removeStaffPhoto()">Remove Headshot</button>
             </div>
           </div>
           <div class="form-group"><label class="form-label">Name *</label><input type="text" class="form-input" id="staff-name" placeholder="e.g. Fr. Bing Colasito" /></div>
@@ -1438,9 +1438,9 @@
             <div id="welcome-hero-preview" style="margin-top:12px;max-width:480px;"></div>
           </div>
           <div class="form-group">
-            <label class="form-label">Welcome Photo</label>
+            <label class="form-label">Fr. Bing's Headshot</label>
             <div id="welcome-msg-photo"></div>
-            <div style="font-size:12px;color:var(--dusty-rose);margin-top:4px;">Shown next to Fr. Bing's name in the app's Welcome modal and on the website. If left unset, the app falls back to its bundled photo.</div>
+            <div style="font-size:12px;color:var(--dusty-rose);margin-top:4px;">Shown next to Fr. Bing's name in the app's Welcome modal and on the website. If left unset, the app falls back to its bundled headshot.</div>
           </div>
           <div class="form-group">
             <label class="form-label">Import from Word Doc (.docx)</label>
@@ -2279,10 +2279,10 @@
               <div style="font-size:12px;color:var(--dusty-rose);margin-top:4px;">Shows an "Open Chat" button for this ministry in the app's Ministry tab. Members still need chat access granted individually before they can read or post.</div>
             </div>
             <div class="form-group">
-              <label class="form-label">Hero photo (optional)</label>
+              <label class="form-label">Hero image (optional)</label>
               <div style="font-size:12px;color:var(--dusty-rose);margin-bottom:8px;">A wide banner at the top of this ministry's card in the app, with the ministry name over it. Drag to frame it. Without one, the card looks like it does today.</div>
               <div class="mmx-hero"></div>
-              <label class="btn btn-outline btn-sm" style="cursor:pointer;display:inline-block;">Choose hero photo<input type="file" accept="image/*" style="display:none;" onchange="pickMinistryHero(this)" /></label>
+              <label class="btn btn-outline btn-sm" style="cursor:pointer;display:inline-block;">Choose hero image<input type="file" accept="image/*" style="display:none;" onchange="pickMinistryHero(this)" /></label>
             </div>
             <div class="form-group">
               <label class="form-label">Pictures (optional, up to 3)</label>
@@ -2430,10 +2430,10 @@
               <div style="font-size:12px;color:var(--dusty-rose);margin-top:4px;">What the Link button says in the app, for example "Donate here" or "Join Us". Leave empty for "Sign Up". Shows on phones with the newest app update.</div>
             </div>
             <div class="form-group">
-              <label class="form-label">Hero photo (optional)</label>
+              <label class="form-label">Hero image (optional)</label>
               <div style="font-size:12px;color:var(--dusty-rose);margin-bottom:8px;">A wide banner at the top of this ministry's card in the app, with the ministry name over it. Drag to frame it. Without one, the card looks like it does today.</div>
               <div class="mmx-hero"></div>
-              <label class="btn btn-outline btn-sm" style="cursor:pointer;display:inline-block;">Choose hero photo<input type="file" accept="image/*" style="display:none;" onchange="pickMinistryHero(this)" /></label>
+              <label class="btn btn-outline btn-sm" style="cursor:pointer;display:inline-block;">Choose hero image<input type="file" accept="image/*" style="display:none;" onchange="pickMinistryHero(this)" /></label>
             </div>
             <div class="form-group">
               <label class="form-label">Pictures (optional, up to 3)</label>
@@ -2700,11 +2700,11 @@
             </ul>
           </div>
 
-          <div class="form-label" style="margin:22px 0 6px;">Round photos — guest speakers, staff, council members, Fr. Bing</div>
+          <div class="form-label" style="margin:22px 0 6px;">Headshots — guest speakers, staff, council members, Fr. Bing</div>
           <div style="font-size:14px;line-height:1.6;color:var(--soil);">
             <ul style="margin:8px 0 0 20px;">
-              <li>A close-up, roughly square photo with the face in the center. You crop it to a circle after choosing it.</li>
-              <li>They show small, so a tight crop on the face reads best. 600 pixels or more is plenty.</li>
+              <li>A close-up, roughly square photo with the face in the center. You crop it to a circle after choosing it. They show small, so a tight crop reads best.</li>
+              <li>600 pixels or more is plenty.</li>
             </ul>
           </div>
 
@@ -3112,10 +3112,11 @@
     document.querySelectorAll('.form-group label.btn > input[type=file][accept="image/*"]').forEach(function(inp) {
       const lab = inp.parentElement;
       if (!lab || lab.dataset.dz) return;
+      if (/drag/i.test(lab.textContent)) { lab.dataset.dz = '1'; return; }   // already has its own drop target
       lab.dataset.dz = '1';
       const z = document.createElement('div');
       z.className = 'drop-zone';
-      z.innerHTML = '⬇ or drop ' + (inp.multiple ? 'pictures' : 'a picture') + ' here';
+      z.innerHTML = '⬇ or drop ' + (inp.multiple ? 'pictures' : (/headshot/i.test(lab.textContent) ? 'a headshot' : (/hero/i.test(lab.textContent) ? 'a hero image' : 'a picture'))) + ' here';
       z.addEventListener('click', function() { inp.click(); });
       ['dragenter','dragover'].forEach(function(ev) {
         z.addEventListener(ev, function(e) { e.preventDefault(); z.classList.add('over'); });
@@ -3149,7 +3150,7 @@
     const tips = [
       { re: /(AnnHeroPick|HeroMediaUpload|pickReflectionHero|pickWelcomeHero|pickMinistryHero)/, html: '📐 <strong>Best size:</strong> a wide landscape picture, at least 1800 px across. Phones show it about 2:1 and iPads wider and shorter, so keep what matters in the middle and leave words out of the picture.' },
       { re: /(AnnPicturePick|RefPicturePick|MinistryPicturePick)/, html: '📐 <strong>Any shape works.</strong> Shown full width, never cropped. Make flyer text big enough to read on a phone, and proofread AI-made text.' },
-      { re: /(AnnPhotoPick|StaffPhotoUpload|WelcomeMsgPhotoUpload|CouncilMemberPhotoUpload)/, html: '📐 <strong>Best size:</strong> a close, roughly square photo with the face in the center. You crop it to a circle.' }
+      { re: /(AnnPhotoPick|StaffPhotoUpload|WelcomeMsgPhotoUpload|CouncilMemberPhotoUpload)/, html: '📐 <strong>Headshot:</strong> a close, roughly square photo with the face in the center. You crop it to a circle.' }
     ];
     document.querySelectorAll('.page.active input[type=file][onchange]').forEach(function(inp) {
       const h = inp.getAttribute('onchange') || '';
@@ -4797,13 +4798,13 @@
     const file = input.files && input.files[0];
     input.value = '';
     if (!file) return;
-    if (annPhotos.filter(function(p) { return p.kind !== 'picture'; }).length >= 3) { showToast('Up to 3 photos per announcement.', 'error'); return; }
+    if (annPhotos.filter(function(p) { return p.kind !== 'picture'; }).length >= 3) { showToast('Up to 3 headshots per announcement.', 'error'); return; }
     openPhotoCropper(file, async function(r) {
       try {
         const url = await uploadDevFile(r.base64, 'announcement-photo.jpg', annUploadFolder(), r.contentType);
         annPhotos.push({ kind: 'headshot', url: url, name: '', role: '' });
         renderAnnPhotos();
-        showToast('Photo added — fill in the name and role, then post.', 'success');
+        showToast('Headshot added — fill in the name and role, then post.', 'success');
       } catch (e) { console.error('Announcement photo upload error:', e); showToast('Upload failed: ' + (e && e.message || e), 'error'); }
     });
   }
@@ -5352,7 +5353,7 @@
     if (!file) return;
     const id = mmxId();
     if (!id) { showToast('No ministry selected.', 'error'); return; }
-    openHeroCropper(file, function(url) { mmx.hero = url; mmxRender(); showToast('Hero photo added — save to keep it.', 'success'); }, 'ministryPhotos/' + id);
+    openHeroCropper(file, function(url) { mmx.hero = url; mmxRender(); showToast('Hero image added — save to keep it.', 'success'); }, 'ministryPhotos/' + id);
   }
   function handleMinistryPicturePick(input) {
     const file = input.files && input.files[0];
@@ -9870,7 +9871,7 @@
         const url = await uploadDevFile(base64, 'staff-photo.jpg', 'parishStaff', contentType);
         staffPhotoUrl = url;
         renderStaffPhoto();
-        showToast('Photo uploaded — click Save to keep it.', 'success');
+        showToast('Headshot uploaded — click Save to keep it.', 'success');
       } catch (e) { console.error('Staff photo upload error:', e); showToast('Upload failed: ' + (e && e.message || e), 'error'); }
     });
   }
@@ -10070,11 +10071,11 @@
     const file = input.files && input.files[0];
     if (!file) return;
     openPhotoCropper(file, async ({ base64, contentType }) => {
-      showToast('Uploading photo...', 'success');
+      showToast('Uploading headshot...', 'success');
       try {
         const url = await uploadDevFile(base64, 'staff-photo.jpg', 'parishStaff', contentType);
         await fs_patch('parishStaff/' + id, { photoUrl: { stringValue: url }, updatedAt: { stringValue: new Date().toISOString() } });
-        showToast('Photo updated!', 'success');
+        showToast('Headshot updated!', 'success');
         loadParishStaff();
       } catch (e) { console.error('Staff row photo error:', e); showToast('Upload failed: ' + (e && e.message || e), 'error'); }
     });
@@ -10327,7 +10328,7 @@
           '</div>' +
         '</div>' +
         '<div style="display:flex;gap:8px;align-items:center;margin-bottom:8px;">' +
-          '<label class="btn btn-outline btn-sm" style="cursor:pointer;">' + (m.photoUrl ? 'Replace Photo' : 'Add Photo') + ' (or drag &amp; drop onto thumbnail)' +
+          '<label class="btn btn-outline btn-sm" style="cursor:pointer;">' + (m.photoUrl ? 'Replace Headshot' : 'Add Headshot') + ' (or drag &amp; drop onto thumbnail)' +
             '<input type="file" accept="image/*" style="display:none;" onchange="handleCouncilMemberPhotoUpload(\'' + which + '\',' + i + ',this)" />' +
           '</label>' +
           (m.photoUrl ? '<button class="btn btn-outline btn-sm" onclick="removeCouncilMemberPhoto(\'' + which + '\',' + i + ')">Remove Photo</button>' : '') +
@@ -10361,7 +10362,7 @@
         const url = await uploadDevFile(base64, 'council-member.jpg', 'councils/' + COUNCIL_DOC_IDS[which] + '/members', contentType);
         councilMembers[which][i].photoUrl = url;
         renderCouncilMemberRows(which);
-        showToast('Photo uploaded — click Save Members to keep it.', 'success');
+        showToast('Headshot uploaded — click Save Members to keep it.', 'success');
       } catch(e) { console.error('Council member photo upload error:', e); showToast('Upload failed: ' + (e && e.message || e), 'error'); }
     });
   }
@@ -11808,7 +11809,7 @@
           : `<span style="font-size:28px;opacity:0.5;">👤</span>`}
       </div>
       <label class="btn btn-outline btn-sm" style="cursor:pointer;">
-        ${welcomeMsgPhotoUrl ? 'Replace Photo' : 'Upload Photo'} (or drag &amp; drop onto circle)
+        ${welcomeMsgPhotoUrl ? 'Replace Headshot' : 'Upload Headshot'} (or drag &amp; drop onto circle)
         <input type="file" accept="image/*" style="display:none;" onchange="handleWelcomeMsgPhotoUpload(this)" />
       </label>
     </div>`;
@@ -11822,7 +11823,7 @@
         welcomeMsgPhotoUrl = url;
         await fs_patch('siteContent/welcome', { photoUrl: { stringValue: url }, updatedAt: { stringValue: new Date().toISOString() } });
         renderWelcomeMsgPhoto();
-        showToast('Welcome photo updated!', 'success');
+        showToast('Headshot updated!', 'success');
       } catch(e) { console.error('Welcome photo upload error:', e); showToast('Upload failed: ' + (e && e.message || e), 'error'); }
     });
   }
