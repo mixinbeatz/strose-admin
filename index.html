@@ -461,6 +461,14 @@
         <div class="nav-group collapsed">
         <div class="nav-item ministry-leader" data-ministry="funeral" onclick="showPage('funeral-planning',this);loadFuneralPlanning()"><span class="nav-icon">🕊️</span> Funeral Planning Forms</div>
         </div>
+        <div class="nav-subsection-toggle ministry-leader collapsed" data-ministry="youth" onclick="toggleNavSection(this)"><span>Youth Ministry</span><span class="nav-chevron">▾</span></div>
+        <div class="nav-group collapsed">
+        <div class="nav-item ministry-leader" data-ministry="youth" onclick="showPage('youth-ministry-registrations',this);loadYouthMinistryRegs();loadYMSettings()"><span class="nav-icon">🔥</span> Youth Ministry Registrations</div>
+        </div>
+        <div class="nav-subsection-toggle ministry-leader collapsed" data-ministry="re" onclick="toggleNavSection(this)"><span>Religious Education</span><span class="nav-chevron">▾</span></div>
+        <div class="nav-group collapsed">
+        <div class="nav-item ministry-leader" data-ministry="re" onclick="showPage('faith-formation-registrations',this);loadFaithFormationRegs()"><span class="nav-icon">✝️</span> Faith Formation Registrations</div>
+        </div>
         <div class="nav-subsection-toggle ministry-only collapsed" style="display:none" onclick="toggleNavSection(this)"><span>Catholic Daughters</span><span class="nav-chevron">▾</span></div>
         <div class="nav-group collapsed">
         <div class="nav-item ministry-only" style="display:none" onclick="showPage('my-ministry',this);loadMyMinistry()"><span class="nav-icon">⛪</span> My Ministry</div>
