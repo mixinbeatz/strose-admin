@@ -3358,8 +3358,30 @@
   }
   async function fs_get(col) { const r=await fetch(`${BASE}/${col}?key=${API_KEY}&pageSize=100`,{headers:await authHeaders()}); return await r.json(); }
   async function fs_get_doc(path) { const r=await fetch(`${BASE}/${path}?key=${API_KEY}`,{headers:await authHeaders()}); return await r.json(); }
-  async function fs_post(col,fields) { const r=await fetch(`${BASE}/${col}?key=${API_KEY}`,{method:'POST',headers:await authHeaders({'Content-Type':'application/json'}),body:JSON.stringify({fields})}); return await r.json(); }
-  async function fs_patch(path,fields) { const mask=Object.keys(fields).map(f=>`updateMask.fieldPaths=${f}`).join('&'); const r=await fetch(`${BASE}/${path}?key=${API_KEY}&${mask}`,{method:'PATCH',headers:await authHeaders({'Content-Type':'application/json'}),body:JSON.stringify({fields})}); return await r.json(); }
+  // Older save code never checks whether a write was accepted, so a refused save (expired sign-in, permissions)
+  // could still end in a green "Saved!" toast. This banner makes the failure visible without changing how those
+  // callers behave. (Newer code uses fs_post_strict / fs_patch_strict, which throw.)
+  let _fsFailAt = 0;
+  function fsWriteFailed(status, body) {
+    console.error('Firestore write refused (' + status + '):', body);
+    if (Date.now() - _fsFailAt < 4000) return;
+    _fsFailAt = Date.now();
+    let bar = document.getElementById('fs-fail-bar');
+    if (!bar) {
+      bar = document.createElement('div');
+      bar.id = 'fs-fail-bar';
+      bar.style.cssText = 'position:fixed;top:0;left:0;right:0;z-index:99999;background:#8B1E1E;color:#fff;padding:12px 44px 12px 16px;font-size:14px;line-height:1.4;text-align:center;box-shadow:0 2px 8px rgba(0,0,0,.3);';
+      bar.innerHTML = '<span id="fs-fail-msg"></span><button onclick="this.parentNode.style.display=\'none\'" style="position:absolute;right:12px;top:8px;background:none;border:0;color:#fff;font-size:20px;cursor:pointer;" aria-label="Dismiss">&times;</button>';
+      document.body.appendChild(bar);
+    }
+    document.getElementById('fs-fail-msg').textContent = (status === 401 || status === 403)
+      ? 'That change did NOT save (' + (status === 401 ? 'your sign-in expired' : 'permission denied') + '). Please sign out and back in, then try again.'
+      : 'That change may NOT have saved (error ' + status + '). Please check the page and try again.';
+    bar.style.display = 'block';
+    clearTimeout(bar._t); bar._t = setTimeout(function() { bar.style.display = 'none'; }, 20000);
+  }
+  async function fs_post(col,fields) { const r=await fetch(`${BASE}/${col}?key=${API_KEY}`,{method:'POST',headers:await authHeaders({'Content-Type':'application/json'}),body:JSON.stringify({fields})}); const out = await r.json(); if (!r.ok) fsWriteFailed(r.status, out); return out; }
+  async function fs_patch(path,fields) { const mask=Object.keys(fields).map(f=>`updateMask.fieldPaths=${f}`).join('&'); const r=await fetch(`${BASE}/${path}?key=${API_KEY}&${mask}`,{method:'PATCH',headers:await authHeaders({'Content-Type':'application/json'}),body:JSON.stringify({fields})}); const out = await r.json(); if (!r.ok) fsWriteFailed(r.status, out); return out; }
   async function fs_delete(path) {
     const res = await fetch(`${BASE}/${path}?key=${API_KEY}`, {method:'DELETE', headers: await authHeaders()});
     if (!res.ok) {
