@@ -1837,7 +1837,7 @@
             </select>
           </div>
           <div class="form-group" id="ol-ministry-group">
-            <label class="form-label">Ministry *</label>
+            <label class="form-label" id="ol-ministry-label">Ministry *</label>
             <select class="form-select" id="ol-ministry"></select>
             <div style="font-size:12px;color:var(--burgundy);font-family:'Cinzel',serif;margin:10px 0 4px;">Also leads (optional)</div>
             <div id="ol-extra-ministries" style="display:flex;flex-wrap:wrap;gap:6px 14px;"></div>
@@ -6033,7 +6033,9 @@
     const sel = document.getElementById('ol-ministry');
     if (!sel) return;
     const previousValue = sel.value;
-    sel.innerHTML = ministryRegistry.map(function(m) {
+    const roleEl = document.getElementById('ol-role');
+    const needsMinistry = !roleEl || roleEl.value === 'ministry';
+    sel.innerHTML = (needsMinistry ? '' : '<option value="">-- Not a ministry leader --</option>') + ministryRegistry.map(function(m) {
       return '<option value="' + m.id + '">' + escHtml(m.name) + '</option>';
     }).join('');
     const target = selectId || previousValue;
@@ -6124,15 +6126,17 @@
   }
   function toggleOnboardMinistryField() {
     const role = document.getElementById('ol-role').value;
-    document.getElementById('ol-ministry-group').style.display = (role === 'ministry') ? '' : 'none';
+    document.getElementById('ol-ministry-group').style.display = '';
+    const lab = document.getElementById('ol-ministry-label');
+    if (lab) lab.textContent = role === 'ministry' ? 'Ministry *' : 'Also leads a ministry? (optional)';
+    renderOnboardMinistrySelect();
   }
   function clearOnboardForm() {
     document.getElementById('ol-name').value = '';
     document.getElementById('ol-email').value = '';
     document.getElementById('ol-role').value = 'ministry';
-    renderOnboardMinistrySelect();
+    toggleOnboardMinistryField();
     document.getElementById('new-ministry-name').value = '';
-    document.getElementById('ol-ministry-group').style.display = '';
     document.getElementById('ol-success').style.display = 'none';
     document.getElementById('ol-welcome-letter-box').style.display = 'none';
   }
@@ -6240,6 +6244,33 @@
     }
   }
 
+  // One place that calls grantRole. If the server says this would remove someone's
+  // admin access, ask first and only then resend with confirmDemote.
+  async function callGrantRole(body) {
+    async function post(b) {
+      const res = await fetch(FUNCTIONS_BASE + '/grantRole', {
+        method: 'POST',
+        headers: await authHeaders({ 'Content-Type': 'application/json' }),
+        body: JSON.stringify(b)
+      });
+      return { res: res, data: await res.json().catch(function() { return {}; }) };
+    }
+    let r = await post(body);
+    if (r.res.status === 409 && r.data && r.data.code === 'confirm-demote') {
+      if (!confirm(r.data.error + '\n\nAn admin who also leads a ministry should stay Admin -- choose Admin and pick the ministry instead.\n\nRemove their admin access anyway?')) {
+        throw new Error('Cancelled -- nothing was changed.');
+      }
+      r = await post(Object.assign({}, body, { confirmDemote: true }));
+    }
+    return r;
+  }
+  // primary + extras -> ordered ministry list (primary first, no duplicates)
+  function buildMinistryList(primary, extras) {
+    const out = [];
+    if (primary) out.push(primary);
+    (extras || []).forEach(function(m) { if (m && out.indexOf(m) < 0) out.push(m); });
+  return out;
+  }
   async function onboardLeader() {
     const name = document.getElementById('ol-name').value.trim();
     const email = document.getElementById('ol-email').value.trim();
@@ -6254,17 +6285,15 @@
 
     try {
       const body = { email, role, parish: 'saint-rose-anthem' };
-      if (role === 'ministry') {
-        body.ministry = ministry;
-        body.ministries = [ministry].concat(checkedValues('.ol-extra').filter(function(m) { return m !== ministry; }));
+      // Any role can also lead ministries (e.g. an admin who leads the Safety Team).
+      const mList = buildMinistryList(ministry, checkedValues('.ol-extra'));
+      if (mList.length) {
+        body.ministry = mList[0];
+        body.ministries = mList;
       }
 
-      const grantRes = await fetch(FUNCTIONS_BASE + '/grantRole', {
-        method: 'POST',
-        headers: await authHeaders({ 'Content-Type': 'application/json' }),
-        body: JSON.stringify(body)
-      });
-      const grantData = await grantRes.json();
+      const grant = await callGrantRole(body);
+      const grantRes = grant.res, grantData = grant.data;
       if (!grantRes.ok) throw new Error(grantData.error || 'Could not create the account.');
 
       btn.textContent = 'Sending invite...';
@@ -6281,7 +6310,8 @@
       successEl.style.display = 'block';
       showToast('Account created and invite sent!', 'success');
 
-      const roleLabel = role === 'ministry' ? ((body.ministries || [ministry]).map(ministryDisplayName).join(' and ') + ' leader') : (role.charAt(0).toUpperCase() + role.slice(1));
+      const leadsText = (body.ministries || []).map(ministryLabel).join(' and ');
+      const roleLabel = role === 'ministry' ? (leadsText + ' leader') : (role.charAt(0).toUpperCase() + role.slice(1)) + (leadsText ? ' and ' + leadsText + ' leader' : '');
       const subject = 'Welcome to the Saint Rose Portal, ' + name.split(' ')[0] + '!';
       const firstName = name.split(' ')[0];
       const roleDescription = (role === 'ministry')
@@ -6318,6 +6348,14 @@
   // and current role/ministry from just the uid embedded in their onclick
   // (avoids putting raw email strings inside HTML attributes).
   let leaderTrackerAccounts = [];
+  // Friendly name for a ministry id: the portal's own registry name first (e.g. "Safety Team").
+  function ministryLabel(id) {
+    const m = (typeof ministryRegistry !== 'undefined' ? ministryRegistry : []).find(function(x) { return x.id === id; });
+    return m ? m.name : ministryDisplayName(id);
+  }
+  function accountMinistryIds(a) {
+    return (a.ministries && a.ministries.length) ? a.ministries : (a.ministry ? [a.ministry] : []);
+  }
   const EDITABLE_ROLES = ['ministry', 'staff', 'clergy', 'admin', 'owner'];
   // Edit Role / Revoke buttons for one account row. Hidden entirely for the
   // row matching the logged-in user's own email -- can't edit or revoke
@@ -6336,7 +6374,7 @@
       return '<option value="' + r + '"' + (r === a.role ? ' selected' : '') + '>' + (r.charAt(0).toUpperCase() + r.slice(1)) + '</option>';
     }).join('');
     const aMins = (a.ministries && a.ministries.length) ? a.ministries : (a.ministry ? [a.ministry] : []);
-    const ministryOptions = ministryRegistry.map(function(m) {
+    const ministryOptions = '<option value=""' + (!a.ministry ? ' selected' : '') + '>-- None --</option>' + ministryRegistry.map(function(m) {
       return '<option value="' + m.id + '"' + (m.id === a.ministry ? ' selected' : '') + '>' + escHtml(m.name) + '</option>';
     }).join('');
     const extraBoxes = ministryRegistry.map(function(m) {
@@ -6345,8 +6383,8 @@
     return '<div id="edit-role-form-' + a.uid + '" style="display:none;margin-top:8px;padding:10px;background:var(--sand);border-radius:6px;">' +
       '<div style="display:flex;gap:8px;flex-wrap:wrap;align-items:center;">' +
         '<select class="form-select" id="er-role-' + a.uid + '" style="width:auto;" onchange="toggleErMinistryField(\'' + a.uid + '\')">' + roleOptions + '</select>' +
-        '<div id="er-ministry-' + a.uid + '" style="display:' + (a.role === 'ministry' ? 'flex' : 'none') + ';flex-direction:column;gap:6px;">' +
-          '<div style="font-size:11px;color:var(--dusty-rose);">Primary ministry</div>' +
+        '<div id="er-ministry-' + a.uid + '" style="display:flex;flex-direction:column;gap:6px;">' +
+          '<div style="font-size:11px;color:var(--dusty-rose);">Primary ministry (any role can lead ministries; required for the Ministry role)</div>' +
           '<select class="form-select" id="er-ministry-sel-' + a.uid + '" style="width:auto;">' + ministryOptions + '</select>' +
           '<div style="font-size:11px;color:var(--dusty-rose);margin-top:4px;">Also leads</div>' +
           '<div style="display:flex;flex-wrap:wrap;gap:6px 14px;">' + extraBoxes + '</div>' +
@@ -6362,26 +6400,25 @@
   }
   function toggleErMinistryField(uid) {
     const role = document.getElementById('er-role-' + uid).value;
-    document.getElementById('er-ministry-' + uid).style.display = (role === 'ministry') ? 'flex' : 'none';
+    // The ministry picker now shows for every role (admins can lead ministries too).
   }
   async function submitEditRole(uid) {
     const account = leaderTrackerAccounts.find(function(a) { return a.uid === uid; });
     if (!account) { showToast('Could not find that account -- refresh and try again.', 'error'); return; }
     const role = document.getElementById('er-role-' + uid).value;
     const ministry = document.getElementById('er-ministry-sel-' + uid).value;
-    if (role === 'ministry' && !ministry) { showToast('Please choose a ministry.', 'error'); return; }
+    const mList = buildMinistryList(ministry, checkedValues('.er-extra-' + uid));
+    if (role === 'ministry' && !mList.length) { showToast('Please choose a ministry.', 'error'); return; }
     try {
       const body = { email: account.email, role: role, parish: 'saint-rose-anthem' };
-      if (role === 'ministry') {
-        body.ministry = ministry;
-        body.ministries = [ministry].concat(checkedValues('.er-extra-' + uid).filter(function(m) { return m !== ministry; }));
+      if (mList.length) {
+        body.ministry = mList[0];
+        body.ministries = mList;
+      } else {
+        body.ministries = [];   // explicit: this form shows no ministries, so clear them
       }
-      const res = await fetch(FUNCTIONS_BASE + '/grantRole', {
-        method: 'POST',
-        headers: await authHeaders({ 'Content-Type': 'application/json' }),
-        body: JSON.stringify(body)
-      });
-      const data = await res.json();
+      const result = await callGrantRole(body);
+      const res = result.res, data = result.data;
       if (!res.ok) throw new Error(data.error || 'Could not update role.');
       showToast('Role updated for ' + account.email + '.', 'success');
       loadLeaderTracker();
@@ -6562,18 +6599,32 @@
 
       if (!ministryRegistry.length) await loadMinistryRegistry();
 
-      const ministryAccounts = accounts.filter(function(a) { return a.role === 'ministry' && a.ministry; });
       const otherAccounts = accounts.filter(function(a) { return !(a.role === 'ministry' && a.ministry); });
 
       function formatLastLogin(a) {
         return a.lastSignInTime ? new Date(a.lastSignInTime).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'Never logged in';
       }
 
+      const editShownFor = {};   // one Edit Role form per account (its element ids must be unique)
       listEl.innerHTML = ministryRegistry.map(function(m) {
-        const leaders = ministryAccounts.filter(function(a) { return (a.ministries && a.ministries.length ? a.ministries : [a.ministry]).indexOf(m.id) >= 0; });
+        // Every account that leads this ministry: ministry-role leaders (editable here) AND
+        // admin/staff/clergy accounts that also lead it (edited under Other Portal Accounts).
+        const leaders = accounts.filter(function(a) { return accountMinistryIds(a).indexOf(m.id) >= 0; });
         const rows = leaders.length ? leaders.map(function(a) {
           const name = STAFF_NAME_MAP[a.email] || a.email;
           const statusBadge = a.disabled ? ' <span style="color:var(--danger);font-size:11px;">Disabled</span>' : '';
+          if (a.role === 'ministry' && editShownFor[a.uid]) {
+            return '<div style="margin-bottom:8px;font-size:14px;color:var(--soil);">' + escHtml(name) +
+              ' <span style="color:var(--dusty-rose);font-size:12px;">(' + escHtml(a.email) + ')</span>' + statusBadge +
+              '<div style="font-size:11px;color:var(--dusty-rose);">Also leads other ministries. Edit Role / Revoke is on their first row above.</div></div>';
+          }
+          if (a.role === 'ministry') editShownFor[a.uid] = true;
+          if (a.role !== 'ministry') {
+            return '<div style="margin-bottom:8px;font-size:14px;color:var(--soil);">' + escHtml(name) +
+              ' <span style="color:var(--dusty-rose);font-size:12px;">(' + escHtml(a.email) + ')</span>' + statusBadge +
+              ' <span style="font-family:Cinzel,serif;font-size:11px;color:var(--burgundy);text-transform:capitalize;border:1px solid var(--linen);border-radius:10px;padding:1px 8px;margin-left:4px;">' + escHtml(a.role) + '</span>' +
+              '<div style="font-size:11px;color:var(--dusty-rose);">Also leads this ministry. Change it under Other Portal Accounts below.</div></div>';
+          }
           return '<div style="margin-bottom:8px;">' +
               '<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:8px;flex-wrap:wrap;">' +
                 '<div style="font-size:14px;color:var(--soil);">' + escHtml(name) + ' <span style="color:var(--dusty-rose);font-size:12px;">(' + escHtml(a.email) + ')</span>' + statusBadge + '<div style="font-size:11px;color:var(--dusty-rose);">Last login: ' + formatLastLogin(a) + '</div></div>' +
@@ -6591,7 +6642,7 @@
           const statusBadge = a.disabled ? ' <span style="color:var(--danger);font-size:11px;">Disabled</span>' : '';
           return '<div style="padding:10px 0;border-bottom:1px solid var(--linen);">' +
               '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">' +
-                '<div><span style="font-family:Cinzel,serif;font-size:12px;color:var(--burgundy);text-transform:capitalize;">' + escHtml(a.role) + '</span> -- ' + escHtml(name) + ' <span style="color:var(--dusty-rose);font-size:12px;">(' + escHtml(a.email) + ')</span>' + statusBadge + '<div style="font-size:11px;color:var(--dusty-rose);">' + formatLastLogin(a) + '</div></div>' +
+                '<div><span style="font-family:Cinzel,serif;font-size:12px;color:var(--burgundy);text-transform:capitalize;">' + escHtml(a.role) + '</span> -- ' + escHtml(name) + ' <span style="color:var(--dusty-rose);font-size:12px;">(' + escHtml(a.email) + ')</span>' + statusBadge + (accountMinistryIds(a).length ? '<div style="font-size:12px;color:var(--burgundy);">Also leads: ' + accountMinistryIds(a).map(function(id) { return escHtml(ministryLabel(id)); }).join(', ') + '</div>' : '') + '<div style="font-size:11px;color:var(--dusty-rose);">' + formatLastLogin(a) + '</div></div>' +
                 accountRowButtonsHtml(a) +
               '</div>' +
               accountRowEditFormHtml(a) +
