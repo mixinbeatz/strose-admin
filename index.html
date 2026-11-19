@@ -3357,6 +3357,20 @@
     return token ? Object.assign({ Authorization: 'Bearer ' + token }, extra || {}) : (extra || {});
   }
   async function fs_get(col) { const r=await fetch(`${BASE}/${col}?key=${API_KEY}&pageSize=100`,{headers:await authHeaders()}); return await r.json(); }
+  // fs_get returns at most 100 documents. fs_get_all follows nextPageToken so nothing is silently dropped.
+  async function fs_get_all(col) {
+    const documents = [];
+    let token = '';
+    for (let i = 0; i < 40; i++) {
+      const r = await fetch(`${BASE}/${col}?key=${API_KEY}&pageSize=300` + (token ? '&pageToken=' + encodeURIComponent(token) : ''), {headers: await authHeaders()});
+      const j = await r.json();
+      if (!r.ok) throw new Error('could not read ' + col + ' (' + r.status + ')');
+      (j.documents || []).forEach(d => documents.push(d));
+      token = j.nextPageToken || '';
+      if (!token) break;
+    }
+    return {documents};
+  }
   async function fs_get_doc(path) { const r=await fetch(`${BASE}/${path}?key=${API_KEY}`,{headers:await authHeaders()}); return await r.json(); }
   // Older save code never checks whether a write was accepted, so a refused save (expired sign-in, permissions)
   // could still end in a green "Saved!" toast. This banner makes the failure visible without changing how those
@@ -10154,7 +10168,7 @@
     const list = document.getElementById('intention-list');
     if(!list) return;
     try {
-      const res = await fs_get('massIntentions');
+      const res = await fs_get_all('massIntentions');
       const now = new Date().toLocaleDateString('en-CA', {timeZone: 'America/Phoenix'});
       const timeToMinutes = (t) => {
         const m = (t || '').match(/(\d{1,2}):(\d{2})\s*([AP]M)/i);
@@ -10541,7 +10555,9 @@
       const timeMatch = text.match(timeLineRe);
       if (timeMatch) {
         const mass = timeMatch[1].replace(/\s+/g, ' ').trim();
-        const rest = timeMatch[2].trim();
+        // Strip a stray single letter the bulletin puts before the name marker
+        // (e.g. "10:00 am G †Sharon & Louis") and a trailing period.
+        const rest = timeMatch[2].trim().replace(/^[A-Za-z]\s+(?=[†+✝])/, '').replace(/(?<!\b(?:Jr|Sr|St|Dr|Mr|Mrs|Ms))\.+$/, '').trim();
         if (rest && !/^[A-Za-z]$/.test(rest)) {
           emit(mass, rest);
           pendingTime = null;
@@ -10616,20 +10632,26 @@
     btn.disabled = true; btn.textContent = 'Importing...';
     let success = 0;
     let skipped = 0;
+    const failed = [];
     let existingKeys = new Set();
     try {
-      const existing = await fs_get('massIntentions');
+      const existing = await fs_get_all('massIntentions');
       (existing.documents || []).forEach(doc => {
         const f = doc.fields || {};
         const key = (f.date?.stringValue||'') + '|' + (f.mass?.stringValue||'') + '|' + (f.intention?.stringValue||'');
         existingKeys.add(key);
       });
-    } catch(e) {}
+    } catch(e) {
+      // Without the existing list we can't tell what's already saved, and importing blind would create duplicates.
+      btn.disabled = false; btn.textContent = 'Import All';
+      showToast('Could not check existing intentions, so nothing was imported. Please try again.', 'error');
+      return;
+    }
     for(const item of parsed) {
       const key = item.date + '|' + item.mass + '|' + item.intention;
       if (existingKeys.has(key)) { skipped++; continue; }
       try {
-        await fs_post('massIntentions', {
+        await fs_post_strict('massIntentions', {
           date: {stringValue: item.date},
           mass: {stringValue: item.mass},
           intention: {stringValue: item.intention},
@@ -10638,10 +10660,19 @@
         });
         existingKeys.add(key);
         success++;
-      } catch(e) {}
+      } catch(e) { failed.push(item); }
     }
     btn.disabled = false; btn.textContent = 'Import All';
+    if (failed.length) {
+      // Keep only the rows that did not save so a retry can't duplicate the ones that did.
+      document.getElementById('bulk-intention-text').value = failed.map(f => f.date + ', ' + f.mass + ', ' + f.intention).join('\n');
+      previewBulkIntentions();
+      showToast(success + ' imported, but ' + failed.length + ' FAILED to save. The failed rows are still below. Press Import All to retry.', 'error');
+      loadIntentions();
+      return;
+    }
     showToast(success + ' intention' + (success!==1?'s':'') + ' imported' + (skipped>0 ? ', ' + skipped + ' duplicate' + (skipped!==1?'s':'') + ' skipped' : '') + '!', 'success');
+    loadIntentions();
     document.getElementById('bulk-intention-text').value = '';
     document.getElementById('bulk-intention-preview').innerHTML = '';
     document.getElementById('bulk-import-btn').style.display = 'none';
