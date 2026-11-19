@@ -2579,7 +2579,11 @@
         </div>
         <div class="card">
           <div class="card-title">📇 Published Advertisers</div>
-          <div class="info-box">Approving a request above publishes the business into the public Advertiser Directory on the website and the app. Archive a listing to hide it from both without losing anything (e.g. a cancellation or lapsed subscription); restore it any time. Delete is only available on archived listings.</div>
+          <div class="info-box">Approving a request above publishes the business into the public Advertiser Directory on the website and the app. Make a listing inactive to hide it from both without losing anything (e.g. a cancellation or lapsed subscription); restore it any time. Delete is only available on inactive listings.</div>
+          <div class="owner-admin-only" style="display:none;margin-bottom:12px;">
+            <button class="btn btn-outline btn-sm" id="adv-seed-btn" onclick="seedAdvertisersFromApp()">Import the old built-in advertiser list (one-time)</button>
+            <div id="adv-seed-status" style="display:none;margin-top:8px;font-size:13px;color:var(--soil);"></div>
+          </div>
           <div id="advertisers-list"><div style="color:var(--dusty-rose);font-size:14px;">Loading...</div></div>
         </div>
       </div>
@@ -6981,6 +6985,362 @@
   }
 
   // ── PUBLISHED ADVERTISERS (canonical `advertisers` collection) ──
+  // ── One-time import of the advertisers that used to be hardcoded in the app and
+  // website. After this runs the app and website read the live list (this page).
+  // Images are copied from /images/advertisers/ into Storage. Safe to re-run: names
+  // already in the list are skipped. Inactive = active:false (hidden from app/website).
+  const ADVERTISER_SEED = [
+ {
+  "name": "North Valley Eye Care",
+  "category": "Health",
+  "tier": "premium",
+  "tagline": "Your family eye care professionals since 2007.",
+  "description": "High quality and comprehensive eye care. Dr. Justin Kohls and Dr. Michelle Kohls.",
+  "discount": "",
+  "phone": "623-582-3937",
+  "website": "https://www.DrKohls.com",
+  "address": "2525 W. Carefree Hwy. #116, Phoenix, AZ 85085",
+  "smsNumber": "",
+  "specialties": "Comprehensive Eye Exams\nGlaucoma Treatment\nDiabetic Eye Care\nDry Eye Therapy\nPediatric Eye Care\nContact Lenses\nDesigner Frames",
+  "parishionerOwned": true,
+  "afterHours": false,
+  "logo": "nwec_new.png",
+  "modalHero": "nwec_new.png",
+  "modalLogo": "nvec_team.png",
+  "photo": "",
+  "active": true
+ },
+ {
+  "name": "Gavilan Peak Dental Care",
+  "category": "Health",
+  "tier": "premium",
+  "tagline": "Comprehensive, comfortable dental care for the whole family.",
+  "description": "Dr. Alice L. Shaw, DMD. Cosmetic dentistry, preventive oral health, and restorative dentistry. Invisalign provider.",
+  "discount": "",
+  "phone": "623-303-4110",
+  "website": "https://gavilanpeakdentalcare.com/",
+  "address": "2355 W Anthem Way, Anthem, AZ 85086",
+  "smsNumber": "",
+  "specialties": "Dental Cleanings & Checkups\nSealants\nMouth Guards\nRoot Canal Treatment\nDentures\nBridges\nInvisalign® Clear Aligners",
+  "parishionerOwned": false,
+  "afterHours": false,
+  "logo": "gpdc_tooth.png",
+  "modalHero": "gpdc_logo.png",
+  "modalLogo": "",
+  "photo": "",
+  "active": true
+ },
+ {
+  "name": "RE/MAX Summit Properties",
+  "category": "Real Estate",
+  "tier": "premium",
+  "tagline": "Your Anthem neighbors in real estate.",
+  "description": "Nearly two decades of experience in Anthem and the North Valley. Buying, selling, or investing — trust the name your community already does.",
+  "discount": "",
+  "phone": "602-677-4653",
+  "website": "https://www.remaxsummitproperties.com",
+  "address": "41722 N. Gavilan Peak Pkwy D120, Anthem, AZ 85086",
+  "smsNumber": "602-677-4653",
+  "specialties": "Residential Sales\nLuxury Homes\nNew Construction\nFirst-Time Buyers\nInvestment Properties\nRelocation Services",
+  "parishionerOwned": false,
+  "afterHours": false,
+  "logo": "remax.png",
+  "modalHero": "remax_logo_transparent.png",
+  "modalLogo": "",
+  "photo": "remaxlogo.png",
+  "active": true
+ },
+ {
+  "name": "Anthem Law",
+  "category": "Legal",
+  "tier": "premium",
+  "tagline": "Where your attorney is your neighbor.",
+  "description": "Your neighborhood law office. Wills and trusts, business law, personal injury, litigation, probate, and nursing home neglect.",
+  "discount": "",
+  "phone": "623-551-9366",
+  "website": "https://www.AnthemLaw.com",
+  "address": "3715 W. Anthem Way Suite 110, Anthem, AZ 85086",
+  "smsNumber": "",
+  "specialties": "Estate Planning\nPersonal Injury\nBusiness Law\nProbate Law\nFamily Law\nElder Law",
+  "parishionerOwned": false,
+  "afterHours": false,
+  "logo": "alpic.png",
+  "modalHero": "",
+  "modalLogo": "",
+  "photo": "AL.png",
+  "active": true
+ },
+ {
+  "name": "Hansen Desert Hills Mortuary & Cemetery",
+  "category": "Faith",
+  "tier": "premium",
+  "tagline": "Serving families with dignity since 1949.",
+  "description": "Family owned and operated. Serving the Diocese of Phoenix since 1949.",
+  "discount": "",
+  "phone": "480-991-5800",
+  "website": "https://www.hansenmortuary.com",
+  "address": "6500 E. Bell Rd., Scottsdale, AZ 85254",
+  "smsNumber": "",
+  "specialties": "Traditional Funeral Services\nCatholic Funeral Mass\nCremation Services\nPre-Planning\nCemetery & Burial\nMemorial Services",
+  "parishionerOwned": false,
+  "afterHours": true,
+  "logo": "HM.png",
+  "modalHero": "",
+  "modalLogo": "",
+  "photo": "",
+  "active": true
+ },
+ {
+  "name": "Safeguard Estate & Financial",
+  "category": "Financial",
+  "tier": "premium",
+  "tagline": "Protecting what matters most.",
+  "description": "Living trusts, estate planning. Local, trusted, experienced professionals. Affordable, transparent pricing.",
+  "discount": "",
+  "phone": "602-675-9000",
+  "website": "https://safeguardyourestate.com/",
+  "address": "",
+  "smsNumber": "",
+  "specialties": "Living Trusts\nEstate Planning\nAsset Protection\nPower of Attorney\nHealthcare Directives\nTrust Administration",
+  "parishionerOwned": false,
+  "afterHours": false,
+  "logo": "sef.png",
+  "modalHero": "sef.png",
+  "modalLogo": "",
+  "photo": "",
+  "active": false
+ },
+ {
+  "name": "Honest Hands Home Repair",
+  "category": "Home",
+  "tier": "standard",
+  "tagline": "",
+  "description": "Christian-based handyman service in North Phoenix. No job too small. Transparent billing, hourly basis.",
+  "discount": "",
+  "phone": "480-815-7723",
+  "website": "",
+  "address": "",
+  "smsNumber": "",
+  "specialties": "",
+  "parishionerOwned": false,
+  "afterHours": false,
+  "logo": "",
+  "modalHero": "",
+  "modalLogo": "",
+  "photo": "",
+  "active": true
+ },
+ {
+  "name": "Mike's Absolute Glass & Detail",
+  "category": "Auto",
+  "tier": "standard",
+  "tagline": "",
+  "description": "PPF, clear bra, vinyl wraps, auto glass, detailing, and window tint.",
+  "discount": "",
+  "phone": "623-986-2354",
+  "website": "https://mikesabsolute.com",
+  "address": "",
+  "smsNumber": "",
+  "specialties": "",
+  "parishionerOwned": false,
+  "afterHours": false,
+  "logo": "",
+  "modalHero": "",
+  "modalLogo": "",
+  "photo": "",
+  "active": false
+ },
+ {
+  "name": "DCM Pools",
+  "category": "Home",
+  "tier": "standard",
+  "tagline": "",
+  "description": "Custom pools, remodeling, and complete outdoor living space.",
+  "discount": "",
+  "phone": "480-570-6612",
+  "website": "https://dcmpools.com",
+  "address": "",
+  "smsNumber": "",
+  "specialties": "",
+  "parishionerOwned": false,
+  "afterHours": false,
+  "logo": "",
+  "modalHero": "",
+  "modalLogo": "",
+  "photo": "",
+  "active": true
+ },
+ {
+  "name": "Rain Man Roofing & Waterproofing",
+  "category": "Home",
+  "tier": "standard",
+  "tagline": "",
+  "description": "Commercial, industrial, and residential roofing. Repairs, new installation, and maintenance. Licensed, bonded, and insured.",
+  "discount": "",
+  "phone": "623-670-2835",
+  "website": "https://rainmanroofing.com",
+  "address": "",
+  "smsNumber": "",
+  "specialties": "",
+  "parishionerOwned": false,
+  "afterHours": false,
+  "logo": "",
+  "modalHero": "",
+  "modalLogo": "",
+  "photo": "",
+  "active": false
+ },
+ {
+  "name": "Dryer Vent Wizard",
+  "category": "Home",
+  "tier": "standard",
+  "tagline": "",
+  "description": "Professionally trained technicians who inspect, clean, and repair dryer vents. Fire prevention and energy savings.",
+  "discount": "",
+  "phone": "602-960-2917",
+  "website": "https://dryerventwizard.com",
+  "address": "",
+  "smsNumber": "",
+  "specialties": "",
+  "parishionerOwned": false,
+  "afterHours": false,
+  "logo": "",
+  "modalHero": "",
+  "modalLogo": "",
+  "photo": "",
+  "active": false
+ },
+ {
+  "name": "Merrill Gardens",
+  "category": "Services",
+  "tier": "standard",
+  "tagline": "",
+  "description": "Senior living in Anthem. Visit today.",
+  "discount": "",
+  "phone": "623-745-3689",
+  "website": "https://merrillgardensanthem.com",
+  "address": "",
+  "smsNumber": "",
+  "specialties": "",
+  "parishionerOwned": false,
+  "afterHours": false,
+  "logo": "",
+  "modalHero": "",
+  "modalLogo": "",
+  "photo": "",
+  "active": false
+ },
+ {
+  "name": "First Light Home Care of Cave Creek",
+  "category": "Health",
+  "tier": "premium",
+  "tagline": "Catholic family-owned. Trusted in-home care.",
+  "description": "Trusted in-home care supporting our community and veterans with grace and respect. Catholic family-owned. Licensed, bonded and insured, with background-checked and professionally trained caregivers.",
+  "discount": "",
+  "phone": "602-638-2555",
+  "website": "",
+  "address": "",
+  "smsNumber": "",
+  "specialties": "",
+  "parishionerOwned": false,
+  "afterHours": false,
+  "logo": "",
+  "modalHero": "",
+  "modalLogo": "",
+  "photo": "",
+  "active": true
+ },
+ {
+  "name": "ADT Home Security (SafeStreets)",
+  "category": "Home",
+  "tier": "standard",
+  "tagline": "",
+  "description": "ADT-monitored home security from an ADT Authorized Provider. 24-hour protection from a name you can trust: burglary, fire safety, flood detection and carbon monoxide.",
+  "discount": "",
+  "phone": "833-287-3502",
+  "website": "",
+  "address": "",
+  "smsNumber": "",
+  "specialties": "",
+  "parishionerOwned": false,
+  "afterHours": false,
+  "logo": "",
+  "modalHero": "",
+  "modalLogo": "",
+  "photo": "",
+  "active": true
+ },
+ {
+  "name": "MDMedAlert",
+  "category": "Health",
+  "tier": "standard",
+  "tagline": "",
+  "description": "Medical alert protection if you live alone. Ambulance, police and fire response, family and friends notification, GPS and fall alert. Less than $1 a day.",
+  "discount": "",
+  "phone": "800-809-3570",
+  "website": "https://md-medalert.com",
+  "address": "",
+  "smsNumber": "",
+  "specialties": "",
+  "parishionerOwned": false,
+  "afterHours": false,
+  "logo": "",
+  "modalHero": "",
+  "modalLogo": "",
+  "photo": "",
+  "active": true
+ }
+];
+  async function seedAdvertisersFromApp() {
+    if (!isAdminLikeRole(currentClaims && currentClaims.role)) { showToast('Only an admin can run this.', 'error'); return; }
+    if (!confirm('Import the ' + ADVERTISER_SEED.length + ' advertisers from the old built-in list into the portal?\n\n' +
+      ADVERTISER_SEED.filter(function(a){return a.active;}).length + ' will be active and ' + ADVERTISER_SEED.filter(function(a){return !a.active;}).length +
+      ' will go in Inactive. Anyone already in the list is skipped. This also uploads their logos.')) return;
+    const btn = document.getElementById('adv-seed-btn'), st = document.getElementById('adv-seed-status');
+    if (btn) btn.disabled = true;
+    const say = function(t) { if (st) { st.style.display = 'block'; st.textContent = t; } };
+    try {
+      const have = ((await fs_get('advertisers')).documents || []).map(function(d) { return String(gf(d, 'name') || '').toLowerCase(); });
+      const cache = {};
+      async function up(file, folder) {
+        if (!file) return '';
+        const key = folder + '/' + file;
+        if (cache[key]) return cache[key];
+        const r = await fetch('images/advertisers/' + file);
+        if (!r.ok) throw new Error('missing image ' + file);
+        const blob = await r.blob();
+        const b64 = await new Promise(function(res, rej) { const fr = new FileReader(); fr.onload = function(e) { res(String(e.target.result).split(',')[1]); }; fr.onerror = rej; fr.readAsDataURL(blob); });
+        cache[key] = await uploadRawFile(b64, 'image/png', folder + '/' + Date.now() + '_' + file);
+        return cache[key];
+      }
+      let added = 0, skipped = 0;
+      for (let i = 0; i < ADVERTISER_SEED.length; i++) {
+        const a = ADVERTISER_SEED[i];
+        if (have.indexOf(a.name.toLowerCase()) >= 0) { skipped++; continue; }
+        say('Importing ' + (i + 1) + ' of ' + ADVERTISER_SEED.length + ': ' + a.name + '...');
+        const S = function(v) { return { stringValue: v || '' }; };
+        await fs_post_strict('advertisers', {
+          name: S(a.name), category: S(a.category), tier: S(a.tier), tierPlan: S(a.tier), tagline: S(a.tagline), description: S(a.description),
+          discount: S(a.discount), phone: S(a.phone), website: S(a.website), address: S(a.address), smsNumber: S(a.smsNumber),
+          specialties: S(a.specialties), parishionerOwned: { booleanValue: !!a.parishionerOwned }, afterHours: { booleanValue: !!a.afterHours },
+          acceptTexts: { booleanValue: !!a.smsNumber },
+          logoUrl: S(await up(a.logo, 'partnerLogos')), photoUrl: S(await up(a.photo, 'partnerPhotos')),
+          modalHeroUrl: S(await up(a.modalHero, 'partnerModalHero')), modalLogoUrl: S(await up(a.modalLogo, 'partnerModalLogo')),
+          active: { booleanValue: !!a.active }, billingStatus: S('comped'), compedUntil: S(''),
+          publishedAt: S(new Date().toISOString()), importedFrom: S('app-hardcoded-list')
+        });
+        added++;
+      }
+      say('Done: ' + added + ' imported, ' + skipped + ' already there.');
+      showToast('Advertisers imported: ' + added + ' added, ' + skipped + ' skipped.', 'success');
+      loadAdvertisers(); loadDashboard();
+    } catch (e) {
+      say('Stopped: ' + (e.message || e) + '. Nothing is lost; run it again to finish (finished ones are skipped).');
+      showToast('Import stopped: ' + (e.message || e), 'error');
+    }
+    if (btn) btn.disabled = false;
+  }
+
   async function loadAdvertisers() {
     const list=document.getElementById('advertisers-list');
     if(!list) return;
@@ -7006,7 +7366,7 @@
         const csHtml=cs?`<div style="font-size:12px;font-weight:600;margin:6px 0;color:${cs.color};">⏳ ${escHtml(cs.label)}</div>`:'';
         return `<div class="partner-card" id="advertiser-${id}" style="${active?'':'opacity:0.55;'}">
           <div class="partner-card-header">
-            <div class="partner-name">${escHtml(name)}${active?'':' <span style="font-size:12px;color:var(--danger);">· archived</span>'}</div>
+            <div class="partner-name">${escHtml(name)}${active?'':' <span style="font-size:12px;color:var(--danger);">· inactive</span>'}</div>
             <div style="display:flex;gap:6px;align-items:center;flex-shrink:0;">
               <span class="tier-badge ${isPremium?'tier-premium':'tier-standard'}">${isPremium?'Premium':'Standard'}</span>
               <span class="tier-badge ${isPaying?'billing-paying':'billing-comped'}">${isPaying?'Paying':'Comped'}</span>
@@ -7016,7 +7376,7 @@
           ${csHtml}
           ${desc?`<div class="partner-desc">${escHtml(desc)}</div>`:''}
           <div style="display:flex;gap:8px;flex-wrap:wrap;">
-            <button class="btn btn-outline btn-sm" onclick="toggleAdvertiserActive('${id}',${active})">${active?'🗄 Archive':'↩ Restore'}</button>
+            <button class="btn btn-outline btn-sm" onclick="toggleAdvertiserActive('${id}',${active})">${active?'🗄 Make inactive':'↩ Restore'}</button>
             <button class="btn btn-outline btn-sm" onclick="const b=document.getElementById('adedit-${id}');b.style.display=b.style.display==='none'?'block':'none';">✎ Edit details</button>
             ${active?'':`<button class="btn btn-danger btn-sm" onclick="deleteAdvertiser('${id}','${escAttr(name)}')">🗑 Delete permanently</button>`}
           </div>
@@ -7037,9 +7397,9 @@
       };
       const activeDocs=docs.filter(d=>gf(d,'active')!==false);
       const archivedDocs=docs.filter(d=>gf(d,'active')===false);
-      let out=activeDocs.length?activeDocs.map(renderAdv).join(''):`<div class="empty-state"><div class="empty-icon">📇</div><div class="empty-title">No active advertisers</div><div class="empty-sub">${archivedDocs.length?'Everyone is archived. Restore a listing below to show it again.':'Approving a partner request above publishes it here.'}</div></div>`;
+      let out=activeDocs.length?activeDocs.map(renderAdv).join(''):`<div class="empty-state"><div class="empty-icon">📇</div><div class="empty-title">No active advertisers</div><div class="empty-sub">${archivedDocs.length?'Everyone is inactive. Restore a listing below to show it again.':'Approving a partner request above publishes it here.'}</div></div>`;
       if(archivedDocs.length){
-        out+=`<details id="adv-archived" style="margin-top:20px;"${wasOpen?' open':''}><summary style="cursor:pointer;font-family:Cinzel,serif;color:var(--burgundy);padding:8px 0;">🗄 Archived (${archivedDocs.length}) — hidden from the app and website</summary><div style="margin-top:10px;">${archivedDocs.map(renderAdv).join('')}</div></details>`;
+        out+=`<details id="adv-archived" style="margin-top:20px;"${wasOpen?' open':''}><summary style="cursor:pointer;font-family:Cinzel,serif;color:var(--burgundy);padding:8px 0;">🗄 Inactive (${archivedDocs.length}) — hidden from the app and website</summary><div style="margin-top:10px;">${archivedDocs.map(renderAdv).join('')}</div></details>`;
       }
       list.innerHTML=out;
     } catch(e){list.innerHTML='<div style="color:var(--danger);">Error loading advertisers.</div>';}
@@ -7059,7 +7419,7 @@
   async function toggleAdvertiserActive(id,cur){
     try{
       await fs_patch(`advertisers/${id}`,{active:{booleanValue:!cur}});
-      showToast(cur?'Advertiser archived — hidden from the app and website. Restore it any time.':'Advertiser restored — visible again in the app and on the website.','success');
+      showToast(cur?'Advertiser made inactive — hidden from the app and website. Restore it any time.':'Advertiser restored — visible again in the app and on the website.','success');
       loadAdvertisers();
     }catch(e){showToast('Error updating advertiser.','error');}
   }
