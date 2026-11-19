@@ -2684,7 +2684,7 @@
           <div style="font-size:14px;line-height:1.6;color:var(--soil);">Used on announcements, reflections, ministry cards and the Welcome screen.
             <ul style="margin:8px 0 0 20px;">
               <li><strong>Shape:</strong> wide landscape. Using AI? Ask for <em>"wide landscape banner, 16:9, main subject in the center, no text or words in the image."</em></li>
-              <li><strong>Size:</strong> at least 1200 pixels across. After you choose it, zoom and drag to frame it.</li>
+              <li><strong>Size:</strong> at least 1800 pixels across. After you choose it, zoom and drag to frame it.</li>
               <li><strong>Phones</strong> show it about twice as wide as tall. <strong>iPads</strong> show it wider and shorter. So keep faces, the altar or the main subject in the middle, away from the left and right edges.</li>
               <li><strong>No words in the picture.</strong> The title is placed on top, and the app darkens the photo with burgundy so the title is readable.</li>
             </ul>
@@ -3147,7 +3147,7 @@
   // ── Image size tips, added under the picture pickers on whichever page is showing ──
   function injectImageTips() {
     const tips = [
-      { re: /(AnnHeroPick|HeroMediaUpload|pickReflectionHero|pickWelcomeHero|pickMinistryHero)/, html: '📐 <strong>Best size:</strong> a wide landscape picture, at least 1200 px across. Phones show it about 2:1 and iPads wider and shorter, so keep what matters in the middle and leave words out of the picture.' },
+      { re: /(AnnHeroPick|HeroMediaUpload|pickReflectionHero|pickWelcomeHero|pickMinistryHero)/, html: '📐 <strong>Best size:</strong> a wide landscape picture, at least 1800 px across. Phones show it about 2:1 and iPads wider and shorter, so keep what matters in the middle and leave words out of the picture.' },
       { re: /(AnnPicturePick|RefPicturePick|MinistryPicturePick)/, html: '📐 <strong>Any shape works.</strong> Shown full width, never cropped. Make flyer text big enough to read on a phone, and proofread AI-made text.' },
       { re: /(AnnPhotoPick|StaffPhotoUpload|WelcomeMsgPhotoUpload|CouncilMemberPhotoUpload)/, html: '📐 <strong>Best size:</strong> a close, roughly square photo with the face in the center. You crop it to a circle.' }
     ];
@@ -4851,7 +4851,7 @@
   // shows. Stored on the announcement as heroImageUrl.
   var annHeroUrl = '';
   var annHeroEd = { img: null, zoom: 1, panX: 0, panY: 0 };
-  const ANN_HERO_W = 1200, ANN_HERO_H = 500;
+  const ANN_HERO_W = 1800, ANN_HERO_H = 750;
   function annHeroGeom() {
     const e = annHeroEd;
     const cover = Math.max(ANN_HERO_W / e.img.naturalWidth, ANN_HERO_H / e.img.naturalHeight), s = cover * e.zoom;
@@ -5495,7 +5495,7 @@
   // HERO CROPPER V2: shows the WHOLE photo with a movable 2.4:1 frame. Drag the frame
   // to choose what the app shows; the slider (or mouse wheel) makes the frame smaller =
   // zooms in. Output is always 1200x500 (the banner shape).
-  const HERO_W = 1200, HERO_H = 500, HERO_RATIO = 1200 / 500;
+  const HERO_W = 1800, HERO_H = 750, HERO_RATIO = 1800 / 750;
   function heroRatio() { return heroCrop.ratio || HERO_RATIO; }
   function heroMaxW() { return Math.min(heroCrop.img.naturalWidth, heroCrop.img.naturalHeight * heroRatio()); }
   function heroFrame() {
@@ -11762,9 +11762,8 @@
         '<div style="font-size:11px;color:var(--dusty-rose);margin-bottom:4px;">' + label + '</div>' +
         '<div style="position:relative;overflow:hidden;border-radius:10px;background:#5C1A2E;aspect-ratio:' + w + '/' + h + ';display:flex;flex-direction:column;justify-content:flex-end;padding:' + Math.round(w/24) + 'px;box-sizing:border-box;">' +
           '<img src="' + annAttr(welcomeHeroUrl) + '" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" />' +
-          '<div style="position:absolute;inset:0;background:rgba(92,26,46,0.55);"></div>' +
-          '<div style="position:absolute;left:0;right:0;bottom:0;height:60%;background:rgba(51,18,25,0.45);"></div>' +
-          '<div style="position:relative;color:#E8DDD0;font-family:Cinzel,serif;font-weight:700;font-size:' + fs + 'px;">Welcome to Saint Rose</div>' +
+          '<div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,0.28) 0%,rgba(0,0,0,0) 30%,rgba(0,0,0,0) 50%,rgba(0,0,0,0.6) 100%);"></div>' +
+          '<div style="position:relative;color:#E8DDD0;font-family:Cinzel,serif;font-weight:700;text-shadow:0 1px 6px rgba(0,0,0,0.55);font-size:' + fs + 'px;">Welcome to Saint Rose</div>' +
           '<div style="position:relative;height:3px;background:#C9A84C;margin-top:8px;border-radius:2px;"></div>' +
         '</div></div>';
     };
