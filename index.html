@@ -111,6 +111,9 @@
   .btn-danger { background: var(--danger); color: var(--white); }
   .btn-success { background: var(--success); color: var(--white); }
   .btn-sm { padding: 7px 14px; font-size: 12px; }
+  .form-group > label.btn { align-self: flex-start; }   /* 'Choose photo' buttons: don't stretch across the whole column */
+  .img-tip { font-size: 12px; color: var(--dusty-rose); margin-top: 8px; line-height: 1.5; }
+  .img-tip a { color: var(--burgundy); text-decoration: underline; cursor: pointer; }
   .btn-row { display: flex; gap: 12px; margin-top: 20px; align-items: center; flex-wrap: wrap; }
 
   .post-success { display: none; background: #EDF7F0; border: 1px solid #4A7C59; color: #2D5C3A; padding: 12px 16px; border-radius: 9px; font-size: 14px; margin-top: 16px; }
@@ -473,6 +476,7 @@
         <div class="nav-item owner-admin-only" style="display:none" onclick="showPage('onboard-council',this)"><span class="nav-icon">🏛️</span> Onboard Council Lead</div>
         <div class="nav-item owner-admin-only" style="display:none" onclick="showPage('leader-tracker',this);loadLeaderTracker()"><span class="nav-icon">📋</span> Ministry Leaders</div>
       </div>
+        <div class="nav-item" onclick="showPage('image-guide',this)"><span class="nav-icon">📐</span> Image Guide</div>
     </nav>
     <div class="sidebar-footer">
       <a href="https://mixinbeatz.github.io/strose-website/" target="_blank" rel="noopener" class="signout-btn" style="display:block;text-align:center;text-decoration:none;box-sizing:border-box;margin-bottom:8px;">🌐 View Website</a>
@@ -2667,6 +2671,49 @@
         </div>
       </div>
       <!-- Event Requests Page (Staff) -->
+      <div class="page" id="page-image-guide">
+        <div class="card">
+          <div class="card-title">📐 Image Guide</div>
+          <div class="info-box"><strong>Short version:</strong> use any picture you like. The portal shrinks large files for you, and most places let you zoom and drag to frame the picture. What matters is the <em>shape</em> and keeping the important part in the <em>middle</em>, because phones and iPads show images at different sizes.</div>
+
+          <div class="form-label" style="margin:18px 0 6px;">Hero images — the wide banner at the top</div>
+          <div style="font-size:14px;line-height:1.6;color:var(--soil);">Used on announcements, reflections, ministry cards and the Welcome screen.
+            <ul style="margin:8px 0 0 20px;">
+              <li><strong>Shape:</strong> wide landscape. Using AI? Ask for <em>"wide landscape banner, 16:9, main subject in the center, no text or words in the image."</em></li>
+              <li><strong>Size:</strong> at least 1200 pixels across. After you choose it, zoom and drag to frame it.</li>
+              <li><strong>Phones</strong> show it about twice as wide as tall. <strong>iPads</strong> show it wider and shorter. So keep faces, the altar or the main subject in the middle, away from the left and right edges.</li>
+              <li><strong>No words in the picture.</strong> The title is placed on top, and the app darkens the photo with burgundy so the title is readable.</li>
+            </ul>
+          </div>
+
+          <div class="form-label" style="margin:22px 0 6px;">Pictures and flyers — up to 3 under the message</div>
+          <div style="font-size:14px;line-height:1.6;color:var(--soil);">
+            <ul style="margin:8px 0 0 20px;">
+              <li><strong>Any shape works.</strong> They show full width and are never cropped. Tall flyers are fine, and people can tap to enlarge.</li>
+              <li><strong>Make the text big.</strong> A phone screen is only about 390 pixels wide, so small print becomes unreadable. On iPads the card stays a comfortable width and doesn't stretch across the screen.</li>
+              <li><strong>Proofread AI flyers.</strong> AI often misspells words and invents dates or times. Read it letter by letter before sending.</li>
+              <li><strong>Size:</strong> 1000–2000 pixels on the long side is plenty. Larger pictures are shrunk automatically.</li>
+            </ul>
+          </div>
+
+          <div class="form-label" style="margin:22px 0 6px;">Round photos — guest speakers, staff, council members, Fr. Bing</div>
+          <div style="font-size:14px;line-height:1.6;color:var(--soil);">
+            <ul style="margin:8px 0 0 20px;">
+              <li>A close-up, roughly square photo with the face in the center. You crop it to a circle after choosing it.</li>
+              <li>They show small, so a tight crop on the face reads best. 600 pixels or more is plenty.</li>
+            </ul>
+          </div>
+
+          <div class="form-label" style="margin:22px 0 6px;">Good to know</div>
+          <div style="font-size:14px;line-height:1.6;color:var(--soil);">
+            <ul style="margin:8px 0 0 20px;">
+              <li>JPG, PNG or WebP all work. You don't need to resize or compress anything first.</li>
+              <li>On the website, photos are cropped to fit different screens, so keep the subject near the center there too.</li>
+              <li>Changing an image here changes it for everyone right away. Phones that haven't updated the app may not show newer features, such as the Welcome hero.</li>
+            </ul>
+          </div>
+        </div>
+      </div>
       <div class="page" id="page-announcement-requests">
         <div class="card">
           <div class="card-title">📨 Announcement Requests</div>
@@ -3055,6 +3102,25 @@
   function openSidebar() { document.getElementById('sidebar').classList.add('open'); document.getElementById('sidebar-overlay').classList.add('active'); document.body.style.overflow='hidden'; }
   function closeSidebar() { document.getElementById('sidebar').classList.remove('open'); document.getElementById('sidebar-overlay').classList.remove('active'); document.body.style.overflow=''; }
 
+  // ── Image size tips, added under the picture pickers on whichever page is showing ──
+  function injectImageTips() {
+    const tips = [
+      { re: /(AnnHeroPick|HeroMediaUpload|pickReflectionHero|pickWelcomeHero|pickMinistryHero)/, html: '📐 <strong>Best size:</strong> a wide landscape picture, at least 1200 px across. Phones show it about 2:1 and iPads wider and shorter, so keep what matters in the middle and leave words out of the picture.' },
+      { re: /(AnnPicturePick|RefPicturePick|MinistryPicturePick)/, html: '📐 <strong>Any shape works.</strong> Shown full width, never cropped. Make flyer text big enough to read on a phone, and proofread AI-made text.' },
+      { re: /(AnnPhotoPick|StaffPhotoUpload|WelcomeMsgPhotoUpload|CouncilMemberPhotoUpload)/, html: '📐 <strong>Best size:</strong> a close, roughly square photo with the face in the center. You crop it to a circle.' }
+    ];
+    document.querySelectorAll('.page.active input[type=file][onchange]').forEach(function(inp) {
+      const h = inp.getAttribute('onchange') || '';
+      const t = tips.find(function(x) { return x.re.test(h); });
+      const g = inp.closest('.form-group');
+      if (!t || !g || g.querySelector('.img-tip')) return;
+      const d = document.createElement('div');
+      d.className = 'img-tip';
+      d.innerHTML = t.html + ' <a onclick="showPage(\'image-guide\', navItem(\'image-guide\'))">Image guide</a>';
+      g.appendChild(d);
+    });
+  }
+
   // ── Browser Back/Forward support ──
   // The portal is one page with no router, so we mirror each page switch into the History API.
   // URL hash = page id (e.g. #approvals); manage-ministry carries its ministry id (#manage-ministry/<id>).
@@ -3142,7 +3208,7 @@
     if(el) el.classList.add('active');
     window.scrollTo(0,0);
     closeSidebar();
-    const titles = {metrics:'Metrics',dashboard:'Dashboard',events:'Events',announcement:'Post Announcement',fastblast:'Fast Blast',reflection:'Weekly Reflection','parish-development':'Parish Development',daily:'Daily Reflection',songsheet:'Mass Songsheet',welcome:'Welcome Message','hero-media':'Hero Section','welcome-media':'Welcome Section',gallery:'Homepage Gallery','around-parish':'Around the Parish','parish-dev-media':'Parish Development','bulletin-images':'Bulletin Images','ministry-booklet':'Ministry Booklet','form-settings':'Form Settings','mass-schedule':'Mass Schedule',sacraments:'Sacraments','live-screen':'Live Screen',councils:'Pastoral, Finance & Development Council','council-inquiries':'Council Inquiries','signup-forms':'Forms & Sign-ups','parish-staff':'Parish Staff Directory','ministry-documents':'Ministry Documents','serving-roles':'Serving Roles','funeral-planning':'Funeral Planning Forms','onboard-council':'Onboard Council Lead','music-ministry':'Music Ministry','music-members':'Music Ministry Members',approvals:'Parish Family Approvals',partners:'Advertising Requests',directory:'Parish Family Directory','reported-listings':'Reported Listings','needs-review':'Needs Review','ministry-post':'Post to Members','cda-members':'My Members','submit-event':'Submit Event','event-requests':'Event Requests','contact-requests':'Contact Requests',intention:'Mass Intentions','my-ministry':'My Ministry','onboard-leader':'Onboard Ministry Leader','leader-tracker':'Ministry Leaders'};
+    const titles = {metrics:'Metrics',dashboard:'Dashboard',events:'Events',announcement:'Post Announcement',fastblast:'Fast Blast',reflection:'Weekly Reflection','parish-development':'Parish Development',daily:'Daily Reflection',songsheet:'Mass Songsheet',welcome:'Welcome Message','hero-media':'Hero Section','welcome-media':'Welcome Section',gallery:'Homepage Gallery','around-parish':'Around the Parish','parish-dev-media':'Parish Development','bulletin-images':'Bulletin Images','ministry-booklet':'Ministry Booklet','form-settings':'Form Settings','mass-schedule':'Mass Schedule',sacraments:'Sacraments','live-screen':'Live Screen',councils:'Pastoral, Finance & Development Council','council-inquiries':'Council Inquiries','signup-forms':'Forms & Sign-ups','parish-staff':'Parish Staff Directory','ministry-documents':'Ministry Documents','serving-roles':'Serving Roles','funeral-planning':'Funeral Planning Forms','onboard-council':'Onboard Council Lead','music-ministry':'Music Ministry','music-members':'Music Ministry Members',approvals:'Parish Family Approvals',partners:'Advertising Requests',directory:'Parish Family Directory','reported-listings':'Reported Listings','needs-review':'Needs Review','ministry-post':'Post to Members','cda-members':'My Members','submit-event':'Submit Event','event-requests':'Event Requests','contact-requests':'Contact Requests',intention:'Mass Intentions','my-ministry':'My Ministry','onboard-leader':'Onboard Ministry Leader','leader-tracker':'Ministry Leaders','image-guide':'Image Guide'};
     document.getElementById('page-title').textContent = titles[id]||id;
     var mpt = document.getElementById('mobile-page-title'); if(mpt) mpt.textContent = titles[id]||id;
     _portalPage = id;
@@ -3169,6 +3235,7 @@
     if(id==='intention') { loadIntentions(); const dEl=document.getElementById('intention-date'); if(dEl) dEl.valueAsDate = new Date(); }
     if(id==='events') loadRecentEvents();
     if(id==='event-requests') loadEventRequests();
+    setTimeout(injectImageTips, 0);
   }
 
   function switchInnerTab(id, el) {
@@ -10242,21 +10309,19 @@
   // several fields with one shared Save Members button, and immediately
   // persisting on photo drop would also silently save whatever in-progress
   // name/role/bio edits happen to be sitting in the other fields right now.
-  async function handleCouncilMemberPhotoUpload(which, i, input) {
-    const file = input.files[0];
+  function handleCouncilMemberPhotoUpload(which, i, input) {
+    const file = input.files && input.files[0];
     if (!file) return;
-    try {
-      const base64 = await new Promise((resolve, reject) => {
-        const reader = new FileReader();
-        reader.onload = e => resolve(e.target.result.split(',')[1]);
-        reader.onerror = reject;
-        reader.readAsDataURL(file);
-      });
-      const url = await uploadDevFile(base64, file.name, 'councils/' + COUNCIL_DOC_IDS[which] + '/members', file.type);
-      councilMembers[which][i].photoUrl = url;
-      renderCouncilMemberRows(which);
-      showToast('Photo uploaded — click Save Members to keep it.', 'success');
-    } catch(e) { console.error('Council member photo upload error:', e); showToast('Upload failed: ' + (e && e.message || e), 'error'); }
+    input.value = '';
+    // Shown as a small circle in the app, so crop it the same way as the other portraits
+    openPhotoCropper(file, async ({ base64, contentType }) => {
+      try {
+        const url = await uploadDevFile(base64, 'council-member.jpg', 'councils/' + COUNCIL_DOC_IDS[which] + '/members', contentType);
+        councilMembers[which][i].photoUrl = url;
+        renderCouncilMemberRows(which);
+        showToast('Photo uploaded — click Save Members to keep it.', 'success');
+      } catch(e) { console.error('Council member photo upload error:', e); showToast('Upload failed: ' + (e && e.message || e), 'error'); }
+    });
   }
   // Clears the field only -- doesn't delete the file from Storage. No
   // pattern for that cleanup exists anywhere else in this portal today
@@ -11650,15 +11715,22 @@
     const cur = document.getElementById('welcome-hero-current');
     if (cur) cur.innerHTML = welcomeHeroUrl ? heroThumbHtml(welcomeHeroUrl, 'removeWelcomeHero()') : '';
     const pv = document.getElementById('welcome-hero-preview');
-    if (pv) pv.innerHTML = welcomeHeroUrl
-      ? '<div style="font-size:11px;color:var(--dusty-rose);margin-bottom:4px;">How the top of the Welcome screen will look</div>' +
-        '<div style="position:relative;overflow:hidden;border-radius:10px;background:#5C1A2E;min-height:150px;display:flex;flex-direction:column;justify-content:flex-end;padding:16px;">' +
+    const box = function(w, h, fs, label) {
+      return '<div style="flex:0 0 auto;width:' + w + 'px;max-width:100%;">' +
+        '<div style="font-size:11px;color:var(--dusty-rose);margin-bottom:4px;">' + label + '</div>' +
+        '<div style="position:relative;overflow:hidden;border-radius:10px;background:#5C1A2E;aspect-ratio:' + w + '/' + h + ';display:flex;flex-direction:column;justify-content:flex-end;padding:' + Math.round(w/24) + 'px;box-sizing:border-box;">' +
           '<img src="' + annAttr(welcomeHeroUrl) + '" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" />' +
           '<div style="position:absolute;inset:0;background:rgba(92,26,46,0.55);"></div>' +
           '<div style="position:absolute;left:0;right:0;bottom:0;height:60%;background:rgba(51,18,25,0.45);"></div>' +
-          '<div style="position:relative;color:#E8DDD0;font-family:Cinzel,serif;font-weight:700;font-size:20px;">Welcome to Saint Rose</div>' +
-          '<div style="position:relative;height:3px;background:#C9A84C;margin-top:10px;border-radius:2px;"></div>' +
-        '</div>'
+          '<div style="position:relative;color:#E8DDD0;font-family:Cinzel,serif;font-weight:700;font-size:' + fs + 'px;">Welcome to Saint Rose</div>' +
+          '<div style="position:relative;height:3px;background:#C9A84C;margin-top:8px;border-radius:2px;"></div>' +
+        '</div></div>';
+    };
+    // Same rules as the app: a banner at least ~200 tall, about 2.4:1 when there is room, never taller than 320.
+    if (pv) pv.innerHTML = welcomeHeroUrl
+      ? '<div style="font-size:12px;color:var(--soil);margin-bottom:8px;">How the top of the Welcome screen will look</div>' +
+        '<div style="display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start;">' + box(240, 123, 15, 'iPhone') + box(420, 164, 20, 'iPad') + '</div>' +
+        '<div style="font-size:11px;color:var(--dusty-rose);margin-top:8px;">Phones show a narrower slice of the picture than iPads do. Keep the important part in the middle.</div>'
       : '';
   }
   function pickWelcomeHero(input) {
