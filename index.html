@@ -457,6 +457,10 @@
         <div class="nav-item ministry-leader" data-ministry="mens" style="display:none" onclick="openAnnouncementRequest(this)"><span class="nav-icon">📢</span> Request an Announcement</div>
 
         </div>
+        <div class="nav-subsection-toggle ministry-leader collapsed" data-ministry="funeral" onclick="toggleNavSection(this)"><span>Funeral Ministry</span><span class="nav-chevron">▾</span></div>
+        <div class="nav-group collapsed">
+        <div class="nav-item ministry-leader" data-ministry="funeral" onclick="showPage('funeral-planning',this);loadFuneralPlanning()"><span class="nav-icon">🕊️</span> Funeral Planning Forms</div>
+        </div>
         <div class="nav-subsection-toggle ministry-only collapsed" style="display:none" onclick="toggleNavSection(this)"><span>Catholic Daughters</span><span class="nav-chevron">▾</span></div>
         <div class="nav-group collapsed">
         <div class="nav-item ministry-only" style="display:none" onclick="showPage('my-ministry',this);loadMyMinistry()"><span class="nav-icon">⛪</span> My Ministry</div>
@@ -1832,8 +1836,10 @@
             <select class="form-select" id="ol-role" onchange="toggleOnboardMinistryField()">
               <option value="ministry">Ministry Leader (scoped to one ministry)</option>
               <option value="staff">Staff (broader operational access)</option>
+              <option value="office">Office (executive assistant: announcements, reflections, mass intentions, family registrations)</option>
               <option value="clergy">Clergy (content only)</option>
               <option value="admin">Admin (full access, incl. partner approval)</option>
+              <option value="office_manager">Office Manager (top level, same as Admin)</option>
             </select>
           </div>
           <div class="form-group" id="ol-ministry-group">
@@ -3033,6 +3039,14 @@
       gtag('set', 'user_properties', { role: bucket });
     } catch (e) {}
   }
+  // Top-level roles: owner, admin and office manager.
+  function isAdminLikeRole(r) { return r === 'owner' || r === 'admin' || r === 'office_manager'; }
+  // Display names for roles ("office_manager" -> "Office Manager").
+  function roleDisplay(r) {
+    r = String(r || '');
+    if (r === 'office_manager') return 'Office Manager';
+    return r.charAt(0).toUpperCase() + r.slice(1);
+  }
   function applyRoleNav() {
     trackPortalRole();
     initSendFromInput();
@@ -3040,9 +3054,12 @@
     const isMinistry = !!(currentClaims && currentClaims.role === 'ministry');
     const ministryId = activeMinistry();
     const myMins = myMinistries();
-    const isCheyanne = !!(currentClaims && currentClaims.email === 'cbosn@stroseanthem.com');
+    // Office (executive assistant) is a real role now, enforced by the database rules.
+    // It used to be keyed to one email address; the cheyanne-only CSS class name is
+    // kept for the pages the Office role can see.
+    const isCheyanne = !!(currentClaims && currentClaims.role === 'office');
     const isMatt     = !isMinistry && !isCheyanne;
-    const isOwnerOrAdmin = !!(currentClaims && (currentClaims.role === 'owner' || currentClaims.role === 'admin'));
+    const isOwnerOrAdmin = isAdminLikeRole(currentClaims && currentClaims.role);
 
     document.getElementById('topbar-date').textContent = new Date().toLocaleDateString('en-US',{weekday:'long',year:'numeric',month:'long',day:'numeric'});
     var mpt = document.getElementById('mobile-page-title'); if(mpt) mpt.textContent = 'Dashboard';
@@ -4472,7 +4489,11 @@
 
   async function loadDashboard() {
     try {
-      const [fam,parts,ref,eventReqs,dailyRef,familyRegs,contactReqs,councilInqs,funeralPlans,ffRegs,ymRegs,advs] = await Promise.all([fs_get('parishFamily'),fs_get('partnerRequests'),fs_get('weeklyReflection'),fs_get('eventRequests'),fs_get('dailyReflection'),fs_get('familyRegistrations'),fs_get('contactRequests'),fs_get('councilInquiries'),fs_get('funeralPlanningSubmissions'),fs_get('faithFormationRegistrations'),fs_get('youthMinistryRegistrations'),fs_get('advertisers')]);
+      // The Office role can't read every collection the full dashboard counts (event
+      // requests, contact requests, funeral/faith formation/youth forms, partner
+      // requests). Those come back empty for her instead of failing the whole page.
+      const opt = c => fs_get(c).catch(() => ({ documents: [] }));
+      const [fam,parts,ref,eventReqs,dailyRef,familyRegs,contactReqs,councilInqs,funeralPlans,ffRegs,ymRegs,advs] = await Promise.all([fs_get('parishFamily'),opt('partnerRequests'),fs_get('weeklyReflection'),opt('eventRequests'),fs_get('dailyReflection'),fs_get('familyRegistrations'),opt('contactRequests'),opt('councilInquiries'),opt('funeralPlanningSubmissions'),opt('faithFormationRegistrations'),opt('youthMinistryRegistrations'),fs_get('advertisers')]);
       const pendingFamilyRegs = (familyRegs.documents||[]).filter(d=>!gf(d,'reviewed'));
       const familyRegBadge = document.getElementById('familyreg-count');
       if (familyRegBadge) { familyRegBadge.textContent = pendingFamilyRegs.length; familyRegBadge.style.display = pendingFamilyRegs.length > 0 ? '' : 'none'; }
@@ -5222,7 +5243,7 @@
     b.textContent = n; b.style.display = n > 0 ? '' : 'none';
   }
   async function refreshAnnReqBadge() {
-    if (!(currentClaims && (currentClaims.role === 'owner' || currentClaims.role === 'admin'))) return;
+    if (!isAdminLikeRole(currentClaims && currentClaims.role)) return;
     try {
       const data = await fs_get('announcementRequests');
       const n = (data.documents || []).filter(function(d) { return d.fields && (!d.fields.status || d.fields.status.stringValue === 'pending'); }).length;
@@ -6311,7 +6332,7 @@
       showToast('Account created and invite sent!', 'success');
 
       const leadsText = (body.ministries || []).map(ministryLabel).join(' and ');
-      const roleLabel = role === 'ministry' ? (leadsText + ' leader') : (role.charAt(0).toUpperCase() + role.slice(1)) + (leadsText ? ' and ' + leadsText + ' leader' : '');
+      const roleLabel = role === 'ministry' ? (leadsText + ' leader') : roleDisplay(role) + (leadsText ? ' and ' + leadsText + ' leader' : '');
       const subject = 'Welcome to the Saint Rose Portal, ' + name.split(' ')[0] + '!';
       const firstName = name.split(' ')[0];
       const roleDescription = (role === 'ministry')
@@ -6356,7 +6377,7 @@
   function accountMinistryIds(a) {
     return (a.ministries && a.ministries.length) ? a.ministries : (a.ministry ? [a.ministry] : []);
   }
-  const EDITABLE_ROLES = ['ministry', 'staff', 'clergy', 'admin', 'owner'];
+  const EDITABLE_ROLES = ['ministry', 'office', 'staff', 'clergy', 'office_manager', 'admin', 'owner'];
   // Edit Role / Revoke buttons for one account row. Hidden entirely for the
   // row matching the logged-in user's own email -- can't edit or revoke
   // yourself from this screen (self-lockout risk; revokeRole and grantRole
@@ -6371,7 +6392,7 @@
   function accountRowEditFormHtml(a) {
     if ((a.email || '').toLowerCase() === (currentUser || '').toLowerCase()) return '';
     const roleOptions = EDITABLE_ROLES.map(function(r) {
-      return '<option value="' + r + '"' + (r === a.role ? ' selected' : '') + '>' + (r.charAt(0).toUpperCase() + r.slice(1)) + '</option>';
+      return '<option value="' + r + '"' + (r === a.role ? ' selected' : '') + '>' + roleDisplay(r) + '</option>';
     }).join('');
     const aMins = (a.ministries && a.ministries.length) ? a.ministries : (a.ministry ? [a.ministry] : []);
     const ministryOptions = '<option value=""' + (!a.ministry ? ' selected' : '') + '>-- None --</option>' + ministryRegistry.map(function(m) {
@@ -6622,7 +6643,7 @@
           if (a.role !== 'ministry') {
             return '<div style="margin-bottom:8px;font-size:14px;color:var(--soil);">' + escHtml(name) +
               ' <span style="color:var(--dusty-rose);font-size:12px;">(' + escHtml(a.email) + ')</span>' + statusBadge +
-              ' <span style="font-family:Cinzel,serif;font-size:11px;color:var(--burgundy);text-transform:capitalize;border:1px solid var(--linen);border-radius:10px;padding:1px 8px;margin-left:4px;">' + escHtml(a.role) + '</span>' +
+              ' <span style="font-family:Cinzel,serif;font-size:11px;color:var(--burgundy);border:1px solid var(--linen);border-radius:10px;padding:1px 8px;margin-left:4px;">' + escHtml(roleDisplay(a.role)) + '</span>' +
               '<div style="font-size:11px;color:var(--dusty-rose);">Also leads this ministry. Change it under Other Portal Accounts below.</div></div>';
           }
           return '<div style="margin-bottom:8px;">' +
@@ -6642,7 +6663,7 @@
           const statusBadge = a.disabled ? ' <span style="color:var(--danger);font-size:11px;">Disabled</span>' : '';
           return '<div style="padding:10px 0;border-bottom:1px solid var(--linen);">' +
               '<div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap;">' +
-                '<div><span style="font-family:Cinzel,serif;font-size:12px;color:var(--burgundy);text-transform:capitalize;">' + escHtml(a.role) + '</span> -- ' + escHtml(name) + ' <span style="color:var(--dusty-rose);font-size:12px;">(' + escHtml(a.email) + ')</span>' + statusBadge + (accountMinistryIds(a).length ? '<div style="font-size:12px;color:var(--burgundy);">Also leads: ' + accountMinistryIds(a).map(function(id) { return escHtml(ministryLabel(id)); }).join(', ') + '</div>' : '') + '<div style="font-size:11px;color:var(--dusty-rose);">' + formatLastLogin(a) + '</div></div>' +
+                '<div><span style="font-family:Cinzel,serif;font-size:12px;color:var(--burgundy);">' + escHtml(roleDisplay(a.role)) + '</span> -- ' + escHtml(name) + ' <span style="color:var(--dusty-rose);font-size:12px;">(' + escHtml(a.email) + ')</span>' + statusBadge + (accountMinistryIds(a).length ? '<div style="font-size:12px;color:var(--burgundy);">Also leads: ' + accountMinistryIds(a).map(function(id) { return escHtml(ministryLabel(id)); }).join(', ') + '</div>' : '') + '<div style="font-size:11px;color:var(--dusty-rose);">' + formatLastLogin(a) + '</div></div>' +
                 accountRowButtonsHtml(a) +
               '</div>' +
               accountRowEditFormHtml(a) +
