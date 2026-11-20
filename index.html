@@ -4548,11 +4548,10 @@
       const needsReviewBadge = document.getElementById('needsreview-count');
       if (needsReviewBadge) { needsReviewBadge.textContent = needsReviewListings.length; needsReviewBadge.style.display = needsReviewListings.length > 0 ? '' : 'none'; }
       document.getElementById('stat-needsreview').textContent = needsReviewListings.length;
-      // Active Listings: total published advertisers, broken down by billingStatus
-      // (comped | paying). billingStatus is independent of `active` -- a paused
-      // listing still counts here; the Partners page shows the paused state.
+      // Active Listings: published advertisers that are still active (archived /
+      // inactive ones are left out), broken down by billingStatus (comped | paying).
       // Any legacy doc without the field counts as 'comped' (the approval default).
-      const advDocs = advs.documents || [];
+      const advDocs = (advs.documents || []).filter(d => gf(d,'active') !== false);
       const payingCount = advDocs.filter(d => gf(d,'billingStatus') === 'paying').length;
       const compedCount = advDocs.length - payingCount;
       document.getElementById('stat-listings').textContent = advDocs.length;
