@@ -6587,6 +6587,34 @@
         metricBars((us.events || []).map(function(r) { return { name: evLabels[r.name] || r.name, count: r.count }; })) + gaLink + '</div>';
       html += '<div style="font-size:12px;color:var(--dusty-rose);margin:4px 4px 12px;line-height:1.6;">From Google Analytics. Usage is anonymous, and numbers can lag a few hours. Test devices and staff are included.</div>';
     }
+    // ---- Public website (saintroseanthem.org) ----
+    const wb = d.website;
+    html += '<div class="card" style="margin-top:8px;"><div class="card-title">🌐 Website: saintroseanthem.org</div>';
+    if (!wb || wb.error) {
+      html += '<div class="info-box">Website numbers are not available right now.' + (wb && wb.error ? ' <span style="opacity:.8;">(' + escHtml(wb.error) + ')</span>' : '') + '</div></div>';
+    } else if (!wb.views30 && !wb.users30) {
+      html += '<div class="info-box">No website visits recorded yet. Numbers start appearing a few hours after the site update goes live, and can lag up to a day.</div></div>';
+    } else {
+      const pageLabel = function(r) { var n = (r.name || '/').replace(/^\/+/, '').replace(/\.html$/, ''); return { name: n === '' || n === 'index' ? 'Home page' : n, count: r.count }; };
+      const chanLabel = function(r) { return { name: r.name === 'Direct' ? 'Typed the address or a bookmark' : r.name === 'Organic Search' ? 'Google and other searches' : r.name === 'Referral' ? 'Links from other sites' : r.name === 'Organic Social' ? 'Facebook and social' : r.name === 'Email' ? 'Email' : r.name, count: r.count }; };
+      const devLabel = function(r) { return { name: r.name === 'mobile' ? 'Phone' : r.name === 'desktop' ? 'Computer' : r.name === 'tablet' ? 'Tablet' : r.name, count: r.count }; };
+      const actLabels = { app_store_click: 'App Store / Google Play clicks', giving_click: 'Online giving clicks', youtube_click: 'YouTube clicks', document_open: 'Documents and PDFs opened', email_click: 'Email links clicked', phone_click: 'Phone numbers tapped', form_submit: 'Forms sent (all)' };
+      const formLabel = function(r) { var n = (r.name || '').replace(/^\/+/, '').replace(/\.html$/, ''); var m = { 'parish-registration': 'Parish registration', 'faith-formation-registration': 'Faith formation', 'youth-ministry-registration': 'Youth ministry', 'funeral-planning-form': 'Funeral planning', 'advertise': 'Advertising inquiry' }; return { name: m[n] || n, count: r.count }; };
+      const newPct = wb.users30 ? Math.round(100 * (wb.newUsers30 || 0) / wb.users30) : 0;
+      html += '<div class="info-box">Last 30 days, anonymous totals. Staff and test visits are included.</div>' +
+        '<div class="stats-row three">' +
+          stat('Visitors, 30 days', metricNum(wb.users30), metricNum(wb.users7) + ' in the last 7 days') +
+          stat('Page views, 30 days', metricNum(wb.views30), metricNum(wb.sessions30) + ' visits') +
+          stat('New visitors', newPct + '%', metricNum(wb.newUsers30) + ' first-time, 30 days') +
+        '</div></div>';
+      html += '<div class="m-grid2">' +
+        '<div class="card"><div class="card-title">Most visited pages</div>' + metricBars((wb.pages || []).map(pageLabel)) + '</div>' +
+        '<div class="card"><div class="card-title">Where visitors come from</div>' + metricBars((wb.sources || []).map(chanLabel)) + '</div></div>';
+      html += '<div class="m-grid2">' +
+        '<div class="card"><div class="card-title">Phone or computer</div>' + metricBars((wb.devices || []).map(devLabel)) + '</div>' +
+        '<div class="card"><div class="card-title">What visitors do</div>' + metricBars((wb.actions || []).map(function(r) { return { name: actLabels[r.name] || r.name, count: r.count }; })) + '</div></div>';
+      if ((wb.forms || []).length) html += '<div class="card"><div class="card-title">Forms sent, by form</div>' + metricBars(wb.forms.map(formLabel)) + '</div>';
+    }
     html += '<div style="font-size:12px;color:var(--dusty-rose);margin:4px 4px 24px;line-height:1.6;">Devices counts phones registered for notifications; a device is "active" if the app was opened in that window. A reinstalled phone can briefly count twice.</div>';
     document.getElementById('metrics-body').innerHTML = html;
   }
