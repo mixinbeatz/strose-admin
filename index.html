@@ -398,6 +398,7 @@
       <!-- OVERVIEW — all staff + cheyanne -->
       <div class="nav-section staff-only cheyanne-only">Overview</div>
       <div class="nav-item staff-only cheyanne-only active" onclick="showPage('dashboard',this)"><span class="nav-icon">⊞</span> Dashboard</div>
+        <div class="nav-item staff-only cheyanne-only" onclick="showPage('fastblast',this)"><span class="nav-icon">🔔</span> Fast Blast</div>
 
       <!-- REQUESTS & APPROVALS -->
       <div class="nav-section-toggle collapsed staff-only cheyanne-only" onclick="toggleNavSection(this)"><span>Requests &amp; Approvals</span><span class="nav-chevron">▾</span></div>
@@ -418,15 +419,15 @@
       <!-- APP TABS, in the same order as the app: Home, Parish, Events, Connect, Video -->
       <div class="nav-section-toggle collapsed staff-only cheyanne-only" onclick="toggleNavSection(this)"><span>App Home</span><span class="nav-chevron">▾</span></div>
       <div class="nav-group collapsed">
-        <div class="nav-item staff-only cheyanne-only" onclick="showPage('welcome',this);loadWelcomeMessage(true)"><span class="nav-icon">🌹</span> Welcome Message</div>
-        <div class="nav-item staff-only cheyanne-only" onclick="showPage('announcement',this)"><span class="nav-icon">📢</span> Post Announcement</div>
-        <div class="nav-item staff-only cheyanne-only" onclick="showPage('fastblast',this)"><span class="nav-icon">🔔</span> Fast Blast</div>
-        <div class="nav-item staff-only cheyanne-only" onclick="showPage('poll',this)"><span class="nav-icon">📊</span> Parish Voice Poll</div>
+        <div class="nav-item staff-only cheyanne-only" onclick="showPage('welcome',this);loadWelcomeMessage(true)"><span class="nav-icon">⛪</span> Welcome Message</div>
+        <div class="nav-item staff-only cheyanne-only" onclick="showPage('reflection',this)"><span class="nav-icon">📖</span> Weekly Reflection</div>
         <div class="nav-item staff-only cheyanne-only" onclick="showPage('daily',this)"><span class="nav-icon">✝</span> Daily Reflection</div>
         <div class="nav-item staff-only cheyanne-only" onclick="showPage('mass-schedule',this);loadMassSchedule()"><span class="nav-icon">⏰</span> Mass Schedule</div>
-        <div class="nav-item staff-only cheyanne-only" onclick="showPage('reflection',this)"><span class="nav-icon">📖</span> Weekly Reflection</div>
         <div class="nav-item staff-only cheyanne-only" onclick="showPage('intention',this)"><span class="nav-icon">🕯️</span> Mass Intentions</div>
+        <div class="nav-item staff-only cheyanne-only" onclick="showPage('announcement',this)"><span class="nav-icon">📢</span> Post Announcement</div>
+        <div class="nav-item staff-only cheyanne-only" onclick="showPage('poll',this)"><span class="nav-icon">📊</span> Parish Voice Poll</div>
         <div class="nav-item staff-only" onclick="showPage('parish-development',this);loadDevelopmentItems()"><span class="nav-icon">🖼️</span> Development Items</div>
+        <div class="nav-item staff-only" onclick="showPage('around-parish',this);loadAroundParish()"><span class="nav-icon">📸</span> Around the Parish</div>
       </div>
 
       <div class="nav-section-toggle collapsed staff-only" onclick="toggleNavSection(this)"><span>Parish</span><span class="nav-chevron">▾</span></div>
@@ -493,7 +494,6 @@
         <div class="nav-item staff-only" onclick="showPage('hero-media',this);loadHeroMedia()"><span class="nav-icon">🌅</span> Hero</div>
         <div class="nav-item staff-only" onclick="showPage('welcome-media',this);loadWelcomeMedia()"><span class="nav-icon">👋</span> Welcome</div>
         <div class="nav-item staff-only" onclick="showPage('gallery',this);loadGallery()"><span class="nav-icon">🖼️</span> Homepage Gallery</div>
-        <div class="nav-item staff-only" onclick="showPage('around-parish',this);loadAroundParish()"><span class="nav-icon">📸</span> Around the Parish</div>
         <div class="nav-item staff-only" onclick="showPage('parish-dev-media',this);loadParishDevMedia()"><span class="nav-icon">🏗️</span> Parish Development</div>
         <div class="nav-item staff-only" onclick="showPage('bulletin-images',this);loadBulletinImages()"><span class="nav-icon">🗞️</span> Bulletin Images</div>
         <div class="nav-item staff-only" onclick="showPage('ministry-booklet',this);loadMinistryBooklet()"><span class="nav-icon">📖</span> Ministry Booklet</div>
