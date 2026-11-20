@@ -6568,7 +6568,7 @@
         notification_permission: 'Notification permission answered', announcement_open: 'Announcement opens', add_to_calendar: 'Added to calendar',
         poll_vote: 'Poll votes', external_link: 'External links opened', watch_live_tap: 'Watch Live taps', text_size_change: 'Text size changes',
         contact_request_submit: 'Contact requests sent', account_delete: 'Account deletions', family_age_confirmed: 'Age confirmations (Parish Family)',
-        family_signup_submit: 'Parish Family sign-ups sent', council_inquiry_submit: 'Council questions sent', ministry_chat_message: 'Ministry chat messages'
+        family_signup_submit: 'Parish Family sign-ups sent', council_inquiry_submit: 'Council questions sent', ministry_chat_message: 'Ministry chat messages', giving_tap: 'Giving buttons tapped (app)'
       };
       const platLabel = function(n) { return n === 'iOS' ? 'iOS app' : n === 'Android' ? 'Android app' : n === 'web' ? 'Portal and web' : n; };
       html += '<div class="stats-row three">' +
@@ -6587,8 +6587,21 @@
         metricBars((us.events || []).map(function(r) { return { name: evLabels[r.name] || r.name, count: r.count }; })) + gaLink + '</div>';
       html += '<div style="font-size:12px;color:var(--dusty-rose);margin:4px 4px 12px;line-height:1.6;">From Google Analytics. Usage is anonymous, and numbers can lag a few hours. Test devices and staff are included.</div>';
     }
-    // ---- Public website (saintroseanthem.org) ----
+    // ---- Giving: taps on the online-giving buttons (app + website) ----
     const wb = d.website;
+    (function() {
+      const appG = us && !us.error ? ((us.events || []).filter(function(r) { return r.name === 'giving_tap'; })[0] || { count: 0 }).count : null;
+      const webG = wb && !wb.error ? ((wb.actions || []).filter(function(r) { return r.name === 'giving_click'; })[0] || { count: 0 }).count : null;
+      if (appG === null && webG === null) return;
+      html += '<div class="card"><div class="card-title">\ud83d\udc9b Online giving, last 30 days</div>' +
+        '<div class="info-box" style="margin-bottom:12px;">People who tapped a giving button and were sent to the giving page. This counts taps, not completed gifts (the gift itself happens on the giving site).</div>' +
+        '<div class="stats-row three">' +
+          stat('Giving taps, total', metricNum((appG || 0) + (webG || 0)), '') +
+          stat('From the app', appG === null ? '\u2014' : metricNum(appG), 'Home card, building fund, engraved bricks') +
+          stat('From the website', webG === null ? '\u2014' : metricNum(webG), 'Online Giving links on saintroseanthem.org') +
+        '</div></div>';
+    })();
+    // ---- Public website (saintroseanthem.org) ----
     html += '<div class="card" style="margin-top:8px;"><div class="card-title">🌐 Website: saintroseanthem.org</div>';
     if (!wb || wb.error) {
       html += '<div class="info-box">Website numbers are not available right now.' + (wb && wb.error ? ' <span style="opacity:.8;">(' + escHtml(wb.error) + ')</span>' : '') + '</div></div>';
