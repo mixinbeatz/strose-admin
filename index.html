@@ -1202,7 +1202,7 @@
             <button class="btn btn-outline btn-sm" onclick="seedParishStaffRoster()">Seed from current roster</button>
           </div>
           <div style="display:flex;gap:14px;margin-bottom:12px;align-items:flex-start;">
-            <div class="drop-zone" style="width:80px;height:80px;border-radius:40px;background:var(--linen);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDropUpload(event, (f) => handleStaffPhotoUpload(f))">
+            <div class="drop-zone" style="padding:0;margin:0;width:80px;height:80px;border-radius:40px;background:var(--linen);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDropUpload(event, (f) => handleStaffPhotoUpload(f))">
               <span id="staff-photo-placeholder" style="font-size:26px;opacity:0.5;">👤</span>
               <img id="staff-photo-img" style="display:none;width:100%;height:100%;object-fit:cover;cursor:pointer;" onclick="openLightbox(this.src)" />
             </div>
@@ -10907,7 +10907,7 @@
     container.innerHTML = list.map((m, i) =>
       '<div style="border:1px solid var(--linen);border-radius:8px;padding:12px;margin-bottom:10px;">' +
         '<div style="display:flex;gap:12px;margin-bottom:8px;">' +
-          '<div class="drop-zone" style="width:60px;height:60px;border-radius:30px;background:var(--linen);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDropUpload(event, (f) => handleCouncilMemberPhotoUpload(\'' + which + '\',' + i + ',f))">' +
+          '<div class="drop-zone" style="padding:0;margin:0;width:60px;height:60px;border-radius:30px;background:var(--linen);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDropUpload(event, (f) => handleCouncilMemberPhotoUpload(\'' + which + '\',' + i + ',f))">' +
             (m.photoUrl
               ? '<img src="' + m.photoUrl + '" style="width:100%;height:100%;object-fit:cover;cursor:pointer;" onclick="openLightbox(\'' + m.photoUrl + '\')" />'
               : '<span style="font-size:22px;opacity:0.5;">👤</span>') +
@@ -12420,7 +12420,7 @@
     const el = document.getElementById('welcome-msg-photo');
     if (!el) return;
     el.innerHTML = `<div style="border:1px solid var(--linen);border-radius:10px;padding:16px;display:flex;gap:16px;align-items:center;">
-      <div class="drop-zone" style="width:90px;height:90px;border-radius:45px;background:var(--linen);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDropUpload(event, handleWelcomeMsgPhotoUpload)">
+      <div class="drop-zone" style="padding:0;margin:0;width:90px;height:90px;border-radius:45px;background:var(--linen);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDropUpload(event, handleWelcomeMsgPhotoUpload)">
         ${welcomeMsgPhotoUrl
           ? `<img src="${welcomeMsgPhotoUrl}" style="width:100%;height:100%;object-fit:cover;cursor:pointer;" onclick="openLightbox('${welcomeMsgPhotoUrl}')" />`
           : `<span style="font-size:28px;opacity:0.5;">👤</span>`}
@@ -12679,7 +12679,7 @@
     el.innerHTML = GALLERY_SLOTS.map(s => {
       const data = galleryData[s.key] || { url: '', alt: '' };
       return `<div style="border:1px solid var(--linen);border-radius:10px;padding:16px;margin-bottom:14px;display:flex;gap:16px;align-items:center;">
-        <div class="drop-zone" style="width:100px;height:70px;border-radius:6px;background:var(--linen);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDropUpload(event, (f) => handleGalleryUpload('${s.key}', f))">
+        <div class="drop-zone" style="padding:0;margin:0;width:100px;height:70px;border-radius:6px;background:var(--linen);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDropUpload(event, (f) => handleGalleryUpload('${s.key}', f))">
           ${data.url ? `<img src="${data.url}" style="width:100%;height:100%;object-fit:cover;" onclick="openLightbox('${data.url}')" />` : `<span style="font-size:11px;color:var(--dusty-rose);text-align:center;padding:4px;">Using default</span>`}
         </div>
         <div style="flex:1;">
@@ -12840,7 +12840,7 @@
     el.innerHTML = AROUND_PARISH_SLOTS.map(s => {
       const data = aroundParishDraft.slots[s.key] || { url: '', alt: '' };
       return `<div style="border:1px solid var(--linen);border-radius:10px;padding:16px;margin-bottom:14px;display:flex;gap:16px;align-items:center;">
-        <div class="drop-zone" style="width:100px;height:70px;border-radius:6px;background:var(--linen);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDropUpload(event, (f) => handleAroundParishUpload('${s.key}', f))">
+        <div class="drop-zone" style="padding:0;margin:0;width:100px;height:70px;border-radius:6px;background:var(--linen);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDropUpload(event, (f) => handleAroundParishUpload('${s.key}', f))">
           ${data.url ? `<img src="${annAttr(data.url)}" style="width:100%;height:100%;object-fit:cover;" />` : '<span style="font-size:11px;color:var(--dusty-rose);">Empty</span>'}
         </div>
         <div style="flex:1;">
@@ -13222,7 +13222,7 @@
     const el = document.getElementById('hero-media-photo');
     if (!el) return;
     el.innerHTML = `<div style="border:1px solid var(--linen);border-radius:10px;padding:16px;display:flex;gap:16px;align-items:center;">
-      <div class="drop-zone" style="width:120px;height:80px;border-radius:6px;background:var(--linen);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDropUpload(event, handleHeroMediaUpload)">
+      <div class="drop-zone" style="padding:0;margin:0;width:120px;height:80px;border-radius:6px;background:var(--linen);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDropUpload(event, handleHeroMediaUpload)">
         <img src="${heroMediaImageUrl}" style="width:100%;height:100%;object-fit:cover;" onclick="openLightbox('${heroMediaImageUrl}')" />
       </div>
       <label class="btn btn-outline btn-sm" style="cursor:pointer;">
@@ -13295,7 +13295,7 @@
     const el = document.getElementById('welcome-media-photo');
     if (!el) return;
     el.innerHTML = `<div style="border:1px solid var(--linen);border-radius:10px;padding:16px;display:flex;gap:16px;align-items:center;">
-      <div class="drop-zone" style="width:120px;height:80px;border-radius:6px;background:var(--linen);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDropUpload(event, handleWelcomeMediaUpload)">
+      <div class="drop-zone" style="padding:0;margin:0;width:120px;height:80px;border-radius:6px;background:var(--linen);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDropUpload(event, handleWelcomeMediaUpload)">
         <img src="${welcomeMediaImageUrl}" style="width:100%;height:100%;object-fit:cover;" onclick="openLightbox('${welcomeMediaImageUrl}')" />
       </div>
       <label class="btn btn-outline btn-sm" style="cursor:pointer;">
@@ -13645,7 +13645,7 @@
   function biEntryRow(which, key, url, label) {
     const k = escAttr(key);
     return '<div style="border:1px solid var(--linen);border-radius:10px;padding:14px;margin-bottom:12px;display:flex;gap:14px;align-items:center;">' +
-      '<div class="drop-zone" style="width:100px;height:70px;border-radius:6px;background:var(--linen);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDropUpload(event, (f) => biReplaceEntry(\'' + which + '\',\'' + k + '\', f))">' +
+      '<div class="drop-zone" style="padding:0;margin:0;width:100px;height:70px;border-radius:6px;background:var(--linen);flex-shrink:0;overflow:hidden;display:flex;align-items:center;justify-content:center;" ondragover="handleDragOver(event)" ondragleave="handleDragLeave(event)" ondrop="handleDropUpload(event, (f) => biReplaceEntry(\'' + which + '\',\'' + k + '\', f))">' +
         (url ? '<img src="' + url + '" style="width:100%;height:100%;object-fit:cover;cursor:pointer;" onclick="openLightbox(\'' + url + '\')" />' : '<span style="font-size:10px;color:var(--dusty-rose);">no image</span>') +
       '</div>' +
       '<div style="flex:1;">' +
