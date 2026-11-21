@@ -889,7 +889,7 @@
           </div>
           <div class="form-group">
             <label class="form-label">Hero image (optional)</label>
-            <div style="font-size:12px;color:var(--dusty-rose);margin-bottom:8px;">A wide picture behind the title at the top of the announcement. The app tints it with the parish burgundy so the title stays easy to read. Without one, the title sits on a plain burgundy bar.</div>
+            <div style="font-size:12px;color:var(--dusty-rose);margin-bottom:8px;">A wide picture behind the title at the top of the announcement. The app darkens it gently behind the title so the title stays easy to read. Without one, the title sits on a plain burgundy bar.</div>
             <div id="ann-hero-current"></div>
             <div id="ann-hero-editor" style="display:none;margin-bottom:10px;">
               <canvas id="ann-hero-canvas" width="1200" height="500" style="width:100%;max-width:480px;border-radius:8px;background:var(--linen);touch-action:none;cursor:grab;display:block;"></canvas>
@@ -1031,7 +1031,7 @@
           </div>
           <div class="form-group">
             <label class="form-label">Hero image (optional)</label>
-            <div style="font-size:12px;color:var(--dusty-rose);margin-bottom:8px;">A wide picture behind the title at the top of the reflection in the app. The app tints it with the parish burgundy so the title stays easy to read. Without one, the title sits on a plain burgundy bar. (Shows on phones with the newest app update.)</div>
+            <div style="font-size:12px;color:var(--dusty-rose);margin-bottom:8px;">A wide picture behind the title at the top of the reflection in the app. The app darkens it gently behind the title so the title stays easy to read. Without one, the title sits on a plain burgundy bar. (Shows on phones with the newest app update.)</div>
             <div id="ref-hero-current"></div>
             <label class="btn btn-outline btn-sm" style="cursor:pointer;display:inline-block;">Choose hero image<input type="file" accept="image/*" style="display:none;" onchange="pickReflectionHero(this,'weekly',0)" /></label>
           </div>
@@ -1461,7 +1461,7 @@
           <div class="info-box">This text and photo appear in the Welcome modal on the app Home screen (and on the website's "Father's Welcome" page) when a parishioner taps the Welcome card. Paste Fr. Bing's message here.</div>
           <div class="form-group">
             <label class="form-label">Hero image (optional)</label>
-            <div style="font-size:12px;color:var(--dusty-rose);margin-bottom:8px;">A wide picture behind "Welcome to Saint Rose" at the top of the Welcome screen in the app. The app tints it with the parish burgundy so the title stays readable. Drag to frame it after you choose a picture. Without one, the screen looks like it does today. Shows on phones with the newest app update.</div>
+            <div style="font-size:12px;color:var(--dusty-rose);margin-bottom:8px;">A wide picture behind "Welcome to Saint Rose" at the top of the Welcome screen in the app. The app darkens it gently behind the title so the title stays readable. Drag to frame it after you choose a picture. Without one, the screen looks like it does today. Shows on phones with the newest app update.</div>
             <div id="welcome-hero-current"></div>
             <label class="btn btn-outline btn-sm" style="cursor:pointer;display:inline-block;">Choose hero image<input type="file" accept="image/*" style="display:none;" onchange="pickWelcomeHero(this)" /></label>
             <div id="welcome-hero-preview" style="margin-top:12px;max-width:480px;"></div>
@@ -5559,7 +5559,7 @@
   function reflectionPreviewHtml(o) {
     const hero = o.hero ? 'background-image:url(\'' + annAttr(o.hero) + '\');background-size:cover;background-position:center;' : '';
     let h = '<div style="border-radius:20px 20px 0 0;overflow:hidden;background:#5C1A2E;position:relative;' + hero + (o.hero ? 'min-height:190px;padding:56px 20px 16px;' : 'padding:16px 20px;') + 'display:flex;flex-direction:column;justify-content:flex-end;flex-shrink:0;">' +
-      (o.hero ? '<div style="position:absolute;inset:0;background:rgba(92,26,46,0.55);"></div><div style="position:absolute;left:0;right:0;bottom:0;height:60%;background:rgba(51,18,25,0.45);"></div>' : '') +
+      (o.hero ? '<!--REF-PV-V3--><div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,0.28) 0%,rgba(0,0,0,0) 30%,rgba(0,0,0,0) 50%,rgba(0,0,0,0.6) 100%);"></div>' : '') +
       '<div style="position:' + (o.hero ? 'absolute;top:16px;left:20px;' : 'relative;margin-bottom:6px;') + 'color:#E8DDD0;font-size:18px;opacity:.8;">✕</div>' +
       (o.kicker ? '<div style="position:relative;font-family:Faustina,serif;font-size:13px;letter-spacing:1px;color:#E8DDD0;opacity:.8;">' + escHtml(o.kicker) + '</div>' : '') +
       '<div style="position:relative;font-family:Cinzel,serif;font-weight:700;font-size:' + (o.hero ? '22' : '15') + 'px;color:' + (o.hero ? '#E8DDD0' : '#fff') + ';line-height:1.25;margin-top:2px;">' + (o.title ? escHtml(o.title) : '<span style="opacity:.5;">Your title</span>') + '</div>' +
