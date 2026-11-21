@@ -5090,7 +5090,7 @@
     const link = normalizeAnnLink(val('ann-link'));
     const hero = annHeroUrl ? 'background-image:url(\'' + annAttr(annHeroUrl) + '\');background-size:cover;background-position:center;' : '';
     let h = '<div style="border-radius:20px 20px 0 0;overflow:hidden;background:#5C1A2E;position:relative;' + hero + (annHeroUrl ? 'min-height:180px;' : '') + 'display:flex;flex-direction:column;justify-content:flex-end;flex-shrink:0;">' +
-      (annHeroUrl ? '<!--ANN-PV-V3--><div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,0) 0%,rgba(0,0,0,0.12) 35%,rgba(0,0,0,0.55) 100%);"></div>' : '') +
+      (annHeroUrl ? '<!--ANN-PV-V3--><div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,0) 0%,rgba(0,0,0,0.24) 35%,rgba(0,0,0,0.76) 100%);"></div>' : '') +
       '<div style="position:absolute;top:12px;left:0;right:0;display:flex;justify-content:center;"><div style="width:40px;height:4px;border-radius:2px;background:#E8DDD0;opacity:.6;"></div></div>' +
       '<div style="position:relative;font-family:Cinzel,serif;font-weight:700;font-size:22px;text-align:center;text-shadow:0 1px 4px rgba(0,0,0,0.55);color:#E8DDD0;padding:36px 24px 18px;line-height:1.27;">' + (title ? escHtml(title) : '<span style="opacity:.5;">Your title</span>') + '</div>' +
       '<div style="position:relative;height:3px;background:#C9A84C;"></div></div>';
@@ -5559,10 +5559,10 @@
   function reflectionPreviewHtml(o) {
     const hero = o.hero ? 'background-image:url(\'' + annAttr(o.hero) + '\');background-size:cover;background-position:center;' : '';
     let h = '<div style="border-radius:20px 20px 0 0;overflow:hidden;background:#5C1A2E;position:relative;' + hero + (o.hero ? 'min-height:190px;padding:56px 20px 16px;' : 'padding:16px 20px;') + 'display:flex;flex-direction:column;justify-content:flex-end;flex-shrink:0;">' +
-      (o.hero ? '<!--REF-PV-V3--><div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,0.28) 0%,rgba(0,0,0,0) 30%,rgba(0,0,0,0) 50%,rgba(0,0,0,0.6) 100%);"></div>' : '') +
-      '<div style="position:' + (o.hero ? 'absolute;top:16px;left:20px;' : 'relative;margin-bottom:6px;') + 'color:#E8DDD0;font-size:18px;opacity:.8;">✕</div>' +
-      (o.kicker ? '<div style="position:relative;font-family:Faustina,serif;font-size:13px;letter-spacing:1px;color:#E8DDD0;opacity:.8;">' + escHtml(o.kicker) + '</div>' : '') +
-      '<div style="position:relative;font-family:Cinzel,serif;font-weight:700;font-size:' + (o.hero ? '22' : '15') + 'px;color:' + (o.hero ? '#E8DDD0' : '#fff') + ';line-height:1.25;margin-top:2px;">' + (o.title ? escHtml(o.title) : '<span style="opacity:.5;">Your title</span>') + '</div>' +
+      (o.hero ? '<!--REF-PV-V3--><div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,0.30) 0%,rgba(0,0,0,0.04) 25%,rgba(0,0,0,0.38) 50%,rgba(0,0,0,0.78) 100%);"></div>' : '') +
+      (o.hero ? '<div style="position:absolute;top:12px;left:16px;z-index:5;width:32px;height:32px;border-radius:50%;background:rgba(61,43,43,0.55);color:#E8DDD0;font-size:16px;display:flex;align-items:center;justify-content:center;">✕</div>' : '<div style="position:relative;margin-bottom:6px;color:#E8DDD0;font-size:18px;opacity:.8;">✕</div>') +
+      (o.kicker ? '<div style="position:relative;font-family:Faustina,serif;font-size:13px;letter-spacing:1px;color:#E8DDD0;opacity:' + (o.hero ? '.95' : '.8') + ';' + (o.hero ? 'text-shadow:0 1px 10px rgba(0,0,0,0.7);' : '') + '">' + escHtml(o.kicker) + '</div>' : '') +
+      '<div style="position:relative;font-family:Cinzel,serif;font-weight:700;font-size:' + (o.hero ? '22' : '15') + 'px;color:' + (o.hero ? '#E8DDD0' : '#fff') + ';line-height:1.25;margin-top:2px;' + (o.hero ? 'text-shadow:0 1px 10px rgba(0,0,0,0.7);' : '') + '">' + (o.title ? escHtml(o.title) : '<span style="opacity:.5;">Your title</span>') + '</div>' +
       (o.hero ? '<div style="position:relative;height:3px;background:#C9A84C;margin-top:10px;border-radius:2px;"></div>' : '') + '</div>';
     h += '<div style="overflow-y:auto;padding:20px 24px 24px;font-family:Faustina,serif;color:#3D2B2B;min-height:0;background:#F7F3EE;">' +
       '<div style="font-size:17px;line-height:1.6;">' + (o.body && o.body.trim() ? annMarkupHtml(o.body) : '<span style="opacity:.5;">Your reflection appears here.</span>') + '</div>';
@@ -12451,8 +12451,8 @@
         '<div style="font-size:11px;color:var(--dusty-rose);margin-bottom:4px;">' + label + '</div>' +
         '<div style="position:relative;overflow:hidden;border-radius:10px;background:#5C1A2E;aspect-ratio:' + w + '/' + h + ';display:flex;flex-direction:column;justify-content:flex-end;padding:' + Math.round(w/24) + 'px;box-sizing:border-box;">' +
           '<img src="' + annAttr(welcomeHeroUrl) + '" alt="" style="position:absolute;inset:0;width:100%;height:100%;object-fit:cover;" />' +
-          '<div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,0.28) 0%,rgba(0,0,0,0) 30%,rgba(0,0,0,0) 50%,rgba(0,0,0,0.6) 100%);"></div>' +
-          '<div style="position:relative;color:#E8DDD0;font-family:Cinzel,serif;font-weight:700;text-shadow:0 1px 6px rgba(0,0,0,0.55);font-size:' + fs + 'px;">Welcome to Saint Rose</div>' +
+          '<div style="position:absolute;inset:0;background:linear-gradient(to bottom,rgba(0,0,0,0.30) 0%,rgba(0,0,0,0.04) 25%,rgba(0,0,0,0.38) 50%,rgba(0,0,0,0.78) 100%);"></div>' +
+          '<div style="position:relative;color:#E8DDD0;font-family:Cinzel,serif;font-weight:700;text-shadow:0 1px 10px rgba(0,0,0,0.7);font-size:' + fs + 'px;">Welcome to Saint Rose</div>' +
           '<div style="position:relative;height:3px;background:#C9A84C;margin-top:8px;border-radius:2px;"></div>' +
         '</div></div>';
     };
