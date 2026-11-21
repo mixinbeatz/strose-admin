@@ -5274,6 +5274,12 @@
       const n = (data.documents || []).filter(function(d) { return d.fields && (!d.fields.status || d.fields.status.stringValue === 'pending'); }).length;
       setAnnReqBadge(n);
     } catch (e) { /* badge is a nicety, stay quiet */ }
+    try {
+      const rep = await fs_get('feedbackReports');
+      const open = (rep.documents || []).filter(function(d) { return d.fields && d.fields.status && d.fields.status.stringValue === 'new'; }).length;
+      const rb = document.getElementById('app-reports-count');
+      if (rb) { rb.textContent = open; rb.style.display = open > 0 ? '' : 'none'; }
+    } catch (e) { /* badge is a nicety, stay quiet */ }
   }
   setInterval(function() { if (!document.hidden) refreshAnnReqBadge(); }, 120000);
   async function loadAnnouncementRequests() {
