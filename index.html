@@ -6852,20 +6852,22 @@
   }
 
     // ── APPROVALS ──
+  let pendingDocs=[];
   async function loadApprovals() {
     const list=document.getElementById('approvals-list');
     list.innerHTML='<div style="color:var(--dusty-rose);font-size:14px;">Loading...</div>';
     try {
       const res=await fs_get('parishFamily');
       const pending=(res.documents||[]).filter(d=>gf(d,'approved')===false && gf(d,'rejected')!==true);
+      pendingDocs=pending;
       if(pending.length===0){list.innerHTML=`<div class="empty-state"><div class="empty-icon">✓</div><div class="empty-title">All caught up</div><div class="empty-sub">No pending approvals.</div></div>`;return;}
       list.innerHTML=pending.map(doc=>{
         const id=docId(doc),name=gf(doc,'name'),email=gf(doc,'email'),bio=gf(doc,'bio'),ministries=gf(doc,'ministries'),photo=gf(doc,'photoUrl');
         const bioFlag=bioMayNameMinor(bio,name);
         return `<div class="approval-card" id="approval-${id}">
           <div class="approval-avatar">${photo?`<img src="${photo}" onclick="openLightbox('${photo}')"/>`:(name.charAt(0)||'?')}</div>
-          <div class="approval-info">
-            <div class="approval-name">${escHtml(name)}</div>
+          <div class="approval-info" style="cursor:pointer;" title="Click to see full profile" onclick="showMemberProfile('${id}',true)">
+            <div class="approval-name">${escHtml(name)} <span style="font-size:12px;font-weight:400;color:var(--dusty-rose);">· view full profile</span></div>
             <div class="approval-meta">${escHtml(email)}${ministries?' · '+escHtml(ministries):''}</div>
             ${bio?`<div class="approval-bio">${escHtml(bio)}</div>`:''}
             ${bioFlag?`<div style="margin-top:6px;display:inline-block;background:#FDF3E3;border:1px solid var(--gold);color:#8A5A12;font-size:12px;font-weight:600;padding:3px 9px;border-radius:20px;" title="Automated guess: this bio may name a child and their age. The directory lists only the adult account holder (see privacy.html / terms.html). Read the bio and edit or ask the member to trim it if needed. This is a hint only — it does not block approval.">⚠ Review bio — may name a minor</div>`:''}
@@ -8973,8 +8975,8 @@
     if(!email){showToast('No email on file.','error');return;}
     window.open(gmailComposeBase() + '&to='+encodeURIComponent(email),'_blank');
   }
-  function showMemberProfile(id){
-    const doc = allMembers.find(d=>docId(d)===id);
+  function showMemberProfile(id,pending){
+    const doc = (pending?pendingDocs:allMembers).find(d=>docId(d)===id);
     if(!doc){showToast('Member not found.','error');return;}
     const name=gf(doc,'name'),email=gf(doc,'email'),bio=gf(doc,'bio'),ministries=gf(doc,'ministries'),badges=gf(doc,'badges'),photo=gf(doc,'photoUrl'),showEmail=gf(doc,'showEmail'),createdAt=gf(doc,'createdAt'),conductAt=gf(doc,'conductAgreedAt'),conductVer=gf(doc,'conductPolicyVersion');
     const fmt = d => d ? new Date(d).toLocaleDateString('en-US',{year:'numeric',month:'long',day:'numeric'}) : '';
@@ -8988,6 +8990,14 @@
       <div class="profile-modal-row"><div class="profile-modal-label">Email visible in public directory</div><div class="profile-modal-value">${showEmail===true?'Yes':'No'}</div></div>
       <div class="profile-modal-row"><div class="profile-modal-label">Member since</div><div class="profile-modal-value">${fmt(createdAt)||'<em style="opacity:0.5">Unknown</em>'}</div></div>
       ${conductAt?`<div class="profile-modal-row"><div class="profile-modal-label">Conduct policy agreed</div><div class="profile-modal-value">${fmt(conductAt)}${conductVer?' (v'+escHtml(conductVer)+')':''}</div></div>`:''}
+      ${pending?`
+      ${gf(doc,'termsAgreedAt')?`<div class="profile-modal-row"><div class="profile-modal-label">Terms agreed</div><div class="profile-modal-value">${fmt(gf(doc,'termsAgreedAt'))}${gf(doc,'termsVersion')?' (v'+escHtml(gf(doc,'termsVersion'))+')':''}</div></div>`:''}
+      ${gf(doc,'ageConfirmedAt')?`<div class="profile-modal-row"><div class="profile-modal-label">Confirmed 18 or older</div><div class="profile-modal-value">${fmt(gf(doc,'ageConfirmedAt'))}</div></div>`:''}
+      ${gf(doc,'reported')===true?`<div class="profile-modal-row"><div class="profile-modal-label">Reported</div><div class="profile-modal-value">Yes — flagged by another member</div></div>`:''}
+      <div style="display:flex;gap:10px;margin-top:18px;">
+        <button class="btn btn-success btn-sm" onclick="closeProfileModal();approveFamily('${id}','${escAttr(name)}')">Approve</button>
+        <button class="btn btn-danger btn-sm" onclick="closeProfileModal();rejectFamily('${id}','${escAttr(name)}')">Reject</button>
+      </div>`:''}
     `;
     document.getElementById('profile-modal-body').innerHTML = html;
     document.getElementById('profile-modal').classList.add('show');
