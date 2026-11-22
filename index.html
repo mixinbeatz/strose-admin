@@ -8780,7 +8780,7 @@
     list.innerHTML='<div style="color:var(--dusty-rose);font-size:14px;">Loading...</div>';
     try {
       const [res]=await Promise.all([fs_get_all('parishFamily'), loadPlatformMap()]);
-      (res.documents||[]).forEach(d=>{const id=docId(d),tk=gf(d,'fcmToken');if(platformByUid[id])return;if(tk&&platformByToken[tk]){(platformByUid[id]=platformByUid[id]||{})[platformByToken[tk]]=true;}else if(!tk&&platformOk){noPushUids[id]=true;}});
+      (res.documents||[]).forEach(d=>{const id=docId(d),tk=gf(d,'fcmToken'),pp=String(gf(d,'platform')).toLowerCase();if(platformByUid[id])return;if(pp==='ios'||pp==='android'){(platformByUid[id]=platformByUid[id]||{})[pp]=true;return;}if(tk&&platformByToken[tk]){(platformByUid[id]=platformByUid[id]||{})[platformByToken[tk]]=true;}else if(!tk&&platformOk){noPushUids[id]=true;}});
       allMembers=(res.documents||[]).filter(d=>gf(d,'approved')===true).sort((a,b)=>{const la=gf(a,'name').trim().split(' ').filter(Boolean).pop()||'';const lb=gf(b,'name').trim().split(' ').filter(Boolean).pop()||'';return la.localeCompare(lb);});
       renderDirectory(allMembers);
     } catch(e){list.innerHTML='<div style="color:var(--danger);">Error loading.</div>';}
