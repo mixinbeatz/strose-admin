@@ -6583,6 +6583,8 @@
       const link = page ? ' <a href="#" onclick="showPage(\'' + page + '\');return false;" style="font-size:13px;margin-left:8px;color:var(--burgundy);">Open \u2192</a>' : '';
       return '<div class="m-queue"><span>' + label + '</span><span>' + badge + link + '</span></div>';
     };
+    const wbAdv = d.website;
+    const advWeb = (wbAdv && wbAdv.pages ? wbAdv.pages : []).reduce(function(a, r) { var n = String(r.name || ''); if (/advertisers\.html$|\/advertisers\/?$/.test(n)) a.dir += r.count; else if (/advertise\.html$/.test(n)) a.inq += r.count; return a; }, { dir: 0, inq: 0 });
     let html = '';
     html += '<div class="stats-row">' +
       stat('Active devices, 30 days', dv ? metricNum(dv.active30) : '—', dv ? 'iOS ' + metricNum(dv.active30Ios) + ' · Android ' + metricNum(dv.active30Android) : '') +
@@ -6592,7 +6594,9 @@
       '</div>';
     html += '<div class="stats-row" style="grid-template-columns:repeat(2,1fr);">' +
       stat('App opens, all time', en ? metricNum(en.sessionCount) : '—', en && en.lastSessionAt ? 'Last: ' + new Date(en.lastSessionAt).toLocaleString() : '') +
-      stat('Parish Family directory opens, all time', en ? metricNum(en.directoryViews == null ? 0 : en.directoryViews) : '—', 'Times the Parish Family directory was opened in the app') +
+      '<div class="stat-card"><div class="stat-label">Advertisers</div><div class="stat-value" id="m-adv-live">&mdash;</div>' +
+        '<div class="stat-sub" id="m-adv-sub">Live listings in the app and on the website</div>' +
+        '<div class="stat-sub" style="margin-top:6px;">Waiting for approval: ' + metricNum(q.advertisingRequests) + ' &middot; Website directory page views, 30 days: ' + metricNum(advWeb.dir) + ' &middot; Advertise page views: ' + metricNum(advWeb.inq) + '</div></div>' +
       '</div>';
     html += '<div class="m-grid2">' +
       '<div class="card"><div class="card-title">Waiting on you</div>' +
@@ -6677,7 +6681,7 @@
     } else if (!wb.views30 && !wb.users30) {
       html += '<div class="info-box">No website visits recorded yet. Numbers start appearing a few hours after the site update goes live, and can lag up to a day.</div></div>';
     } else {
-      const pageLabel = function(r) { var n = (r.name || '/').replace(/^\/+/, '').replace(/\.html$/, ''); return { name: n === '' || n === 'index' ? 'Home page' : n, count: r.count }; };
+      const pageLabel = function(r) { var n = (r.name || '/').replace(/^\/+/, '').replace(/\.html$/, ''); var friendly = { '': 'Home page', 'index': 'Home page', 'app': 'SaintRose app info page (/app)', 'app/index': 'SaintRose app info page (/app)', 'app/print': 'App one-sheet (printable)', 'welcome': 'Welcome page', 'bulletin': 'Bulletin', 'calendar': 'Calendar', 'ministry-booklet': 'Ministry booklet', 'advertisers': 'Advertiser directory', 'advertise': 'Advertise with us', 'documents': 'Documents', 'docs': 'Docs', 'sacraments': 'Sacraments', 'video': 'Video' }; var k = n.replace(/\/$/, ''); return { name: friendly[k] || n, count: r.count }; };
       const chanLabel = function(r) { return { name: r.name === 'Direct' ? 'Typed the address or a bookmark' : r.name === 'Organic Search' ? 'Google and other searches' : r.name === 'Referral' ? 'Links from other sites' : r.name === 'Organic Social' ? 'Facebook and social' : r.name === 'Email' ? 'Email' : r.name, count: r.count }; };
       const devLabel = function(r) { return { name: r.name === 'mobile' ? 'Phone' : r.name === 'desktop' ? 'Computer' : r.name === 'tablet' ? 'Tablet' : r.name, count: r.count }; };
       const actLabels = { app_store_click: 'App Store / Google Play clicks', giving_click: 'Online giving clicks', youtube_click: 'YouTube clicks', document_open: 'Documents and PDFs opened', email_click: 'Email links clicked', phone_click: 'Phone numbers tapped', form_submit: 'Forms sent (all)' };
@@ -6699,6 +6703,22 @@
     }
     html += '<div style="font-size:12px;color:var(--dusty-rose);margin:4px 4px 24px;line-height:1.6;">Devices counts phones registered for notifications; a device is "active" if the app was opened in that window. A reinstalled phone can briefly count twice.</div>';
     document.getElementById('metrics-body').innerHTML = html;
+    (async function() {
+      try {
+        const res = await fs_get('advertisers');
+        const docs = (res.documents || []).filter(function(x) { return gf(x, 'active') !== false; });
+        let prem = 0, pro = 0, std = 0;
+        docs.forEach(function(x) {
+          const t = String(gf(x, 'tier') || 'standard').toLowerCase();
+          if (gf(x, 'isPro') === true || t.indexOf('pro') >= 0 || t.indexOf('parish') >= 0) pro++;
+          else if (t === 'premium') prem++;
+          else std++;
+        });
+        const live = document.getElementById('m-adv-live'), sub = document.getElementById('m-adv-sub');
+        if (live) live.textContent = String(docs.length);
+        if (sub) sub.textContent = 'Premium ' + prem + ' · Standard ' + std + ' · Parish Pro ' + pro;
+      } catch (e) { /* leave the dash */ }
+    })();
   }
   async function loadMetrics() {
     const body = document.getElementById('metrics-body');
