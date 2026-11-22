@@ -6686,7 +6686,7 @@
       const devLabel = function(r) { return { name: r.name === 'mobile' ? 'Phone' : r.name === 'desktop' ? 'Computer' : r.name === 'tablet' ? 'Tablet' : r.name, count: r.count }; };
       const actLabels = { app_store_click: 'App Store / Google Play clicks', giving_click: 'Online giving clicks', youtube_click: 'YouTube clicks', document_open: 'Documents and PDFs opened', email_click: 'Email links clicked', phone_click: 'Phone numbers tapped', form_submit: 'Forms sent (all)' };
       const formLabel = function(r) { var n = (r.name || '').replace(/^\/+/, '').replace(/\.html$/, ''); var m = { 'parish-registration': 'Parish registration', 'faith-formation-registration': 'Faith formation', 'youth-ministry-registration': 'Youth ministry', 'funeral-planning-form': 'Funeral planning', 'advertise': 'Advertising inquiry' }; return { name: m[n] || n, count: r.count }; };
-      const newPct = wb.users30 ? Math.round(100 * (wb.newUsers30 || 0) / wb.users30) : 0;
+      const newPct = wb.users30 ? Math.min(100, Math.round(100 * (wb.newUsers30 || 0) / wb.users30)) : 0;
       html += '<div class="info-box">Last 30 days, anonymous totals. Staff and test visits are included.</div>' +
         '<div class="stats-row three">' +
           stat('Visitors, 30 days', metricNum(wb.users30), metricNum(wb.users7) + ' in the last 7 days') +
