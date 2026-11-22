@@ -6607,7 +6607,7 @@
     const us = d.usage;
     const gaLink = '<a class="btn btn-outline btn-sm" href="https://analytics.google.com" target="_blank" rel="noopener" style="text-decoration:none;display:inline-block;margin-top:12px;">Open Google Analytics</a>';
     if (!us || us.error) {
-      html += '<div class="card"><div class="card-title">App &amp; portal usage</div>' +
+      html += '<div class="card"><div class="card-title">App usage</div>' +
         '<div class="info-box">Usage numbers are not available right now.' + (us && us.error ? ' <span style="opacity:.8;">(' + escHtml(us.error) + ')</span>' : '') + '</div>' + gaLink + '</div>';
     } else {
       const evLabels = {
@@ -6619,7 +6619,7 @@
         feedback_report_submit: 'App reports sent', adoration_tap: 'Adoration sign-up taps', prayer_chain_open: 'Prayer Chain opened', prayer_chain_request: 'Prayer requests started (email)',
         prayer_chain_join: 'Prayer Chain join taps (email)', respect_prayer_open: 'Respect Life prayer opened'
       };
-      const platLabel = function(n) { return n === 'iOS' ? 'iOS app' : n === 'Android' ? 'Android app' : n === 'web' ? 'Portal and web' : n; };
+      const platLabel = function(n) { return n === 'iOS' ? 'iOS app' : n === 'Android' ? 'Android app' : n; };
       html += '<div class="stats-row three">' +
         stat('Active users, 30 days', metricNum(us.users30), metricNum(us.users7) + ' in the last 7 days') +
         stat('Screen and page views, 30 days', metricNum(us.views30), '') +
@@ -6638,14 +6638,14 @@
         stat('Opens (sessions), 30 days', metricNum(us.sessions30), perUser + ' opens per active user') +
         '</div>';
       html += '<div class="card"><div class="card-title">Active users per day (last 28 days)</div>' +
-        '<div class="info-box" style="margin-bottom:12px;">Different devices that used the app, portal or website each day. This counts people (devices), not opens. Spikes usually line up with something you sent out.</div>' +
+        '<div class="info-box" style="margin-bottom:12px;">Different devices that used the app each day. This counts people (devices), not opens. Spikes usually line up with something you sent out.</div>' +
         '<div style="display:flex;align-items:flex-end;gap:3px;height:110px;">' +
         dly.map(function(x) { return '<div title="' + dFmt(x.date) + ': ' + x.count + '" style="flex:1;background:var(--burgundy);opacity:.85;border-radius:3px 3px 0 0;height:' + Math.max(2, Math.round(x.count / dMax * 100)) + '%;"></div>'; }).join('') +
         '</div><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--dusty-rose);margin-top:4px;"><span>' + (dly[0] ? dFmt(dly[0].date) : '') + '</span><span>' + (todayRow ? dFmt(todayRow.date) : '') + '</span></div></div>';
       html += '<div class="m-grid2">' +
-        '<div class="card"><div class="card-title">Where people are (30 days)</div><div class="info-box" style="margin-bottom:12px;">Active users by app or portal.</div>' +
+        '<div class="card"><div class="card-title">Where people are (30 days)</div><div class="info-box" style="margin-bottom:12px;">Active users by phone type.</div>' +
           metricBars((us.platforms || []).map(function(r) { return { name: platLabel(r.name), count: r.count }; })) + '</div>' +
-        '<div class="card"><div class="card-title">Most viewed screens and pages</div><div class="info-box" style="margin-bottom:12px;">Last 30 days, app and portal together.</div>' +
+        '<div class="card"><div class="card-title">Most viewed screens and pages</div><div class="info-box" style="margin-bottom:12px;">Last 30 days, in the app.</div>' +
           metricBars(us.screens || []) + '</div></div>';
       html += '<div class="card"><div class="card-title">Countries (30 days)</div><div class="info-box" style="margin-bottom:12px;">Where active users appear to be, from their connection. One-off visits from other countries are usually VPNs, travelers, or automated checks, not real use.</div>' +
         metricBars((us.countries || []).map(function(r) { return { name: r.name === '(not set)' ? 'Unknown' : r.name, count: r.count }; })) + '</div>';
