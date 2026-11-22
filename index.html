@@ -8780,6 +8780,7 @@
     list.innerHTML='<div style="color:var(--dusty-rose);font-size:14px;">Loading...</div>';
     try {
       const [res]=await Promise.all([fs_get_all('parishFamily'), loadPlatformMap()]);
+      (res.documents||[]).forEach(d=>{const id=docId(d),tk=gf(d,'fcmToken');if(platformByUid[id])return;if(tk&&platformByToken[tk]){(platformByUid[id]=platformByUid[id]||{})[platformByToken[tk]]=true;}else if(!tk&&platformOk){noPushUids[id]=true;}});
       allMembers=(res.documents||[]).filter(d=>gf(d,'approved')===true).sort((a,b)=>{const la=gf(a,'name').trim().split(' ').filter(Boolean).pop()||'';const lb=gf(b,'name').trim().split(' ').filter(Boolean).pop()||'';return la.localeCompare(lb);});
       renderDirectory(allMembers);
     } catch(e){list.innerHTML='<div style="color:var(--danger);">Error loading.</div>';}
@@ -8787,6 +8788,8 @@
 
   // ---- Platform (iOS / Android) per member: fcmTokens docs carry {uid, platform}; parishFamily doc id == uid ----
   let platformByUid = {};
+  let platformByToken = {};   // push token -> platform, fallback for members whose device was never linked to their account
+  let noPushUids = {};        // members with no push token at all (notifications off / never granted)
   let platformOk = false;
   async function fs_get_all(col) {
     const documents = []; let token = '';
@@ -8799,16 +8802,17 @@
     return { documents };
   }
   async function loadPlatformMap() {
-    platformByUid = {}; platformOk = false;
+    platformByUid = {}; platformByToken = {}; noPushUids = {}; platformOk = false;
     try {
       let token = '';
       do {
-        const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/fcmTokens?key=${API_KEY}&pageSize=300&mask.fieldPaths=uid&mask.fieldPaths=platform` + (token ? `&pageToken=${encodeURIComponent(token)}` : '');
+        const url = `https://firestore.googleapis.com/v1/projects/${PROJECT_ID}/databases/(default)/documents/fcmTokens?key=${API_KEY}&pageSize=300&mask.fieldPaths=uid&mask.fieldPaths=platform&mask.fieldPaths=token` + (token ? `&pageToken=${encodeURIComponent(token)}` : '');
         const r = await fetch(url, {headers: await authHeaders()});
         const j = await r.json();
         if (j.error) return;
         (j.documents || []).forEach(d => {
           const uid = gf(d, 'uid'), p = String(gf(d, 'platform')).toLowerCase();
+          const tk = gf(d, 'token'); if (tk && (p === 'ios' || p === 'android')) platformByToken[tk] = p;
           if (!uid || (p !== 'ios' && p !== 'android')) return;
           (platformByUid[uid] = platformByUid[uid] || {})[p] = true;
         });
@@ -8826,6 +8830,7 @@
   }
   function platformBadge(id) {
     const l = platformLabel(id);
+    if (!l && noPushUids[id]) return ` <span title="No push token on file: notifications were never allowed or the app is an old build" style="font-family:'Faustina',serif;font-size:11px;letter-spacing:.5px;padding:2px 8px;border-radius:10px;background:#FDF3E3;color:#8A5A12;vertical-align:middle;">No notifications</span>`;
     return l ? ` <span style="font-family:'Faustina',serif;font-size:11px;letter-spacing:.5px;padding:2px 8px;border-radius:10px;background:var(--linen);color:var(--burgundy);vertical-align:middle;">${l}</span>` : '';
   }
   function platformMatches(id, filter) {
