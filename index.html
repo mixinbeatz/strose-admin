@@ -6630,11 +6630,30 @@
         stat('Screen and page views, 30 days', metricNum(us.views30), '') +
         stat('Events, 30 days', metricNum(us.events30), '') +
         '</div>';
+      // ---- Daily active users (last 28 days), newest on the right ----
+      const dly = us.daily || [];
+      const dMax = Math.max.apply(null, [1].concat(dly.map(function(x) { return x.count; })));
+      const dFmt = function(ymd) { return ymd && ymd.length === 8 ? ymd.slice(4, 6) + '/' + ymd.slice(6) : ymd; };
+      const todayRow = dly.length ? dly[dly.length - 1] : null;
+      const yestRow = dly.length > 1 ? dly[dly.length - 2] : null;
+      const perUser = us.users30 ? (us.sessions30 / us.users30).toFixed(1) : '0';
+      html += '<div class="stats-row three">' +
+        stat('Active today', todayRow ? metricNum(todayRow.count) : '\u2014', yestRow ? metricNum(yestRow.count) + ' yesterday' : '') +
+        stat('New users, 30 days', metricNum(us.newUsers30), 'First time seen in the last 30 days') +
+        stat('Opens (sessions), 30 days', metricNum(us.sessions30), perUser + ' opens per active user') +
+        '</div>';
+      html += '<div class="card"><div class="card-title">Active users per day (last 28 days)</div>' +
+        '<div class="info-box" style="margin-bottom:12px;">Different devices that used the app, portal or website each day. This counts people (devices), not opens. Spikes usually line up with something you sent out.</div>' +
+        '<div style="display:flex;align-items:flex-end;gap:3px;height:110px;">' +
+        dly.map(function(x) { return '<div title="' + dFmt(x.date) + ': ' + x.count + '" style="flex:1;background:var(--burgundy);opacity:.85;border-radius:3px 3px 0 0;height:' + Math.max(2, Math.round(x.count / dMax * 100)) + '%;"></div>'; }).join('') +
+        '</div><div style="display:flex;justify-content:space-between;font-size:11px;color:var(--dusty-rose);margin-top:4px;"><span>' + (dly[0] ? dFmt(dly[0].date) : '') + '</span><span>' + (todayRow ? dFmt(todayRow.date) : '') + '</span></div></div>';
       html += '<div class="m-grid2">' +
         '<div class="card"><div class="card-title">Where people are (30 days)</div><div class="info-box" style="margin-bottom:12px;">Active users by app or portal.</div>' +
           metricBars((us.platforms || []).map(function(r) { return { name: platLabel(r.name), count: r.count }; })) + '</div>' +
         '<div class="card"><div class="card-title">Most viewed screens and pages</div><div class="info-box" style="margin-bottom:12px;">Last 30 days, app and portal together.</div>' +
           metricBars(us.screens || []) + '</div></div>';
+      html += '<div class="card"><div class="card-title">Countries (30 days)</div><div class="info-box" style="margin-bottom:12px;">Where active users appear to be, from their connection. One-off visits from other countries are usually VPNs, travelers, or automated checks, not real use.</div>' +
+        metricBars((us.countries || []).map(function(r) { return { name: r.name === '(not set)' ? 'Unknown' : r.name, count: r.count }; })) + '</div>';
       html += '<div class="card"><div class="card-title">App versions in use (30 days)</div><div class="info-box" style="margin-bottom:12px;">Active users by app version. Only builds that include analytics are counted (Android build 3 and later, and iOS after 1.0.3), so older versions will not appear here until people update.</div>' +
         metricBars(us.versions || []) + '</div>';
       html += '<div class="card"><div class="card-title">What people do (30 days)</div>' +
