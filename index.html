@@ -2777,7 +2777,7 @@
             <div class="form-group" style="margin:0;"><label class="form-label">Card</label>
               <select id="wn-key" class="form-input"><option value="prayerChain">Prayer Chain (Home)</option></select></div>
             <div class="form-group" style="margin:0;"><label class="form-label">Tag text</label>
-              <input id="wn-label" class="form-input" type="text" maxlength="14" value="New feature" /></div>
+              <input id="wn-label" class="form-input" type="text" maxlength="14" value="New" /></div>
             <div class="form-group" style="margin:0;"><label class="form-label">Starts</label>
               <input id="wn-start" class="form-input" type="date" onchange="wnSyncEnd()" /></div>
             <div class="form-group" style="margin:0;"><label class="form-label">Ends (30 days max)</label>
@@ -12344,7 +12344,7 @@
   }
   async function addWhatsNew(btn) {
     const key = document.getElementById('wn-key').value;
-    const label = (document.getElementById('wn-label').value || 'New feature').trim().slice(0, 14) || 'New feature';
+    const label = (document.getElementById('wn-label').value || 'New').trim().slice(0, 14) || 'New';
     const startsAt = document.getElementById('wn-start').value;
     if (!startsAt) { showToast('Pick a start date.', 'error'); return; }
     wnSyncEnd();
