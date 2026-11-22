@@ -1532,7 +1532,7 @@
         </div>
         <div class="card">
           <div class="card-title">🗓️ Past Events</div>
-          <div class="info-box">When an event is over, save what is live as a <strong>past event</strong> and then put up the next set of photos. The app shows a "Past events" button under Around the Parish with the albums from the <strong>last 12 months</strong>. Older ones stop showing in the app automatically but stay here, so you can bring one back by changing its date or delete it for good.</div>
+          <div class="info-box">Publishing a new set <strong>automatically saves the one that is live</strong> as a past event, so you never lose a recap. You can also save the live set yourself with the button below. The app shows a "Past events" button under Around the Parish with the albums from the <strong>last 12 months</strong>. Older ones stop showing in the app automatically but stay here, so you can bring one back by changing its date or delete it for good.</div>
           <div class="form-group">
             <label class="form-label">Date of the event</label>
             <input type="date" class="form-input" id="around-parish-archive-date" style="max-width:220px;" />
@@ -13152,18 +13152,17 @@
     const filled = AROUND_PARISH_SLOTS.filter(s => aroundParishDraft.slots[s.key] && aroundParishDraft.slots[s.key].url);
     if (!filled.length) { showToast('Add at least one photo first.', 'error'); return; }
     try {
-      // Safety net: never replace a live set that was not kept as a past event without asking.
+      // Automatic: whatever is live is saved as a past event before it is replaced, so a
+      // recap is never lost. If that save fails the publish stops and the live page is untouched.
+      await loadAroundParishPast();   // make sure the past list is current before checking for duplicates
       const liveHasPhotos = AROUND_PARISH_SLOTS.some(s => aroundParishData[s.key] && aroundParishData[s.key].url);
       if (liveHasPhotos && !apLiveAlreadyArchived()) {
-        const liveTitle = aroundParishLiveText.title || 'the current set';
-        if (confirm('"' + liveTitle + '" is live now and is not saved as a past event.\n\nOK = save it as a past event first (recommended)\nCancel = replace it without saving it')) {
-          const photos = AROUND_PARISH_SLOTS.map(s => aroundParishData[s.key]).filter(d => d && d.url).map(d => ({ url: d.appUrl || d.url, alt: d.alt || '' }));
-          const rec = aroundPastFields({ eyebrow: aroundParishLiveText.eyebrow, title: aroundParishLiveText.title, body: aroundParishLiveText.body, date: apLocalToday(), photos: photos });
-          rec.createdAt = { stringValue: new Date().toISOString() };
-          const r = await fs_post('aroundParishPast', rec);
-          if (r && r.error) throw new Error(r.error.message || 'save failed');
-          showToast('Saved the old set as a past event (dated today, change the date below if needed).', 'success');
-        }
+        const photos = AROUND_PARISH_SLOTS.map(s => aroundParishData[s.key]).filter(d => d && d.url).map(d => ({ url: d.appUrl || d.url, alt: d.alt || '' }));
+        const rec = aroundPastFields({ eyebrow: aroundParishLiveText.eyebrow, title: aroundParishLiveText.title, body: aroundParishLiveText.body, date: apLocalToday(), photos: photos });
+        rec.createdAt = { stringValue: new Date().toISOString() };
+        const r = await fs_post('aroundParishPast', rec);
+        if (r && r.error) throw new Error(r.error.message || 'save failed');
+        showToast('The previous set was saved to Past events automatically (dated today; change the date below if needed).', 'success');
       }
       const payload = {
         textEyebrow: { stringValue: val('around-parish-text-eyebrow') || AROUND_PARISH_DEFAULT_TEXT.eyebrow },
