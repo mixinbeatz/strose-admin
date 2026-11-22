@@ -434,6 +434,7 @@
       <div class="nav-section-toggle collapsed staff-only" onclick="toggleNavSection(this)"><span>Parish</span><span class="nav-chevron">▾</span></div>
       <div class="nav-group collapsed">
         <div class="nav-item staff-only" onclick="showPage('parish-staff',this);loadParishStaff()"><span class="nav-icon">👥</span> Parish Staff Directory</div>
+        <div class="nav-item owner-admin-only" style="display:none" onclick="showPage('whats-new',this);loadWhatsNew()"><span class="nav-icon">✨</span> What's New Tags</div>
         <div class="nav-item staff-only" onclick="showPage('councils',this);loadCouncils()"><span class="nav-icon">⛪</span> Pastoral, Finance &amp; Development Council</div>
         <div class="nav-item staff-only" onclick="showPage('ministry-documents',this);loadMinistryDocuments()"><span class="nav-icon">📄</span> Ministry Documents</div>
         <div class="nav-item staff-only" onclick="showPage('serving-roles',this);loadServingRoles()"><span class="nav-icon">🙌</span> Serving Roles</div>
@@ -2768,6 +2769,29 @@
           <div id="event-requests-list"><p style="opacity:0.5;font-size:14px">Loading...</p></div>
         </div>
       </div>
+      <div class="page" id="page-whats-new">
+        <div class="card">
+          <div class="card-title">✨ What's New Tags</div>
+          <div class="info-box">A quiet gold border and a small "NEW" tag on a card in the app, so people notice something new. A tag never lasts more than 30 days, and it disappears on a person's phone once they tap the card. It only shows on app versions that include the feature.</div>
+          <div class="form-row" style="display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end;margin-bottom:12px;">
+            <div class="form-group" style="margin:0;"><label class="form-label">Card</label>
+              <select id="wn-key" class="form-input"><option value="prayerChain">Prayer Chain (Home)</option></select></div>
+            <div class="form-group" style="margin:0;"><label class="form-label">Tag text</label>
+              <input id="wn-label" class="form-input" type="text" maxlength="14" value="New feature" /></div>
+            <div class="form-group" style="margin:0;"><label class="form-label">Starts</label>
+              <input id="wn-start" class="form-input" type="date" onchange="wnSyncEnd()" /></div>
+            <div class="form-group" style="margin:0;"><label class="form-label">Ends (30 days max)</label>
+              <input id="wn-end" class="form-input" type="date" /></div>
+            <button class="btn btn-primary" onclick="addWhatsNew(this)">Add tag</button>
+          </div>
+          <div id="wn-list"><p style="opacity:0.5;font-size:14px">Loading...</p></div>
+        </div>
+        <div class="card">
+          <div class="card-title">👋 New staff welcomes (automatic)</div>
+          <div class="info-box">When you add someone with Add Staff in the Parish Staff Directory, their card in the app gets a gold border and "Welcome — new to our staff" for 30 days. Nothing to set up. You can remove one early here.</div>
+          <div id="wn-staff"><p style="opacity:0.5;font-size:14px">Loading...</p></div>
+        </div>
+      </div>
       <div class="page" id="page-app-reports">
         <div class="card">
           <div class="card-title">🛠️ App Reports</div>
@@ -3310,7 +3334,7 @@
     if(el) el.classList.add('active');
     window.scrollTo(0,0);
     closeSidebar();
-    const titles = {metrics:'Metrics',dashboard:'Dashboard',events:'Events',announcement:'Post Announcement',fastblast:'Fast Blast',reflection:'Weekly Reflection','parish-development':'Parish Development',daily:'Daily Reflection',songsheet:'Mass Songsheet',welcome:'Welcome Message','hero-media':'Hero Section','welcome-media':'Welcome Section',gallery:'Homepage Gallery','around-parish':'Around the Parish','parish-dev-media':'Parish Development','bulletin-images':'Bulletin Images','ministry-booklet':'Ministry Booklet','form-settings':'Form Settings','mass-schedule':'Mass Schedule',sacraments:'Sacraments','live-screen':'Live Screen',councils:'Pastoral, Finance & Development Council','council-inquiries':'Council Inquiries','signup-forms':'Forms & Sign-ups','parish-staff':'Parish Staff Directory','ministry-documents':'Ministry Documents','serving-roles':'Serving Roles','funeral-planning':'Funeral Planning Forms','onboard-council':'Onboard Council Lead','music-ministry':'Music Ministry','music-members':'Music Ministry Members',approvals:'Parish Family Approvals',partners:'Advertising Requests',directory:'Parish Family Directory','reported-listings':'Reported Listings','needs-review':'Needs Review','ministry-post':'Post to Members','cda-members':'My Members','submit-event':'Submit Event','event-requests':'Event Requests','contact-requests':'Contact Requests','app-reports':'App Reports',intention:'Mass Intentions','my-ministry':'My Ministry','onboard-leader':'Onboard Ministry Leader','leader-tracker':'Ministry Leaders','image-guide':'Image Guide'};
+    const titles = {'whats-new':"What's New Tags",metrics:'Metrics',dashboard:'Dashboard',events:'Events',announcement:'Post Announcement',fastblast:'Fast Blast',reflection:'Weekly Reflection','parish-development':'Parish Development',daily:'Daily Reflection',songsheet:'Mass Songsheet',welcome:'Welcome Message','hero-media':'Hero Section','welcome-media':'Welcome Section',gallery:'Homepage Gallery','around-parish':'Around the Parish','parish-dev-media':'Parish Development','bulletin-images':'Bulletin Images','ministry-booklet':'Ministry Booklet','form-settings':'Form Settings','mass-schedule':'Mass Schedule',sacraments:'Sacraments','live-screen':'Live Screen',councils:'Pastoral, Finance & Development Council','council-inquiries':'Council Inquiries','signup-forms':'Forms & Sign-ups','parish-staff':'Parish Staff Directory','ministry-documents':'Ministry Documents','serving-roles':'Serving Roles','funeral-planning':'Funeral Planning Forms','onboard-council':'Onboard Council Lead','music-ministry':'Music Ministry','music-members':'Music Ministry Members',approvals:'Parish Family Approvals',partners:'Advertising Requests',directory:'Parish Family Directory','reported-listings':'Reported Listings','needs-review':'Needs Review','ministry-post':'Post to Members','cda-members':'My Members','submit-event':'Submit Event','event-requests':'Event Requests','contact-requests':'Contact Requests','app-reports':'App Reports',intention:'Mass Intentions','my-ministry':'My Ministry','onboard-leader':'Onboard Ministry Leader','leader-tracker':'Ministry Leaders','image-guide':'Image Guide'};
     document.getElementById('page-title').textContent = titles[id]||id;
     var mpt = document.getElementById('mobile-page-title'); if(mpt) mpt.textContent = titles[id]||id;
     _portalPage = id;
@@ -10540,6 +10564,7 @@
         showToast('Staff member updated!', 'success');
       } else {
         fields.createdAt = { stringValue: new Date().toISOString() };
+        fields.joinedAt = { stringValue: new Date().toISOString() };   // drives the app's 30-day welcome hint
         await fs_post('parishStaff', fields);
         showToast('Staff member added!', 'success');
       }
@@ -12276,6 +12301,67 @@
         '</div>';
       }).join('');
     } catch(e) { list.innerHTML = '<div style="color:var(--dusty-rose);font-size:14px;">Error loading.</div>'; }
+  }
+
+  // ── WHAT'S NEW TAGS ──
+  const WN_DAY = 86400000;
+  let wnItems = [];
+  function wnYmd(d) { const x = new Date(d); x.setMinutes(x.getMinutes() - x.getTimezoneOffset()); return x.toISOString().slice(0, 10); }
+  function wnSyncEnd() {
+    const st = document.getElementById('wn-start').value; if (!st) return;
+    const max = wnYmd(new Date(st + 'T00:00:00').getTime() + 30 * WN_DAY);
+    const en = document.getElementById('wn-end'); en.max = max; if (!en.value || en.value > max || en.value < st) en.value = max;
+  }
+  function wnStatus(it) {
+    const start = new Date(it.startsAt + 'T00:00:00').getTime();
+    const end = Math.min(new Date((it.endsAt || it.startsAt) + 'T23:59:59').getTime(), start + 30 * WN_DAY);
+    const now = Date.now();
+    return now < start ? 'Scheduled' : now < end ? 'Showing' : 'Ended';
+  }
+  async function loadWhatsNew() {
+    const st = document.getElementById('wn-start'); if (st && !st.value) { st.value = wnYmd(Date.now()); wnSyncEnd(); }
+    const list = document.getElementById('wn-list'), sl = document.getElementById('wn-staff');
+    try {
+      const d = await fs_get_doc('siteContent/newFeatures');
+      try { wnItems = JSON.parse((d.fields && d.fields.itemsJson && d.fields.itemsJson.stringValue) || '[]'); } catch (e) { wnItems = []; }
+      list.innerHTML = wnItems.length ? wnItems.map(function(it, i) {
+        const status = wnStatus(it);
+        const col = status === 'Showing' ? '#3F5B34' : status === 'Scheduled' ? '#8A5A12' : '#8a7367';
+        return '<div class="approval-card"><div class="approval-info"><div class="approval-name">' + escHtml(it.key) + ' <span style="font-size:12px;font-weight:600;color:' + col + ';">· ' + status + '</span></div><div class="approval-meta">"' + escHtml(it.label) + '" · ' + escHtml(it.startsAt) + ' to ' + escHtml(it.endsAt) + '</div></div><div class="approval-actions"><button class="btn btn-danger btn-sm" onclick="removeWhatsNew(' + i + ')">Remove</button></div></div>';
+      }).join('') : '<p style="opacity:0.6;font-size:14px;">No tags yet.</p>';
+    } catch (e) { list.innerHTML = '<div style="color:var(--danger);">Error loading.</div>'; }
+    try {
+      const res = await fs_get('parishStaff');
+      const recent = (res.documents || []).filter(function(x) { const j = gf(x, 'joinedAt'); const t = j ? new Date(j).getTime() : 0; return t && Date.now() - t < 30 * WN_DAY; });
+      sl.innerHTML = recent.length ? recent.map(function(x) {
+        const until = wnYmd(new Date(gf(x, 'joinedAt')).getTime() + 30 * WN_DAY);
+        return '<div class="approval-card"><div class="approval-info"><div class="approval-name">' + escHtml(gf(x, 'name')) + '</div><div class="approval-meta">' + escHtml(gf(x, 'role')) + ' · welcome tag until ' + until + '</div></div><div class="approval-actions"><button class="btn btn-outline btn-sm" onclick="removeStaffWelcome(\'' + docId(x) + '\')">Remove tag</button></div></div>';
+      }).join('') : '<p style="opacity:0.6;font-size:14px;">No new staff right now.</p>';
+    } catch (e) { sl.innerHTML = '<div style="color:var(--danger);">Error loading.</div>'; }
+  }
+  async function wnSave() {
+    await fs_patch('siteContent/newFeatures', { itemsJson: { stringValue: JSON.stringify(wnItems) }, updatedAt: { stringValue: new Date().toISOString() } });
+  }
+  async function addWhatsNew(btn) {
+    const key = document.getElementById('wn-key').value;
+    const label = (document.getElementById('wn-label').value || 'New feature').trim().slice(0, 14) || 'New feature';
+    const startsAt = document.getElementById('wn-start').value;
+    if (!startsAt) { showToast('Pick a start date.', 'error'); return; }
+    wnSyncEnd();
+    const endsAt = document.getElementById('wn-end').value;
+    btn.disabled = true;
+    try {
+      wnItems = wnItems.filter(function(i) { return i.key !== key; }).concat([{ key: key, label: label, startsAt: startsAt, endsAt: endsAt }]);
+      await wnSave(); showToast('Tag saved.', 'success'); loadWhatsNew();
+    } catch (e) { showToast('Could not save.', 'error'); }
+    btn.disabled = false;
+  }
+  async function removeWhatsNew(i) {
+    if (!confirm('Remove this tag?')) return;
+    try { wnItems.splice(i, 1); await wnSave(); showToast('Removed.', 'success'); loadWhatsNew(); } catch (e) { showToast('Could not remove.', 'error'); }
+  }
+  async function removeStaffWelcome(id) {
+    try { await fs_patch('parishStaff/' + id, { joinedAt: { stringValue: '' } }); showToast('Welcome tag removed.', 'success'); loadWhatsNew(); } catch (e) { showToast('Could not remove.', 'error'); }
   }
 
   async function loadAppReports() {
