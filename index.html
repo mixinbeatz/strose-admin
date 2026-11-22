@@ -6598,6 +6598,7 @@
         '<div class="stat-sub" id="m-adv-sub">Live listings in the app and on the website</div>' +
         '<div class="stat-sub" style="margin-top:6px;">Waiting for approval: ' + metricNum(q.advertisingRequests) + ' &middot; Website directory page views, 30 days: ' + metricNum(advWeb.dir) + ' &middot; Advertise page views: ' + metricNum(advWeb.inq) + '</div></div>' +
       '</div>';
+    html += '<div class="card" id="m-adv-top" style="margin-bottom:24px;"><div class="card-title">Top advertisers, last 30 days</div><div style="color:var(--dusty-rose);font-size:14px;">Loading...</div></div>';
     html += '<div class="m-grid2">' +
       '<div class="card"><div class="card-title">Waiting on you</div>' +
         queueRow('Directory profiles to approve', f ? f.pending : null, 'approvals') +
@@ -6717,6 +6718,29 @@
         const live = document.getElementById('m-adv-live'), sub = document.getElementById('m-adv-sub');
         if (live) live.textContent = String(docs.length);
         if (sub) sub.textContent = 'Premium ' + prem + ' · Standard ' + std + ' · Parish Pro ' + pro;
+        // Per-advertiser views and taps from the app (counting began with app version 1.0.9).
+        const topEl = document.getElementById('m-adv-top');
+        if (topEl) {
+          const slug = function(n) { return String(n || '').toLowerCase().replace(/[^a-z0-9]+/g, '_').replace(/^_+|_+$/g, '').slice(0, 28); };
+          const ev = (d.usage && d.usage.advEvents) || [];
+          const views = {}, taps = {};
+          ev.forEach(function(r) {
+            if (r.name.indexOf('adv_v_') === 0) views[r.name.slice(6)] = r.count;
+            else if (r.name.indexOf('adv_t_') === 0) taps[r.name.slice(6)] = r.count;
+          });
+          const rows = docs.map(function(x) {
+            const sl = slug(gf(x, 'name'));
+            return { name: gf(x, 'name') || '', v: views[sl] || 0, t: taps[sl] || 0 };
+          }).sort(function(a, b) { return (b.v + b.t) - (a.v + a.t) || String(a.name).localeCompare(String(b.name)); });
+          const any = rows.some(function(r) { return r.v || r.t; });
+          const title = '<div class="card-title">Top advertisers, last 30 days</div>';
+          const head = '<div class="info-box" style="margin-bottom:12px;">Opened = someone opened the advertiser’s full listing (Premium). Taps = Call, Text, Website, Email or Directions. Counting started with app version 1.0.9, so numbers build up as people update.</div>';
+          if (!rows.length) topEl.innerHTML = title + head + '<div style="color:var(--dusty-rose);font-size:14px;">No live advertisers yet.</div>';
+          else topEl.innerHTML = title + head +
+            '<div class="m-queue" style="font-size:12px;letter-spacing:1px;text-transform:uppercase;color:var(--dusty-rose);"><span>Advertiser</span><span>Opened &nbsp;&middot;&nbsp; Taps</span></div>' +
+            rows.map(function(r) { return '<div class="m-queue"><span>' + escHtml(r.name) + '</span><span><strong style="font-family:Cinzel,serif;color:' + (r.v || r.t ? 'var(--burgundy)' : 'var(--dusty-rose)') + ';">' + r.v + ' &nbsp;&middot;&nbsp; ' + r.t + '</strong></span></div>'; }).join('') +
+            (any ? '' : '<div style="color:var(--dusty-rose);font-size:13px;margin-top:10px;">No activity yet. It will fill in once people are on 1.0.9.</div>');
+        }
       } catch (e) { /* leave the dash */ }
     })();
   }
