@@ -6585,18 +6585,16 @@
     };
     let html = '';
     html += '<div class="stats-row">' +
-      stat('Parish Family members', f ? metricNum(f.approved) : '\u2014', f ? metricNum(f.pending) + ' waiting for approval' : '') +
-      stat('Sign-ups, last 30 days', f ? metricNum(f.signups30) : '\u2014', f ? metricNum(f.signups7) + ' in the last 7 days' : '') +
-      stat('Active devices, 30 days', dv ? metricNum(dv.active30) : '\u2014', dv ? 'iOS ' + metricNum(dv.active30Ios) + ' \u00b7 Android ' + metricNum(dv.active30Android) : '') +
-      stat('Active devices, 7 days', dv ? metricNum(dv.active7) : '\u2014', dv ? metricNum(dv.total) + ' registered in total' : '') +
+      stat('Active devices, 30 days', dv ? metricNum(dv.active30) : '—', dv ? 'iOS ' + metricNum(dv.active30Ios) + ' · Android ' + metricNum(dv.active30Android) : '') +
+      stat('Active devices, 7 days', dv ? metricNum(dv.active7) : '—', dv ? metricNum(dv.total) + ' registered in total' : '') +
+      stat('Parish Family members', f ? metricNum(f.approved) : '—', f ? metricNum(f.pending) + ' waiting for approval' : '') +
+      stat('Sign-ups, last 30 days', f ? metricNum(f.signups30) : '—', f ? metricNum(f.signups7) + ' in the last 7 days' : '') +
       '</div>';
-    html += '<div class="stats-row three">' +
-      stat('App opens, all time', en ? metricNum(en.sessionCount) : '\u2014', en && en.lastSessionAt ? 'Last: ' + new Date(en.lastSessionAt).toLocaleString() : '') +
-      stat('Directory views, all time', en ? metricNum(en.directoryViews == null ? 0 : en.directoryViews) : '\u2014', '') +
-      stat('Ministry chat members', ch ? metricNum(ch.totalMemberships) : '\u2014', ch ? 'across ' + metricNum(ch.byMinistry.length) + ' ministries' : '') +
+    html += '<div class="stats-row" style="grid-template-columns:repeat(2,1fr);">' +
+      stat('App opens, all time', en ? metricNum(en.sessionCount) : '—', en && en.lastSessionAt ? 'Last: ' + new Date(en.lastSessionAt).toLocaleString() : '') +
+      stat('Parish Family directory opens, all time', en ? metricNum(en.directoryViews == null ? 0 : en.directoryViews) : '—', 'Times the Parish Family directory was opened in the app') +
       '</div>';
     html += '<div class="m-grid2">' +
-      '<div class="card"><div class="card-title">Sign-ups per week</div>' + (f ? metricCols(f.weekly) : na) + '</div>' +
       '<div class="card"><div class="card-title">Waiting on you</div>' +
         queueRow('Directory profiles to approve', f ? f.pending : null, 'approvals') +
         queueRow('Reported directory listings', f ? f.reported : null, 'reported-listings') +
@@ -6604,10 +6602,8 @@
         queueRow('Advertising requests', q.advertisingRequests, 'partners') +
         queueRow('Council questions awaiting a reply', q.councilInquiries, '') +
         queueRow('Contact requests', q.contactRequests, '') +
-      '</div></div>';
-    html += '<div class="m-grid2">' +
+      '</div>' +
       '<div class="card"><div class="card-title">Members by ministry</div><div class="info-box" style="margin-bottom:12px;">What approved members picked when they signed up.</div>' + (f ? metricBars(f.ministries) : na) + '</div>' +
-      '<div class="card"><div class="card-title">Ministry chat members</div><div class="info-box" style="margin-bottom:12px;">People with chat access turned on, per ministry.</div>' + (ch ? metricBars(ch.byMinistry) : na) + '</div>' +
       '</div>';
     const us = d.usage;
     const gaLink = '<a class="btn btn-outline btn-sm" href="https://analytics.google.com" target="_blank" rel="noopener" style="text-decoration:none;display:inline-block;margin-top:12px;">Open Google Analytics</a>';
