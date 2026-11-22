@@ -1013,6 +1013,11 @@
             <input type="text" class="form-input" id="ref-heading" placeholder="e.g. The Good Shepherd — 4th Sunday of Easter" />
           </div>
           <div class="form-group">
+            <label class="form-label">Reading <span style="font-weight:400;opacity:.7;">(the Scripture this reflection is on)</span></label>
+            <input type="text" class="form-input" id="ref-reading" placeholder="e.g. Mt 25:31–46" />
+            <div style="font-size:12px;color:var(--dusty-rose);margin-top:4px;">Shows on the card as "Reading: …" and becomes a tappable link to that Sunday's readings.</div>
+          </div>
+          <div class="form-group">
             <label class="form-label">Author</label>
             <input type="text" class="form-input" id="ref-author" value="Fr. Bing Colasito" />
           </div>
@@ -5589,6 +5594,7 @@
       '<div style="position:relative;font-family:Cinzel,serif;font-weight:700;font-size:' + (o.hero ? '22' : '15') + 'px;color:' + (o.hero ? '#E8DDD0' : '#fff') + ';line-height:1.25;margin-top:2px;' + (o.hero ? 'text-align:center;text-shadow:0 1px 10px rgba(0,0,0,0.7);' : '') + '">' + (o.title ? escHtml(o.title) : '<span style="opacity:.5;">Your title</span>') + '</div>' +
       (o.hero ? '<div style="position:relative;height:3px;background:#C9A84C;margin-top:10px;border-radius:2px;"></div>' : '') + '</div>';
     h += '<div style="overflow-y:auto;padding:20px 24px 24px;font-family:Faustina,serif;color:#3D2B2B;min-height:0;background:#F7F3EE;">' +
+      (o.reading ? '<div style="margin-bottom:14px;font-size:15px;color:#5C1A2E;font-weight:600;">📖 Reading: <span style="text-decoration:underline;">' + escHtml(o.reading) + '</span> →</div>' : '') +
       '<div style="font-size:17px;line-height:1.6;">' + (o.body && o.body.trim() ? annMarkupHtml(o.body) : '<span style="opacity:.5;">Your reflection appears here.</span>') + '</div>';
     if (o.author) h += '<div style="color:#5C1A2E;font-size:15px;font-style:italic;text-align:right;margin-top:20px;">— ' + escHtml(o.author) + '</div>';
     (o.photos || []).forEach(function(p) {
@@ -5603,7 +5609,7 @@
     const v = function(id) { const x = document.getElementById(id); return x ? x.value : ''; };
     const w = document.getElementById('ref-live-preview');
     if (w) w.innerHTML = reflectionPreviewHtml({
-      kicker: v('ref-liturgical').trim().toUpperCase(), title: v('ref-heading').trim(), hero: refHeroUrl,
+      kicker: v('ref-liturgical').trim().toUpperCase(), title: v('ref-heading').trim(), hero: refHeroUrl, reading: v('ref-reading').trim(),
       body: v('ref-body'), author: v('ref-author').trim(), photos: refPhotos });
     const d = document.getElementById('daily-preview');
     if (d) {
@@ -5613,7 +5619,7 @@
       if (lbl) lbl.textContent = 'Previewing: ' + (annPvDate(date) || 'Day ' + (i + 1)) + ' — click into another day to switch';
       d.innerHTML = reflectionPreviewHtml({
         kicker: 'DAILY REFLECTION · ' + date, title: v('daily-title-' + i).trim() || 'Daily Reflection', hero: dailyHeroUrls[i],
-        body: v('daily-body-' + i), music: v('daily-music-' + i).trim() });
+        body: v('daily-body-' + i), reading: v('daily-reading-' + i).trim(), music: v('daily-music-' + i).trim() });
     }
   }
   (function wireReflectionPreview() {
@@ -5849,6 +5855,7 @@
     if (!r) return;
     document.getElementById('ref-heading').value = r.title || '';
     document.getElementById('ref-author').value = r.author || '';
+    document.getElementById('ref-reading').value = r.reading || '';
     document.getElementById('ref-body').value = r.body || '';
     document.getElementById('ref-liturgical').value = r.liturgicalDate || '';
     refHeroUrl = r.heroImageUrl || '';
@@ -5888,7 +5895,7 @@
         .sort((a,b) => (gf(a,'publishAt')||'').localeCompare(gf(b,'publishAt')||''));
       if(liveDocs.length>0){
         const r=liveDocs[0];
-        window._liveReflection = {title: gf(r,'heading'), author: gf(r,'author'), body: gf(r,'body'), liturgicalDate: gf(r,'liturgicalDate'), publishAt: gf(r,'publishAt'), heroImageUrl: gf(r,'heroImageUrl'), photos: reflectionPhotosFromDoc(r)};
+        window._liveReflection = {reading: gf(r,'reading'), title: gf(r,'heading'), author: gf(r,'author'), body: gf(r,'body'), liturgicalDate: gf(r,'liturgicalDate'), publishAt: gf(r,'publishAt'), heroImageUrl: gf(r,'heroImageUrl'), photos: reflectionPhotosFromDoc(r)};
         if(currentEl) currentEl.innerHTML = renderReflectionCard(r, true);
       } else {
         window._liveReflection = null;
@@ -5897,7 +5904,7 @@
       if(futureDocs.length>0){
         if(scheduledCard) scheduledCard.style.display='block';
         if(scheduledEl) scheduledEl.innerHTML = renderReflectionCard(futureDocs[0], false);
-        window._scheduledReflection = {id: docId(futureDocs[0]), title: gf(futureDocs[0],'heading'), author: gf(futureDocs[0],'author'), body: gf(futureDocs[0],'body'), liturgicalDate: gf(futureDocs[0],'liturgicalDate'), publishAt: gf(futureDocs[0],'publishAt'), heroImageUrl: gf(futureDocs[0],'heroImageUrl'), photos: reflectionPhotosFromDoc(futureDocs[0])};
+        window._scheduledReflection = {reading: gf(futureDocs[0],'reading'), id: docId(futureDocs[0]), title: gf(futureDocs[0],'heading'), author: gf(futureDocs[0],'author'), body: gf(futureDocs[0],'body'), liturgicalDate: gf(futureDocs[0],'liturgicalDate'), publishAt: gf(futureDocs[0],'publishAt'), heroImageUrl: gf(futureDocs[0],'heroImageUrl'), photos: reflectionPhotosFromDoc(futureDocs[0])};
       } else {
         window._scheduledReflection = null;
         if(scheduledCard) scheduledCard.style.display='none';
@@ -5933,6 +5940,7 @@
     const author=document.getElementById('ref-author').value.trim();
     const body=normalizeReflectionBody(document.getElementById('ref-body').value.trim());
     const liturgicalDate=document.getElementById('ref-liturgical').value.trim();
+    const reading=document.getElementById('ref-reading').value.trim();
     if(!heading||!body){showToast('Please fill in title and text.','error');return;}
     // Compute the target Saturday 3pm Arizona time (UTC-7, no DST), entirely in UTC terms
     // so this is correct regardless of the poster's device timezone or time of day.
@@ -5973,7 +5981,10 @@
       for (const doc of futureDocs){
         await fs_delete(doc.name.split('/documents/parishes/saint-rose-anthem/')[1]);
       }
-      await fs_post_strict('weeklyReflection',{heading:{stringValue:heading},subtitle:{stringValue:heading},fullTitle:{stringValue:heading},author:{stringValue:author},body:{stringValue:body},liturgicalDate:{stringValue:liturgicalDate},publishAt:{stringValue:publishAt},link:{stringValue:''},heroImageUrl:{stringValue:refHeroUrl||''},photos:{arrayValue:{values:refPhotosToFs()}},updatedAt:{stringValue:new Date().toISOString()}});
+      // The Sunday this reflection is for = the Saturday it publishes (Arizona date) + 1 day; the app uses it to link to that day's readings.
+      const sun = new Date(new Date(publishAt).getTime() - 7 * 3600 * 1000 + 24 * 3600 * 1000);
+      const readingDate = sun.getUTCFullYear() + '-' + String(sun.getUTCMonth() + 1).padStart(2, '0') + '-' + String(sun.getUTCDate()).padStart(2, '0');
+      await fs_post_strict('weeklyReflection',{reading:{stringValue:reading},readingDate:{stringValue:readingDate},heading:{stringValue:heading},subtitle:{stringValue:heading},fullTitle:{stringValue:heading},author:{stringValue:author},body:{stringValue:body},liturgicalDate:{stringValue:liturgicalDate},publishAt:{stringValue:publishAt},link:{stringValue:''},heroImageUrl:{stringValue:refHeroUrl||''},photos:{arrayValue:{values:refPhotosToFs()}},updatedAt:{stringValue:new Date().toISOString()}});
       document.getElementById('ref-success').style.display='block';
       showToast('Reflection scheduled!','success');
       setTimeout(()=>{document.getElementById('ref-success').style.display='none';},4000);
@@ -6028,6 +6039,7 @@
         '<div style="font-family:Cinzel,serif;font-size:13px;color:var(--burgundy);margin-bottom:10px;">' + label + '</div>' +
         '<input type="hidden" id="daily-date-' + i + '" value="' + dateStr + '" />' +
         '<input type="text" class="form-input" id="daily-title-' + i + '" placeholder="Title (optional)" style="margin-bottom:8px;" />' +
+        '<input type="text" class="form-input" id="daily-reading-' + i + '" placeholder="Reading (optional) - e.g. Lk 21:5-19" style="margin-bottom:8px;" />' +
         '<input type="file" accept=".docx" style="margin-bottom:8px;" onchange="importDocxToTextarea(this,\'daily-body-' + i + '\')" />' +
         '<div style="font-size:11px;color:var(--dusty-rose);margin:-4px 0 8px;">Import from Word Doc (.docx) -- auto-detects bold text as **.</div>' +
         '<div class="textarea-toolbar">' +
@@ -6054,6 +6066,7 @@
         const match = docs.find(function(d){ return gf(d,'date') === date; });
         if (match) {
           document.getElementById('daily-title-' + i).value = gf(match,'title') || '';
+          const readingEl = document.getElementById('daily-reading-' + i); if (readingEl) readingEl.value = gf(match,'reading') || '';
           document.getElementById('daily-body-' + i).value = gf(match,'body') || '';
           const musicEl = document.getElementById('daily-music-' + i);
           if (musicEl) musicEl.value = gf(match,'musicUrl') || '';
@@ -6786,11 +6799,13 @@
       const titleEl = document.getElementById('daily-title-' + i);
       const bodyEl = document.getElementById('daily-body-' + i);
       const musicEl = document.getElementById('daily-music-' + i);
+      const readingEl = document.getElementById('daily-reading-' + i);
       if (!dateEl || !bodyEl) continue;
       const date = dateEl.value;
       const title = titleEl ? titleEl.value.trim() : '';
       const body = bodyEl.value.trim();
       const musicUrl = musicEl ? musicEl.value.trim() : '';
+      const reading = readingEl ? readingEl.value.trim() : '';
       if (!body) continue;
       attempted++;
       try {
@@ -6803,6 +6818,7 @@
           title:{stringValue:title},
           body:{stringValue:body},
           musicUrl:{stringValue:musicUrl},
+          reading:{stringValue:reading},
           heroImageUrl:{stringValue:dailyHeroUrls[i]||''},
           postedBy:{stringValue:'Parish Staff'},
           createdAt:{stringValue:new Date().toISOString()}
@@ -6854,6 +6870,7 @@
     const titleEl = document.getElementById('daily-title-0');
     const bodyEl = document.getElementById('daily-body-0');
     const musicEl = document.getElementById('daily-music-0');
+    const readingEl0 = document.getElementById('daily-reading-0');
     if (!bodyEl || !bodyEl.value.trim()) { showToast('Add text to today\'s row first.', 'error'); return; }
     const date = dateEl ? dateEl.value : new Date().toISOString().split('T')[0];
     const title = titleEl ? titleEl.value.trim() : '';
@@ -6867,6 +6884,7 @@
         title: {stringValue: title},
         body: {stringValue: body},
         musicUrl: {stringValue: musicUrl},
+        reading: {stringValue: readingEl0 ? readingEl0.value.trim() : ''},
         heroImageUrl: {stringValue: dailyHeroUrls[0] || ''},
         postedBy: {stringValue: 'Parish Staff'},
         createdAt: {stringValue: new Date().toISOString()}
