@@ -542,22 +542,17 @@
 
       <!-- DASHBOARD -->
       <div class="page active" id="page-dashboard">
-        <div class="dash-section-title">Parish Family</div>
-        <div class="stats-row">
-          <div class="stat-card clickable" onclick="showPage('directory',navItem('directory'))">
-            <div class="stat-label">Approved Members</div>
-            <div class="stat-value" id="stat-members">—</div>
-            <div class="stat-sub">in the directory</div>
-          </div>
+        <div class="dash-section-title">Parish Family: needs your attention</div>
+        <div class="stats-row three">
           <div class="stat-card clickable" style="border-top-color:var(--gold)" onclick="showPage('approvals',navItem('approvals'))">
             <div class="stat-label">Pending Approval</div>
             <div class="stat-value" id="stat-pending">—</div>
-            <div class="stat-sub">awaiting review</div>
+            <div class="stat-sub">new profiles awaiting review</div>
           </div>
           <div class="stat-card clickable" style="border-top-color:var(--gold-light)" onclick="showPage('needs-review',navItem('needs-review'))">
             <div class="stat-label">Changed Profiles</div>
             <div class="stat-value" id="stat-needsreview">—</div>
-            <div class="stat-sub">need review (edited since approval)</div>
+            <div class="stat-sub">edited since approval</div>
           </div>
           <div class="stat-card clickable" style="border-top-color:var(--danger)" onclick="showPage('reported-listings',navItem('reported-listings'))">
             <div class="stat-label">Reported Listings</div>
@@ -4575,7 +4570,6 @@
       const unpaidYMRegs = (ymRegs.documents||[]).filter(isUnpaid);
       const ymRegBadge = document.getElementById('ymreg-count');
       if (ymRegBadge) { ymRegBadge.textContent = unpaidYMRegs.length; ymRegBadge.style.display = unpaidYMRegs.length > 0 ? '' : 'none'; }
-      document.getElementById('stat-members').textContent = approved.length;
       document.getElementById('stat-pending').textContent = pending.length;
       document.getElementById('stat-partners').textContent = preqs.length;
       document.getElementById('approval-count').textContent = pending.length;
