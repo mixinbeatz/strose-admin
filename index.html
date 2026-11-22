@@ -8833,6 +8833,12 @@
     if (!l && noPushUids[id]) return ` <span title="No push token on file: notifications were never allowed or the app is an old build" style="font-family:'Faustina',serif;font-size:11px;letter-spacing:.5px;padding:2px 8px;border-radius:10px;background:#FDF3E3;color:#8A5A12;vertical-align:middle;">No notifications</span>`;
     return l ? ` <span style="font-family:'Faustina',serif;font-size:11px;letter-spacing:.5px;padding:2px 8px;border-radius:10px;background:var(--linen);color:var(--burgundy);vertical-align:middle;">${l}</span>` : '';
   }
+  // App version the member last opened (saved by the app on their profile; members on older builds have none yet)
+  function versionLabel(doc) { const v = gf(doc, 'appVersion'), b = gf(doc, 'appBuild'); return v ? v + (b ? ' (' + b + ')' : '') : ''; }
+  function versionBadge(doc) {
+    const l = versionLabel(doc);
+    return ` <span title="App version last opened" style="font-family:'Faustina',serif;font-size:11px;letter-spacing:.5px;padding:2px 8px;border-radius:10px;background:#EEF3EA;color:#3F5B34;vertical-align:middle;">${l ? 'v' + escHtml(l) : 'version unknown'}</span>`;
+  }
   function platformMatches(id, filter) {
     if (!platformOk || filter === 'all') return true;
     const k = platformKey(id);
@@ -8845,7 +8851,9 @@
     const _pc = {ios:0, android:0, unknown:0};
     members.forEach(d => { const k = platformKey(docId(d)); if (k === 'both') { _pc.ios++; _pc.android++; } else _pc[k]++; });
     const _ps = platformOk ? ` · ${_pc.ios} iOS · ${_pc.android} Android · ${_pc.unknown} unknown` : ' · device info unavailable';
-    let html = `<div style="font-size:13px;color:var(--dusty-rose);margin-bottom:16px;">${members.length} approved members${_ps}</div>`;
+    const _vc = {}; members.forEach(d => { const v = gf(d, 'appVersion') || 'unknown'; _vc[v] = (_vc[v] || 0) + 1; });
+    const _vs = Object.keys(_vc).sort((x, y) => x === 'unknown' ? 1 : y === 'unknown' ? -1 : y.localeCompare(x, undefined, {numeric: true})).map(v => (v === 'unknown' ? 'not yet reported' : v) + ': ' + _vc[v]).join(' · ');
+    let html = `<div style="font-size:13px;color:var(--dusty-rose);margin-bottom:6px;">${members.length} approved members${_ps}</div><div style="font-size:13px;color:var(--dusty-rose);margin-bottom:16px;">App versions — ${_vs}</div>`;
     let currentLetter = '';
     members.forEach(doc => {
       const id=docId(doc),name=gf(doc,'name'),email=gf(doc,'email'),ministries=gf(doc,'ministries'),photo=gf(doc,'photoUrl');
@@ -8857,7 +8865,7 @@
       }
       html += `<div class="approval-card" id="dir-${id}">
           <div class="approval-avatar">${photo?`<img src="${photo}" onclick="openLightbox('${photo}')"/>`:(name.charAt(0)||'?')}</div>
-          <div class="approval-info"><div class="approval-name">${escHtml(name)}${platformBadge(id)}</div><div class="approval-meta">${escHtml(email)}${ministries?' · '+escHtml(ministries):''}</div></div>
+          <div class="approval-info"><div class="approval-name">${escHtml(name)}${platformBadge(id)}${versionBadge(doc)}</div><div class="approval-meta">${escHtml(email)}${ministries?' · '+escHtml(ministries):''}</div></div>
           <div class="approval-actions">
             <button class="btn btn-outline btn-sm" onclick="openEditRecord('parishFamily','${id}')">Edit</button>
             <button class="btn btn-outline btn-sm" onclick="showMemberProfile('${id}')">View Profile</button>
@@ -8993,6 +9001,7 @@
       <div class="profile-modal-row"><div class="profile-modal-label">Ministries</div><div class="profile-modal-value">${ministries?escHtml(ministries):'<em style="opacity:0.5">None selected</em>'}</div></div>
       ${badges?`<div class="profile-modal-row"><div class="profile-modal-label">Badges</div><div class="profile-modal-value">${escHtml(badges)}</div></div>`:''}
       <div class="profile-modal-row"><div class="profile-modal-label">Email visible in public directory</div><div class="profile-modal-value">${showEmail===true?'Yes':'No'}</div></div>
+      <div class="profile-modal-row"><div class="profile-modal-label">App version</div><div class="profile-modal-value">${versionLabel(doc)?escHtml(versionLabel(doc))+(gf(doc,'appSeenAt')?' · last opened '+fmt(gf(doc,'appSeenAt')):''):'<em style="opacity:0.5">Not reported yet (older build)</em>'}</div></div>
       <div class="profile-modal-row"><div class="profile-modal-label">Member since</div><div class="profile-modal-value">${fmt(createdAt)||'<em style="opacity:0.5">Unknown</em>'}</div></div>
       ${conductAt?`<div class="profile-modal-row"><div class="profile-modal-label">Conduct policy agreed</div><div class="profile-modal-value">${fmt(conductAt)}${conductVer?' (v'+escHtml(conductVer)+')':''}</div></div>`:''}
       ${pending?`
