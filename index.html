@@ -1442,6 +1442,12 @@
               <button class="btn btn-outline btn-sm poll-expiry" onclick="setPollExpiry(this,'30d')">30 Days</button>
             </div>
           </div>
+          <div class="form-group">
+            <label style="display:flex;gap:10px;align-items:flex-start;cursor:pointer;font-size:15px;">
+              <input type="checkbox" id="poll-notify" checked style="margin-top:4px;width:18px;height:18px;flex-shrink:0;" />
+              <span><strong>Send a push notification</strong><br><span style="font-size:12px;color:var(--dusty-rose);">Everyone with the app gets an alert. Uncheck to launch quietly: the poll still shows on Home, with no alert. Handy for a test.</span></span>
+            </label>
+          </div>
           <div class="btn-row">
             <button class="btn btn-primary" onclick="createPoll()">Launch Poll</button>
           </div>
@@ -1452,6 +1458,11 @@
           <div style="margin-bottom:8px;"><button class="btn btn-outline btn-sm" onclick="loadPollResults()">🔄 Load Results</button>
           <button class="btn btn-outline btn-sm" style="margin-left:8px;" onclick="editPoll()">Edit Poll</button><button class="btn btn-sm" style="background:#8B2635;color:#E8DDD0;border:none;border-radius:6px;padding:4px 12px;cursor:pointer;margin-left:8px;" onclick="closePoll()">Close Poll</button></div>
           <div id="poll-results-list"><div style="color:var(--dusty-rose);font-size:13px;">Click Load Results to see current votes.</div></div>
+        </div>
+        <div class="card" style="margin-top:16px;">
+          <div class="card-title">🗂 Recent Polls</div>
+          <div class="info-box">Closed and expired polls with their final results. The app shows a closed poll's results for 3 days. Delete removes a poll from the app right away (handy for a test poll).</div>
+          <div id="poll-recent-list"><div style="color:var(--dusty-rose);font-size:13px;">Loading...</div></div>
         </div>
       </div>
 
@@ -11505,7 +11516,16 @@
     const days = pollExpiry === '3d' ? 3 : pollExpiry === '7d' ? 7 : pollExpiry === '14d' ? 14 : 30;
     const expiresAt = new Date(Date.now() + days*24*60*60*1000).toISOString();
     try {
+      // Only one poll can be open at a time: close any that is still running before launching the new one.
+      const nowIso = new Date().toISOString();
+      const existing = await fs_get_all('polls');
+      const stillOpen = (existing.documents||[]).filter(d => d.fields?.active?.booleanValue !== false && (d.fields?.expiresAt?.stringValue||'') > nowIso);
+      if (stillOpen.length && !confirm('A poll is still open. Launching a new one will close it. Continue?')) return;
+      for (const d of stillOpen) {
+        await fs_patch_strict('polls/' + d.name.split('/').pop(), {active: {booleanValue: false}, closedAt: {stringValue: nowIso}});
+      }
       const data = await fs_post_strict('polls', {
+        notify: {booleanValue: !!(document.getElementById('poll-notify') || {checked:true}).checked},
         question: {stringValue: question},
         options: {arrayValue: {values: options.map(o => ({stringValue: o}))}},
         active: {booleanValue: true},
@@ -11517,6 +11537,7 @@
         setTimeout(()=>document.getElementById('poll-success').style.display='none',3000);
         document.getElementById('poll-question').value = '';
         ['poll-opt-0','poll-opt-1','poll-opt-2','poll-opt-3'].forEach(id=>document.getElementById(id).value='');
+        const pn = document.getElementById('poll-notify'); if (pn) pn.checked = true;
         showToast('Poll launched!', 'success');
         loadPollResults();
       } else { showToast('Poll not created: ' + e.message, 'error'); }
@@ -11526,15 +11547,16 @@
   async function loadPollResults() {
     const list = document.getElementById('poll-results-list');
     list.innerHTML = '<div style="color:var(--dusty-rose);font-size:13px;">Loading...</div>';
+    loadRecentPolls();
     try {
       const now = new Date().toISOString();
-      const res = await fs_get('polls');
+      const res = await fs_get_all('polls');
       const activePoll = (res.documents||[]).find(d => d.fields?.active?.booleanValue !== false && (d.fields?.expiresAt?.stringValue||'') > now);
       if (!activePoll) { list.innerHTML = '<div style="color:var(--dusty-rose);font-size:13px;padding:8px;">No active poll.</div>'; return; }
       const pollId = activePoll.name.split('/').pop();
       const options = (activePoll.fields?.options?.arrayValue?.values||[]).map(v=>v.stringValue);
       const allOptions = [...options, 'Not Sure / No Opinion'];
-      const votesRes = await fs_get('pollVotes');
+      const votesRes = await fs_get_all('pollVotes');
       const votes = (votesRes.documents||[]).filter(d=>d.fields?.pollId?.stringValue===pollId);
       const total = votes.length;
       const expires = new Date(activePoll.fields?.expiresAt?.stringValue||'').toLocaleDateString('en-US',{month:'short',day:'numeric',year:'numeric'});
@@ -11590,6 +11612,50 @@
       showToast('Poll closed.', 'success');
       loadPollResults();
     } catch(e) { showToast('Poll not closed: ' + e.message, 'error'); }
+  }
+
+  // Final results for polls that have closed or expired (the Active card above only shows the open one).
+  async function loadRecentPolls() {
+    const list = document.getElementById('poll-recent-list');
+    if (!list) return;
+    const pe = function(t) { return String(t == null ? '' : t).replace(/[&<>"]/g, function(c) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; }); };
+    try {
+      const now = new Date().toISOString();
+      const [pollsRes, votesRes] = await Promise.all([fs_get_all('polls'), fs_get_all('pollVotes')]);
+      const closed = (pollsRes.documents||[]).filter(d => !(d.fields?.active?.booleanValue !== false && (d.fields?.expiresAt?.stringValue||'') > now));
+      closed.sort(function(a, b) {
+        const ka = (a.fields?.closedAt?.stringValue || a.fields?.expiresAt?.stringValue || '');
+        const kb = (b.fields?.closedAt?.stringValue || b.fields?.expiresAt?.stringValue || '');
+        return kb.localeCompare(ka);
+      });
+      if (!closed.length) { list.innerHTML = '<div style="color:var(--dusty-rose);font-size:13px;">No closed polls yet.</div>'; return; }
+      list.innerHTML = closed.slice(0, 6).map(function(d) {
+        const id = d.name.split('/').pop();
+        const opts = (d.fields?.options?.arrayValue?.values||[]).map(function(v) { return v.stringValue; }).concat(['Not Sure / No Opinion']);
+        const votes = (votesRes.documents||[]).filter(function(v) { return v.fields?.pollId?.stringValue === id; });
+        const total = votes.length;
+        const when = new Date(d.fields?.closedAt?.stringValue || d.fields?.expiresAt?.stringValue || '').toLocaleDateString('en-US', {month:'short', day:'numeric', year:'numeric'});
+        const rows = opts.map(function(opt, i) {
+          const count = votes.filter(function(v) { return (parseInt(v.fields?.optionIndex?.integerValue)||0) === i; }).length;
+          const pct = total > 0 ? Math.round((count/total)*100) : 0;
+          return '<div style="display:flex;justify-content:space-between;font-size:13px;color:var(--soil);margin-bottom:2px;"><span>' + pe(opt) + '</span><span style="color:var(--dusty-rose);">' + pct + '% (' + count + ')</span></div>' +
+            '<div style="height:6px;background:var(--linen);border-radius:3px;margin-bottom:8px;"><div style="height:6px;background:var(--burgundy);border-radius:3px;width:' + pct + '%;"></div></div>';
+        }).join('');
+        return '<div style="padding:12px 0;border-top:1px solid var(--linen);">' +
+          '<div style="font-family:\'Cinzel\',serif;font-size:14px;color:var(--burgundy);margin-bottom:2px;">' + pe(d.fields?.question?.stringValue) + '</div>' +
+          '<div style="font-size:11px;color:var(--dusty-rose);margin-bottom:10px;">Closed ' + pe(when) + ' · ' + total + ' votes</div>' + rows +
+          '<button class="btn btn-outline btn-sm" onclick="deletePoll(\'' + id + '\')">Delete poll</button></div>';
+      }).join('');
+    } catch (e) { list.innerHTML = '<div style="color:var(--dusty-rose);font-size:13px;">Error loading recent polls.</div>'; }
+  }
+
+  async function deletePoll(id) {
+    if (!confirm('Delete this poll? It disappears from the app right away and its results are gone from here too.')) return;
+    try {
+      await fs_delete('polls/' + id);
+      showToast('Poll deleted.', 'success');
+      loadPollResults();
+    } catch (e) { showToast('Poll not deleted: ' + e.message, 'error'); }
   }
 
   async function postFastBlast() {
