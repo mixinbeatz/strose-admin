@@ -1022,6 +1022,15 @@
             <div style="font-size:12px;color:var(--dusty-rose);margin-top:4px;">Automatically detects bold text and marks it with ** -- review the result below before saving.</div>
           </div>
           <div class="form-group">
+            <label class="form-label">Import from the bulletin (PDF or page photo)</label>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;">
+              <span style="font-size:13px;">Page</span>
+              <input type="number" id="ref-ocr-page" value="2" min="1" max="20" class="form-input" style="width:70px;" />
+              <label class="btn btn-outline btn-sm" style="cursor:pointer;display:inline-block;margin:0;">Choose bulletin file<input type="file" accept=".pdf,application/pdf,image/*" style="display:none;" onchange="importBulletinOcr(this,'ref-body')" /></label>
+            </div>
+            <div id="ref-ocr-status" style="font-size:12px;color:var(--dusty-rose);margin-top:4px;">Reads the page top to bottom, left column then right column, and fills the box below. Works on a phone. Takes about 20-40 seconds; skim the result for small misreads, and tap B on any bold words.</div>
+          </div>
+          <div class="form-group">
             <label class="form-label">Full Reflection Text *</label>
             <div class="textarea-toolbar">
               <button type="button" class="toolbar-btn tb-bold" title="Bold" onclick="wrapSelection('ref-body','**')">B</button>
@@ -12857,6 +12866,80 @@
       showToast('Imported! Bold text is marked with ** -- review before saving.', 'success');
     } catch (e) {
       showToast('Could not read that file: ' + (e.message || 'unknown error'), 'error');
+    } finally {
+      input.value = '';
+    }
+  }
+  // ── BULLETIN OCR IMPORT ──
+  // The bulletin PDF's pages are flat Canva images (no text layer), so text
+  // has to be read off the picture. Renders the chosen PDF page (pdf.js) or
+  // photo to a canvas and runs Tesseract (tesseract.js) in the browser. Its
+  // automatic layout mode reads each column top to bottom, left then right.
+  // Libraries load on first use only.
+  function loadScriptOnce(src) {
+    return new Promise(function (resolve, reject) {
+      if (document.querySelector('script[data-lib="' + src + '"]')) return resolve();
+      var el = document.createElement('script');
+      el.src = src; el.setAttribute('data-lib', src);
+      el.onload = function () { resolve(); };
+      el.onerror = function () { reject(new Error('Could not load ' + src)); };
+      document.head.appendChild(el);
+    });
+  }
+  function cleanBulletinOcr(raw) {
+    var blocks = raw.replace(/\r/g, '').split(/\n\s*\n/);
+    var paras = [];
+    blocks.forEach(function (b) {
+      var lines = b.split('\n').map(function (l) {
+        return l.replace(/^\s*[|\-~j]\s+/, '').replace(/\s+[=~|]+\s*$/, '').trim();
+      }).filter(function (l) { return l && /[A-Za-z0-9]/.test(l); });
+      if (!lines.length) return;
+      var text = lines.join(' ').replace(/\s+/g, ' ');
+      var prev = paras.length ? paras[paras.length - 1] : null;
+      if (prev && !/[.!?:\u201d"\u2019')\]]\s*$/.test(prev)) paras[paras.length - 1] = prev + ' ' + text;
+      else paras.push(text);
+    });
+    return paras.join('\n\n');
+  }
+  async function importBulletinOcr(input, textareaId) {
+    var file = input.files && input.files[0];
+    if (!file) return;
+    var status = document.getElementById('ref-ocr-status');
+    var ta = document.getElementById(textareaId);
+    if (ta.value.trim() && !confirm('Replace the text already in the box with the text read from the bulletin?')) { input.value = ''; return; }
+    try {
+      status.textContent = 'Loading the reader...';
+      await loadScriptOnce('https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/5.1.1/tesseract.min.js');
+      var canvas = document.createElement('canvas');
+      if (/pdf$/i.test(file.type) || /\.pdf$/i.test(file.name)) {
+        await loadScriptOnce('https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js');
+        window.pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+        var pdf = await window.pdfjsLib.getDocument({ data: await file.arrayBuffer() }).promise;
+        var n = Math.max(1, Math.min(pdf.numPages, parseInt(document.getElementById('ref-ocr-page').value, 10) || 2));
+        status.textContent = 'Opening page ' + n + ' of ' + pdf.numPages + '...';
+        var page = await pdf.getPage(n);
+        var base = page.getViewport({ scale: 1 });
+        var vp = page.getViewport({ scale: 2400 / base.width });
+        canvas.width = Math.round(vp.width); canvas.height = Math.round(vp.height);
+        await page.render({ canvasContext: canvas.getContext('2d'), viewport: vp }).promise;
+      } else {
+        var bmp = await createImageBitmap(file);
+        var k = Math.min(1, 2800 / bmp.width);
+        canvas.width = Math.round(bmp.width * k); canvas.height = Math.round(bmp.height * k);
+        canvas.getContext('2d').drawImage(bmp, 0, 0, canvas.width, canvas.height);
+      }
+      var res = await window.Tesseract.recognize(canvas, 'eng', {
+        logger: function (m) { if (m.status === 'recognizing text') status.textContent = 'Reading the page... ' + Math.round(m.progress * 100) + '%'; else status.textContent = 'Preparing... (' + m.status + ')'; }
+      });
+      var text = cleanBulletinOcr(res.data.text || '');
+      if (!text) throw new Error('No text found on that page');
+      ta.value = text;
+      ta.dispatchEvent(new Event('input', { bubbles: true }));
+      status.textContent = 'Done. Skim for small misreads (first letter of the first paragraph, odd words), and tap B on any bold words.';
+      showToast('Imported from the bulletin. Please skim before saving.', 'success');
+    } catch (e) {
+      status.textContent = 'Could not read that file: ' + (e.message || 'unknown error');
+      showToast('Could not read the bulletin: ' + (e.message || 'unknown error'), 'error');
     } finally {
       input.value = '';
     }
