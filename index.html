@@ -987,7 +987,7 @@
         </aside></div>
         <div class="card" style="margin-top:16px;" id="ann-active-card">
           <div class="card-title">&#128203; Active Announcements</div>
-          <div class="info-box">Currently live announcements. Delete or edit as needed.</div>
+          <div class="info-box">Currently live announcements. Delete or edit as needed. Use the &uarr; &darr; buttons to set the order phones show on the Home screen (newest app version). A newly posted announcement starts at the top.</div>
           <div style="margin-bottom:8px;"><button class="btn btn-outline btn-sm" onclick="loadActiveAnnouncements()">&#128260; Refresh</button></div>
           <div id="active-announcements-list"><div style="color:var(--dusty-rose);font-size:13px;">Click Refresh to load.</div></div>
         </div>
@@ -12314,6 +12314,39 @@
     window.open(url, '_blank');
   }
 
+  // Order of live announcements: ones posted since the last reorder come first (newest first), then the
+  // hand-ordered ones by position. The app uses the same rule on the Home screen.
+  function annSortOrder(d) { const v = d.fields?.sortOrder?.integerValue; return v === undefined ? null : parseInt(v, 10); }
+  function sortLiveAnnouncements(docs) {
+    return docs.slice().sort((a, b) => {
+      const oa = annSortOrder(a), ob = annSortOrder(b);
+      if (oa === null && ob === null) return (b.fields?.createdAt?.stringValue||'').localeCompare(a.fields?.createdAt?.stringValue||'');
+      if (oa === null) return -1;
+      if (ob === null) return 1;
+      return oa - ob;
+    });
+  }
+  async function moveAnnouncement(id, dir) {
+    try {
+      const res = await fs_get_all('announcements');
+      const now = new Date().toISOString();
+      const live = sortLiveAnnouncements((res.documents||[]).filter(d => !d.fields?.expiresAt?.stringValue || d.fields.expiresAt.stringValue > now));
+      const idx = live.findIndex(d => d.name.split('/').pop() === id);
+      const swap = idx + dir;
+      if (idx < 0 || swap < 0 || swap >= live.length) return;
+      const moved = live.splice(idx, 1)[0];
+      live.splice(swap, 0, moved);
+      // Number every live announcement in its new position, so the order is exact.
+      for (let i = 0; i < live.length; i++) {
+        if (annSortOrder(live[i]) === i + 1) continue;
+        await fs_patch('announcements/' + live[i].name.split('/').pop(), { sortOrder: { integerValue: String(i + 1) } });
+      }
+      showToast('Order updated.', 'success');
+      loadActiveAnnouncements();
+      if (document.getElementById('dashboard-announcements-list')) loadActiveAnnouncements('dashboard-announcements-list');
+    } catch (e) { showToast('Could not change the order.', 'error'); }
+  }
+
   async function loadActiveAnnouncements(targetId) {
     targetId = targetId || 'active-announcements-list';
     const list = document.getElementById(targetId);
@@ -12322,11 +12355,9 @@
     try {
       const res = await fs_get('announcements');
       const now = new Date().toISOString();
-      const docs = (res.documents||[])
-        .filter(d => !d.fields?.expiresAt?.stringValue || d.fields.expiresAt.stringValue > now)
-        .sort((a,b) => (b.fields?.createdAt?.stringValue||'').localeCompare(a.fields?.createdAt?.stringValue||''));
+      const docs = sortLiveAnnouncements((res.documents||[]).filter(d => !d.fields?.expiresAt?.stringValue || d.fields.expiresAt.stringValue > now));
       if (docs.length === 0) { list.innerHTML = '<div style="color:var(--dusty-rose);font-size:13px;padding:8px;">No active announcements.</div>'; return; }
-      list.innerHTML = docs.map(doc => {
+      list.innerHTML = docs.map((doc, i) => {
         const id = doc.name.split('/').pop();
         const title = doc.fields?.title?.stringValue || '';
         const body = doc.fields?.body?.stringValue || '';
@@ -12337,6 +12368,8 @@
           <div style="font-size:12px;color:var(--soil);line-height:1.5;margin-bottom:6px;">${body.substring(0,100)}${body.length>100?'...':''}</div>
           <div style="font-size:11px;color:var(--dusty-rose);margin-bottom:8px;">Expires ${expires}${link ? ' · 🔗 ' + escHtml(link) : ''}</div>
           <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn btn-outline btn-sm" title="Move up" ${i===0?'disabled style="opacity:0.4;"':''} onclick="moveAnnouncement('${id}',-1)">&uarr;</button>
+            <button class="btn btn-outline btn-sm" title="Move down" ${i===docs.length-1?'disabled style="opacity:0.4;"':''} onclick="moveAnnouncement('${id}',1)">&darr;</button>
             <button class="btn btn-outline btn-sm" onclick="editAnnouncement('${id}')">Edit</button>
             <button class="btn btn-sm" style="background:#8B2635;color:#E8DDD0;border:none;border-radius:6px;padding:4px 12px;cursor:pointer;" onclick="deleteAnnouncement('${id}')">Delete</button>
           </div>
