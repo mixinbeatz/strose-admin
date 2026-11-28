@@ -12928,9 +12928,19 @@
         canvas.width = Math.round(bmp.width * k); canvas.height = Math.round(bmp.height * k);
         canvas.getContext('2d').drawImage(bmp, 0, 0, canvas.width, canvas.height);
       }
-      var res = await window.Tesseract.recognize(canvas, 'eng', {
+      // Page-segmentation mode 3 = automatic layout: finds the columns and reads
+      // each top to bottom. (tesseract.js defaults to single-block mode, which
+      // reads straight across both columns and scrambles the text.)
+      var worker = await window.Tesseract.createWorker('eng', 1, {
         logger: function (m) { if (m.status === 'recognizing text') status.textContent = 'Reading the page... ' + Math.round(m.progress * 100) + '%'; else status.textContent = 'Preparing... (' + m.status + ')'; }
       });
+      var res;
+      try {
+        await worker.setParameters({ tessedit_pageseg_mode: '3' });
+        res = await worker.recognize(canvas);
+      } finally {
+        try { await worker.terminate(); } catch (_) {}
+      }
       var text = cleanBulletinOcr(res.data.text || '');
       if (!text) throw new Error('No text found on that page');
       ta.value = text;
