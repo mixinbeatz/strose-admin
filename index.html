@@ -10871,16 +10871,19 @@
         .filter(d => gf(d,'date') >= now)
         .sort((a,b) => gf(a,'date').localeCompare(gf(b,'date')) || timeToMinutes(gf(a,'mass')) - timeToMinutes(gf(b,'mass')));
       if(items.length === 0) { list.innerHTML = '<div style="color:var(--dusty-rose);font-size:14px;">No upcoming intentions posted.</div>'; return; }
+      window._intentionData = {};
       list.innerHTML = items.map(doc => {
         const id = docId(doc);
         const date = gf(doc,'date');
         const mass = gf(doc,'mass');
         const intention = gf(doc,'intention');
+        window._intentionData[id] = {date: date, mass: mass, intention: intention};
         const dt = new Date(date + 'T12:00:00');
         const label = dt.toLocaleDateString('en-US', {weekday:'short', month:'short', day:'numeric'});
         return '<div class="event-row" id="introw-' + id + '">' +
           '<div class="event-row-date"><div style="font-size:11px;">' + label.split(' ')[0].toUpperCase() + '</div><div style="font-size:18px;">' + dt.getDate() + '</div></div>' +
           '<div class="event-row-info"><div class="event-row-title">' + intention + '</div><div class="event-row-meta">' + mass + '</div></div>' +
+          '<button class="btn btn-outline btn-sm" style="margin-right:6px;" onclick="editIntention(\'' + id + '\');">Edit</button>' +
           '<button class="btn btn-danger btn-sm" onclick="deleteIntention(\'' + id + '\');">Delete</button>' +
           '</div>';
       }).join('');
@@ -11367,6 +11370,43 @@
     document.getElementById('bulk-import-btn').style.display = 'none';
     document.getElementById('bulletin-paste-text').value = '';
     document.getElementById('bulletin-paste-year').value = '';
+  }
+  // Inline edit for an upcoming Mass intention: swaps the row for a small form
+  // (date, Mass time, intention) and saves with a PATCH that touches only those
+  // three fields. The Mass-time list matches the Single Entry dropdown, plus the
+  // row's current value if it isn't one of them (bulletin pastes save it in caps).
+  function editIntention(id) {
+    const row = document.getElementById('introw-' + id);
+    const d = (window._intentionData || {})[id];
+    if (!row || !d) return;
+    const masses = ['7:30 AM Daily Mass','12:15 PM Noon Mass','4:00 PM Vigil Mass','8:00 AM Sunday Mass','11:00 AM Sunday Mass','6:00 PM Wednesday Mass'];
+    if (masses.indexOf(d.mass) === -1 && d.mass) masses.unshift(d.mass);
+    const esc = function (t) { return String(t || '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;'); };
+    row.style.display = 'block';
+    row.innerHTML =
+      '<div class="form-group"><label class="form-label">Date</label><input type="date" class="form-input" id="intedit-date-' + id + '" value="' + esc(d.date) + '" /></div>' +
+      '<div class="form-group"><label class="form-label">Mass Time</label><select class="form-input" id="intedit-mass-' + id + '">' +
+        masses.map(function (m) { return '<option value="' + esc(m) + '"' + (m === d.mass ? ' selected' : '') + '>' + esc(m) + '</option>'; }).join('') +
+      '</select></div>' +
+      '<div class="form-group"><label class="form-label">Intention</label><input type="text" class="form-input" id="intedit-text-' + id + '" value="' + esc(d.intention) + '" /></div>' +
+      '<button class="btn btn-primary btn-sm" style="margin-right:8px;" onclick="saveIntentionEdit(\'' + id + '\')">Save</button>' +
+      '<button class="btn btn-outline btn-sm" onclick="loadIntentions()">Cancel</button>';
+    const t = document.getElementById('intedit-text-' + id); if (t) t.focus();
+  }
+  async function saveIntentionEdit(id) {
+    const date = document.getElementById('intedit-date-' + id).value;
+    const mass = document.getElementById('intedit-mass-' + id).value;
+    const text = document.getElementById('intedit-text-' + id).value.trim();
+    if (!date || !text) { showToast('Please fill in date and intention.', 'error'); return; }
+    try {
+      await fs_patch_strict('massIntentions/' + id, {
+        date: {stringValue: date},
+        mass: {stringValue: mass},
+        intention: {stringValue: text}
+      });
+      showToast('Intention updated.', 'success');
+      loadIntentions();
+    } catch (e) { showToast('Could not save: ' + (e.message || 'error'), 'error'); }
   }
   async function deleteIntention(id) {
     if(!confirm('Delete this intention?')) return;
